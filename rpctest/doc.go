@@ -7,10 +7,10 @@
 //
 // A Harness, as defined in rpcharness.go, manages a SimNet node and a wallet
 // that connects to the node. (*Harness).SetUp does the following:
-//   1. Start a new dcrd process with a fresh SimNet chain.
+//   1. Start a new ndrd process with a fresh SimNet chain.
 //   2. Create a new temporary wallet connected to the running node.
 //   3. Get a new address from the wallet for mining subsidy.
-//   4. Restart dcrd with miningaddr set.
+//   4. Restart ndrd with miningaddr set.
 //   5. Generate a number of blocks so that testing starts with a spendable
 //      balance.
 //

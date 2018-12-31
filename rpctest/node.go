@@ -16,12 +16,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/decred/dcrd/certgen"
-	rpc "github.com/decred/dcrd/rpcclient"
-	"github.com/decred/dcrd/wire"
+	"github.com/endurio/ndrd/certgen"
+	rpc "github.com/endurio/ndrd/rpcclient"
+	"github.com/endurio/ndrd/wire"
 )
 
-// nodeConfig contains all the args, and data required to launch a dcrd process
+// nodeConfig contains all the args, and data required to launch a ndrd process
 // and connect the rpc client to it.
 type nodeConfig struct {
 	rpcUser    string
@@ -52,7 +52,7 @@ func newConfig(appDataDir, certFile, keyFile string, extra []string) (*nodeConfi
 		extra:      extra,
 		appDataDir: appDataDir,
 
-		exe:      "dcrd",
+		exe:      "ndrd",
 		endpoint: "ws",
 		certFile: certFile,
 		keyFile:  keyFile,
@@ -76,7 +76,7 @@ func (n *nodeConfig) setDefaults() error {
 }
 
 // arguments returns an array of arguments that be used to launch the
-// dcrd process.
+// ndrd process.
 func (n *nodeConfig) arguments() []string {
 	args := []string{}
 	// --simnet
@@ -120,13 +120,13 @@ func (n *nodeConfig) arguments() []string {
 	return args
 }
 
-// command returns the exec.Cmd which will be used to start the dcrd process.
+// command returns the exec.Cmd which will be used to start the ndrd process.
 func (n *nodeConfig) command() *exec.Cmd {
 	return exec.Command(n.exe, n.arguments()...)
 }
 
 // rpcConnConfig returns the rpc connection config that can be used
-// to connect to the dcrd process that is launched via Start().
+// to connect to the ndrd process that is launched via Start().
 func (n *nodeConfig) rpcConnConfig() rpc.ConnConfig {
 	return rpc.ConnConfig{
 		Host:                 n.rpcListen,
@@ -149,7 +149,7 @@ func (n *nodeConfig) cleanup() error {
 }
 
 // node houses the neccessary state required to configure, launch, and manaage
-// a dcrd process.
+// a ndrd process.
 type node struct {
 	config *nodeConfig
 
@@ -161,7 +161,7 @@ type node struct {
 
 // newNode creates a new node instance according to the passed config. dataDir
 // will be used to hold a file recording the pid of the launched process, and
-// as the base for the log and data directories for dcrd.
+// as the base for the log and data directories for ndrd.
 func newNode(config *nodeConfig, dataDir string) (*node, error) {
 	return &node{
 		config:  config,
@@ -170,7 +170,7 @@ func newNode(config *nodeConfig, dataDir string) (*node, error) {
 	}, nil
 }
 
-// Start creates a new dcrd process, and writes its pid in a file reserved for
+// Start creates a new ndrd process, and writes its pid in a file reserved for
 // recording the pid of the launched process. This file can ue used to terminate
 // the procress in case of a hang, or panic. In the case of a failing test case,
 // or panic, it is important that the process be stopped via stop(), otherwise,
@@ -208,7 +208,7 @@ func (n *node) CertFile() string {
 	return n.config.certFile
 }
 
-// Stop interrupts the running dcrd process, and waits until it exits properly.
+// Stop interrupts the running ndrd process, and waits until it exits properly.
 // On windows, interrupt is not supported, so a kill signal is used instead.
 func (n *node) Stop() error {
 	if n.cmd == nil || n.cmd.Process == nil {

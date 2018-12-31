@@ -12,16 +12,16 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/gcs"
-	"github.com/decred/dcrd/wire"
-	"github.com/decred/dcrwallet/errors"
-	"github.com/decred/dcrwallet/wallet"
+	"github.com/endurio/ndrd/chaincfg/chainhash"
+	"github.com/endurio/ndrd/gcs"
+	"github.com/endurio/ndrd/wire"
+	"github.com/endurio/ndrw/errors"
+	"github.com/endurio/ndrw/wallet"
 	"golang.org/x/sync/errgroup"
 )
 
 // RPCSyncer implements wallet synchronization services by processing
-// notifications from a dcrd JSON-RPC server.
+// notifications from a ndrd JSON-RPC server.
 type RPCSyncer struct {
 	atomicWalletSynced uint32 // CAS (synced=1) when wallet syncing complete
 
@@ -156,7 +156,7 @@ func (s *RPCSyncer) rescanFinished() {
 // Run synchronizes the wallet, returning when synchronization fails or the
 // context is cancelled.  If startupSync is true, all synchronization tasks
 // needed to fully register the wallet for notifications and synchronize it with
-// the dcrd server are performed.  Otherwise, it will listen for notifications
+// the ndrd server are performed.  Otherwise, it will listen for notifications
 // but not register for any updates.
 func (s *RPCSyncer) Run(ctx context.Context, startupSync bool) error {
 	const op errors.Op = "rpcsyncer.Run"
@@ -199,7 +199,7 @@ func (s *RPCSyncer) Run(ctx context.Context, startupSync bool) error {
 	g.Go(func() error {
 		err := s.rpcClient.NotifySpentAndMissedTickets()
 		if err != nil {
-			const op errors.Op = "dcrd.jsonrpc.notifyspentandmissedtickets"
+			const op errors.Op = "ndrd.jsonrpc.notifyspentandmissedtickets"
 			return errors.E(op, err)
 		}
 
@@ -207,7 +207,7 @@ func (s *RPCSyncer) Run(ctx context.Context, startupSync bool) error {
 			// Request notifications for winning tickets.
 			err := s.rpcClient.NotifyWinningTickets()
 			if err != nil {
-				const op errors.Op = "dcrd.jsonrpc.notifywinningtickets"
+				const op errors.Op = "ndrd.jsonrpc.notifywinningtickets"
 				return errors.E(op, err)
 			}
 
@@ -251,7 +251,7 @@ func (s *RPCSyncer) handleNotifications(ctx context.Context) error {
 			nonFatal := false
 			switch n := n.(type) {
 			case blockConnected:
-				op = "dcrd.jsonrpc.blockconnected"
+				op = "ndrd.jsonrpc.blockconnected"
 				header := new(wire.BlockHeader)
 				err = header.Deserialize(bytes.NewReader(n.blockHeader))
 				if err != nil {
@@ -324,7 +324,7 @@ func (s *RPCSyncer) handleNotifications(ctx context.Context) error {
 				continue // These notifications are ignored
 
 			case relevantTxAccepted:
-				op = "dcrd.jsonrpc.relevanttxaccepted"
+				op = "ndrd.jsonrpc.relevanttxaccepted"
 				nonFatal = true
 				var rpt *chainhash.Hash
 				rpt, err = s.wallet.RescanPoint()
@@ -334,7 +334,7 @@ func (s *RPCSyncer) handleNotifications(ctx context.Context) error {
 				err = s.wallet.AcceptMempoolTx(n.transaction)
 
 			case missedTickets:
-				op = "dcrd.jsonrpc.spentandmissedtickets"
+				op = "ndrd.jsonrpc.spentandmissedtickets"
 				err = s.wallet.RevokeOwnedTickets(n.tickets)
 				nonFatal = true
 
@@ -374,7 +374,7 @@ func (s *RPCSyncer) handleVoteNotifications(ctx context.Context) error {
 			var err error
 			switch n := n.(type) {
 			case winningTickets:
-				op = "dcrd.jsonrpc.winningtickets"
+				op = "ndrd.jsonrpc.winningtickets"
 				err = s.wallet.VoteOnOwnedTickets(n.tickets, n.blockHash, int32(n.blockHeight))
 			default:
 				log.Warnf("Voting handler received unknown notification type %T", n)
@@ -432,7 +432,7 @@ func (s *RPCSyncer) startupSync(ctx context.Context) error {
 	// Request notifications for connected and disconnected blocks.
 	err := s.rpcClient.NotifyBlocks()
 	if err != nil {
-		const op errors.Op = "dcrd.jsonrpc.notifyblocks"
+		const op errors.Op = "ndrd.jsonrpc.notifyblocks"
 		return errors.E(op, err)
 	}
 
@@ -449,7 +449,7 @@ func (s *RPCSyncer) startupSync(ctx context.Context) error {
 			return err
 		}
 		var headers []*wire.BlockHeader
-		err := ctxdo(ctx, "dcrd.jsonrpc.getheaders", func() error {
+		err := ctxdo(ctx, "ndrd.jsonrpc.getheaders", func() error {
 			headersMsg, err := s.rpcClient.GetHeaders(locators, &hashStop)
 			if err != nil {
 				return err
@@ -481,7 +481,7 @@ func (s *RPCSyncer) startupSync(ctx context.Context) error {
 				hash := header.BlockHash()
 				var filter *gcs.Filter
 				err := ctxdo(ctx, "", func() error {
-					const opf = "dcrd.jsonrpc.getcfilter(%v)"
+					const opf = "ndrd.jsonrpc.getcfilter(%v)"
 					var err error
 					filter, err = s.rpcClient.GetCFilter(&hash, wire.GCSFilterRegular)
 					if err != nil {
@@ -625,12 +625,12 @@ func (s *RPCSyncer) startupSync(ctx context.Context) error {
 
 	_, err = s.rpcClient.RawRequest("rebroadcastwinners", nil)
 	if err != nil {
-		const op errors.Op = "dcrd.jsonrpc.rebroadcastwinners"
+		const op errors.Op = "ndrd.jsonrpc.rebroadcastwinners"
 		return errors.E(op, err)
 	}
 	_, err = s.rpcClient.RawRequest("rebroadcastmissed", nil)
 	if err != nil {
-		const op errors.Op = "dcrd.jsonrpc.rebroadcastmissed"
+		const op errors.Op = "ndrd.jsonrpc.rebroadcastmissed"
 		return errors.E(op, err)
 	}
 

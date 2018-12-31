@@ -1,15 +1,15 @@
-module github.com/decred/dcrwallet/p2p
+module github.com/endurio/ndrw/p2p
 
 require (
-	github.com/decred/dcrd/addrmgr v1.0.2
-	github.com/decred/dcrd/chaincfg v1.2.0
-	github.com/decred/dcrd/chaincfg/chainhash v1.0.1
-	github.com/decred/dcrd/connmgr v1.0.2
-	github.com/decred/dcrd/gcs v1.0.2
-	github.com/decred/dcrd/wire v1.2.0
-	github.com/decred/dcrwallet/errors v1.0.1
-	github.com/decred/dcrwallet/lru v1.0.0
-	github.com/decred/dcrwallet/version v1.0.1
+	github.com/endurio/ndrd/addrmgr v1.0.2
+	github.com/endurio/ndrd/chaincfg v1.2.0
+	github.com/endurio/ndrd/chaincfg/chainhash v1.0.1
+	github.com/endurio/ndrd/connmgr v1.0.2
+	github.com/endurio/ndrd/gcs v1.0.2
+	github.com/endurio/ndrd/wire v1.2.0
+	github.com/endurio/ndrw/errors v1.0.1
+	github.com/endurio/ndrw/lru v1.0.0
+	github.com/endurio/ndrw/version v1.0.1
 	github.com/decred/slog v1.0.0
 	github.com/fsnotify/fsnotify v1.4.7 // indirect
 	github.com/golang/protobuf v1.2.0 // indirect

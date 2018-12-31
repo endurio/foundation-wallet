@@ -25,7 +25,7 @@ encryption will extend to transactions as well.
 
 dcrwallet provides two modes of operation to connect to the Decred
 network.  The first (and default) is to communicate with a single
-trusted `dcrd` instance using JSON-RPC.  The second is a
+trusted `ndrd` instance using JSON-RPC.  The second is a
 privacy-preserving Simplified Payment Verification (SPV) mode (enabled
 with the `--spv` flag) where the wallet connects either to specified
 peers (with `--spvconnect`) or peers discovered from seeders and other
@@ -72,7 +72,7 @@ Wallet clients interact with the wallet using one of two RPC servers:
 
 Binary releases are provided for common operating systems and architectures:
 
-https://github.com/decred/decred-binaries/releases
+https://github.com/endurio/endurio-binaries/releases
 
 ### Build from source (all platforms)
 
@@ -108,7 +108,7 @@ root directory.  Some notes:
 All tests and linters may be run in a docker container using the script
 `run_tests.sh`.  This script defaults to using the current supported version of
 go.  You can run it with the major version of go you would like to use as the
-only arguement to test a previous on a previous version of go (generally decred
+only arguement to test a previous on a previous version of go (generally endurio
 supports the current version of go and the previous one).
 
 ```
@@ -124,13 +124,13 @@ To run the tests locally without docker:
 ## Getting Started
 
 The following instructions detail how to get started with dcrwallet connecting
-to a localhost dcrd.  Commands should be run in `cmd.exe` or PowerShell on
+to a localhost ndrd.  Commands should be run in `cmd.exe` or PowerShell on
 Windows, or any terminal emulator on *nix.
 
-- Run the following command to start dcrd:
+- Run the following command to start ndrd:
 
 ```
-dcrd -u rpcuser -P rpcpass
+ndrd -u rpcuser -P rpcpass
 ```
 
 - Run the following command to create a wallet:
@@ -146,28 +146,28 @@ dcrwallet -u rpcuser -P rpcpass
 ```
 
 If everything appears to be working, it is recommended at this point to
-copy the sample dcrd and dcrwallet configurations and update with your
+copy the sample ndrd and dcrwallet configurations and update with your
 RPC username and password.
 
 PowerShell (Installed from source):
 ```
-PS> cp $env:GOPATH\src\github.com\decred\dcrd\sample-dcrd.conf $env:LOCALAPPDATA\Dcrd\dcrd.conf
-PS> cp $env:GOPATH\src\github.com\decred\dcrwallet\sample-dcrwallet.conf $env:LOCALAPPDATA\Dcrwallet\dcrwallet.conf
-PS> $editor $env:LOCALAPPDATA\Dcrd\dcrd.conf
+PS> cp $env:GOPATH\src\github.com\endurio\ndrd\sample-ndrd.conf $env:LOCALAPPDATA\Dcrd\ndrd.conf
+PS> cp $env:GOPATH\src\github.com\endurio\dcrwallet\sample-dcrwallet.conf $env:LOCALAPPDATA\Dcrwallet\dcrwallet.conf
+PS> $editor $env:LOCALAPPDATA\Dcrd\ndrd.conf
 PS> $editor $env:LOCALAPPDATA\Dcrwallet\dcrwallet.conf
 ```
 
 Linux/BSD/POSIX (Installed from source):
 ```bash
-$ cp $GOPATH/src/github.com/decred/dcrd/sample-dcrd.conf ~/.dcrd/dcrd.conf
-$ cp $GOPATH/src/github.com/decred/dcrwallet/sample-dcrwallet.conf ~/.dcrwallet/dcrwallet.conf
-$ $EDITOR ~/.dcrd/dcrd.conf
+$ cp $GOPATH/src/github.com/endurio/ndrd/sample-ndrd.conf ~/.ndrd/ndrd.conf
+$ cp $GOPATH/src/github.com/endurio/ndrw/sample-dcrwallet.conf ~/.dcrwallet/dcrwallet.conf
+$ $EDITOR ~/.ndrd/ndrd.conf
 $ $EDITOR ~/.dcrwallet/dcrwallet.conf
 ```
 
 ## Issue Tracker
 
-The [integrated github issue tracker](https://github.com/decred/dcrwallet/issues)
+The [integrated github issue tracker](https://github.com/endurio/ndrw/issues)
 is used for this project.
 
 ## License

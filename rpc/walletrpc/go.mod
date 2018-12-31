@@ -1,4 +1,4 @@
-module github.com/decred/dcrwallet/rpc/walletrpc
+module github.com/endurio/ndrw/rpc/walletrpc
 
 require (
 	github.com/golang/protobuf v1.2.0

@@ -7,11 +7,11 @@ package udb
 import (
 	"testing"
 
-	"github.com/decred/dcrd/chaincfg"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/hdkeychain"
-	"github.com/decred/dcrwallet/errors"
-	"github.com/decred/dcrwallet/wallet/walletdb"
+	"github.com/endurio/ndrd/chaincfg"
+	"github.com/endurio/ndrd/dcrutil"
+	"github.com/endurio/ndrd/hdkeychain"
+	"github.com/endurio/ndrw/errors"
+	"github.com/endurio/ndrw/wallet/walletdb"
 )
 
 func TestCoinTypes(t *testing.T) {

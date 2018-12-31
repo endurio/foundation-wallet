@@ -14,15 +14,15 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/decred/dcrd/chaincfg"
-	"github.com/decred/dcrd/hdkeychain"
-	"github.com/decred/dcrd/wire"
-	"github.com/decred/dcrwallet/errors"
-	"github.com/decred/dcrwallet/internal/prompt"
-	"github.com/decred/dcrwallet/loader"
-	"github.com/decred/dcrwallet/wallet"
-	_ "github.com/decred/dcrwallet/wallet/drivers/bdb"
-	"github.com/decred/dcrwallet/walletseed"
+	"github.com/endurio/ndrd/chaincfg"
+	"github.com/endurio/ndrd/hdkeychain"
+	"github.com/endurio/ndrd/wire"
+	"github.com/endurio/ndrw/errors"
+	"github.com/endurio/ndrw/internal/prompt"
+	"github.com/endurio/ndrw/loader"
+	"github.com/endurio/ndrw/wallet"
+	_ "github.com/endurio/ndrw/wallet/drivers/bdb"
+	"github.com/endurio/ndrw/walletseed"
 )
 
 // networkDir returns the directory name of a network directory to hold wallet

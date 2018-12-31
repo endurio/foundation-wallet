@@ -29,9 +29,9 @@ if [[ ! "$DOCKER" ]]; then
     exit
 fi
 
-DOCKER_IMAGE_TAG=decred-golang-builder-$GOVERSION
-$DOCKER pull decred/$DOCKER_IMAGE_TAG
-$DOCKER run --rm -it -v $(pwd):/src:Z decred/$DOCKER_IMAGE_TAG /bin/bash -c "\
+DOCKER_IMAGE_TAG=endurio-golang-builder-$GOVERSION
+$DOCKER pull endurio/$DOCKER_IMAGE_TAG
+$DOCKER run --rm -it -v $(pwd):/src:Z endurio/$DOCKER_IMAGE_TAG /bin/bash -c "\
   cp -R /src ~/src && \
   cd ~/src && \
   env GOVERSION=$GOVERSION bash ./run_tests.sh"

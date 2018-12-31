@@ -7,14 +7,14 @@ package wallet
 import (
 	"context"
 
-	"github.com/decred/dcrd/chaincfg"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/hdkeychain"
-	"github.com/decred/dcrd/txscript"
-	"github.com/decred/dcrwallet/errors"
-	"github.com/decred/dcrwallet/wallet/internal/txsizes"
-	"github.com/decred/dcrwallet/wallet/udb"
-	"github.com/decred/dcrwallet/wallet/walletdb"
+	"github.com/endurio/ndrd/chaincfg"
+	"github.com/endurio/ndrd/dcrutil"
+	"github.com/endurio/ndrd/hdkeychain"
+	"github.com/endurio/ndrd/txscript"
+	"github.com/endurio/ndrw/errors"
+	"github.com/endurio/ndrw/wallet/internal/txsizes"
+	"github.com/endurio/ndrw/wallet/udb"
+	"github.com/endurio/ndrw/wallet/walletdb"
 )
 
 // DefaultGapLimit is the default unused address gap limit defined by BIP0044.

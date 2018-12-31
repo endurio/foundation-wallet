@@ -3,5 +3,5 @@
 // license that can be found in the LICENSE file.
 
 // Package ticketbuyer provides an implementation of automatic ticket
-// purchasing for a decred wallet.
+// purchasing for a endurio wallet.
 package ticketbuyer

@@ -9,16 +9,16 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/gcs"
-	"github.com/decred/dcrd/gcs/blockcf"
-	"github.com/decred/dcrd/txscript"
-	"github.com/decred/dcrd/wire"
-	"github.com/decred/dcrwallet/errors"
-	"github.com/decred/dcrwallet/p2p"
-	"github.com/decred/dcrwallet/validate"
-	"github.com/decred/dcrwallet/wallet"
+	"github.com/endurio/ndrd/chaincfg/chainhash"
+	"github.com/endurio/ndrd/dcrutil"
+	"github.com/endurio/ndrd/gcs"
+	"github.com/endurio/ndrd/gcs/blockcf"
+	"github.com/endurio/ndrd/txscript"
+	"github.com/endurio/ndrd/wire"
+	"github.com/endurio/ndrw/errors"
+	"github.com/endurio/ndrw/p2p"
+	"github.com/endurio/ndrw/validate"
+	"github.com/endurio/ndrw/wallet"
 )
 
 var _ wallet.NetworkBackend = (*Syncer)(nil)

@@ -12,8 +12,8 @@ import (
 	"io"
 	"runtime/debug"
 
-	"github.com/decred/dcrwallet/errors"
-	"github.com/decred/dcrwallet/internal/zero"
+	"github.com/endurio/ndrw/errors"
+	"github.com/endurio/ndrw/internal/zero"
 	"golang.org/x/crypto/nacl/secretbox"
 	"golang.org/x/crypto/scrypt"
 )

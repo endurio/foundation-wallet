@@ -8,13 +8,13 @@ import (
 	"math/big"
 	"sort"
 
-	"github.com/decred/dcrd/blockchain"
-	"github.com/decred/dcrd/chaincfg"
-	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/gcs"
-	"github.com/decred/dcrd/wire"
-	"github.com/decred/dcrwallet/errors"
-	"github.com/decred/dcrwallet/wallet/walletdb"
+	"github.com/endurio/ndrd/blockchain"
+	"github.com/endurio/ndrd/chaincfg"
+	"github.com/endurio/ndrd/chaincfg/chainhash"
+	"github.com/endurio/ndrd/gcs"
+	"github.com/endurio/ndrd/wire"
+	"github.com/endurio/ndrw/errors"
+	"github.com/endurio/ndrw/wallet/walletdb"
 )
 
 // SidechainForest provides in-memory management of sidechain and orphan blocks.

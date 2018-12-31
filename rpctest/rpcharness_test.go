@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The decred developers
+// Copyright (c) 2016 The endurio developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 package rpctest
@@ -16,14 +16,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/decred/dcrd/blockchain/stake"
-	"github.com/decred/dcrd/chaincfg"
-	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrjson"
-	"github.com/decred/dcrd/dcrutil"
-	dcrrpcclient "github.com/decred/dcrd/rpcclient"
-	"github.com/decred/dcrd/txscript"
-	"github.com/decred/dcrd/wire"
+	"github.com/endurio/ndrd/blockchain/stake"
+	"github.com/endurio/ndrd/chaincfg"
+	"github.com/endurio/ndrd/chaincfg/chainhash"
+	"github.com/endurio/ndrd/dcrjson"
+	"github.com/endurio/ndrd/dcrutil"
+	dcrrpcclient "github.com/endurio/ndrd/rpcclient"
+	"github.com/endurio/ndrd/txscript"
+	"github.com/endurio/ndrd/wire"
 )
 
 type rpcTestCase func(r *Harness, t *testing.T)

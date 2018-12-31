@@ -9,13 +9,13 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/decred/dcrd/chaincfg"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrwallet/chain"
-	"github.com/decred/dcrwallet/errors"
-	"github.com/decred/dcrwallet/ticketbuyer"
-	"github.com/decred/dcrwallet/wallet"
-	_ "github.com/decred/dcrwallet/wallet/drivers/bdb" // driver loaded during init
+	"github.com/endurio/ndrd/chaincfg"
+	"github.com/endurio/ndrd/dcrutil"
+	"github.com/endurio/ndrw/chain"
+	"github.com/endurio/ndrw/errors"
+	"github.com/endurio/ndrw/ticketbuyer"
+	"github.com/endurio/ndrw/wallet"
+	_ "github.com/endurio/ndrw/wallet/drivers/bdb" // driver loaded during init
 )
 
 const (
@@ -441,7 +441,7 @@ func (l *Loader) StartTicketPurchase(passphrase []byte, ticketbuyerCfg *ticketbu
 
 	c, err := chain.RPCClientFromBackend(l.backend)
 	if err != nil {
-		return errors.E(op, errors.Invalid, "dcrd RPC client must be loaded")
+		return errors.E(op, errors.Invalid, "ndrd RPC client must be loaded")
 	}
 
 	w := l.wallet

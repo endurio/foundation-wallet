@@ -5,15 +5,15 @@
 package wallet
 
 import (
-	"github.com/decred/dcrd/dcrec"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/txscript"
-	"github.com/decred/dcrd/wire"
-	"github.com/decred/dcrwallet/errors"
-	"github.com/decred/dcrwallet/wallet/internal/txsizes"
-	"github.com/decred/dcrwallet/wallet/walletdb"
-	"github.com/decred/dcrwallet/wallet/txrules"
-	"github.com/decred/dcrwallet/wallet/udb"
+	"github.com/endurio/ndrd/dcrec"
+	"github.com/endurio/ndrd/dcrutil"
+	"github.com/endurio/ndrd/txscript"
+	"github.com/endurio/ndrd/wire"
+	"github.com/endurio/ndrw/errors"
+	"github.com/endurio/ndrw/wallet/internal/txsizes"
+	"github.com/endurio/ndrw/wallet/walletdb"
+	"github.com/endurio/ndrw/wallet/txrules"
+	"github.com/endurio/ndrw/wallet/udb"
 )
 
 // MakeSecp256k1MultiSigScript creates a multi-signature script that can be

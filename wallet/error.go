@@ -1,7 +1,7 @@
 package wallet
 
 import (
-	"github.com/decred/dcrwallet/errors"
+	"github.com/endurio/ndrw/errors"
 )
 
 type operation struct {

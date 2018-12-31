@@ -13,9 +13,9 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/decred/dcrd/wire"
+	"github.com/endurio/ndrd/wire"
 
-	rpc "github.com/decred/dcrd/rpcclient"
+	rpc "github.com/endurio/ndrd/rpcclient"
 )
 
 // walletTestConfig contains all the args, and data required to launch a dcrwallet process

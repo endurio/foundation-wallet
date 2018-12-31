@@ -7,8 +7,8 @@ package wallet
 import (
 	"io"
 
-	"github.com/decred/dcrwallet/errors"
-	"github.com/decred/dcrwallet/wallet/walletdb"
+	"github.com/endurio/ndrw/errors"
+	"github.com/endurio/ndrw/wallet/walletdb"
 )
 
 // DB represents an ACID database for a wallet.

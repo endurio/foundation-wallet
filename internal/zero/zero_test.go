@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/decred/dcrwallet/errors"
+	"github.com/endurio/ndrw/errors"
 )
 
 func makeOneBytes(n int) []byte {

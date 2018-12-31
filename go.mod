@@ -1,34 +1,34 @@
-module github.com/decred/dcrwallet
+module github.com/endurio/ndrw
 
 require (
 	github.com/dchest/siphash v1.2.1 // indirect
-	github.com/decred/dcrd/addrmgr v1.0.2
-	github.com/decred/dcrd/blockchain v1.1.1
-	github.com/decred/dcrd/blockchain/stake v1.1.0
-	github.com/decred/dcrd/certgen v1.0.2
-	github.com/decred/dcrd/chaincfg v1.2.1
-	github.com/decred/dcrd/chaincfg/chainhash v1.0.1
-	github.com/decred/dcrd/connmgr v1.0.2
-	github.com/decred/dcrd/dcrec v0.0.0-20181212181811-1a370d38d671
-	github.com/decred/dcrd/dcrjson v1.1.0
-	github.com/decred/dcrd/dcrutil v1.2.0
-	github.com/decred/dcrd/hdkeychain v1.1.1
-	github.com/decred/dcrd/rpcclient v1.1.0
-	github.com/decred/dcrd/txscript v1.0.2
-	github.com/decred/dcrd/wire v1.2.0
-	github.com/decred/dcrwallet/chain v1.1.0
-	github.com/decred/dcrwallet/errors v1.0.1
-	github.com/decred/dcrwallet/internal/helpers v1.0.1
-	github.com/decred/dcrwallet/internal/zero v1.0.1
-	github.com/decred/dcrwallet/p2p v1.0.1
-	github.com/decred/dcrwallet/rpc/walletrpc v0.2.0
-	github.com/decred/dcrwallet/spv v1.1.0
-	github.com/decred/dcrwallet/ticketbuyer v1.0.2
-	github.com/decred/dcrwallet/ticketbuyer/v2 v2.0.1
-	github.com/decred/dcrwallet/version v1.0.1
-	github.com/decred/dcrwallet/wallet v1.1.0
-	github.com/decred/dcrwallet/walletseed v1.0.1
 	github.com/decred/slog v1.0.0
+	github.com/endurio/ndrd/addrmgr v1.0.2
+	github.com/endurio/ndrd/blockchain v1.1.1
+	github.com/endurio/ndrd/blockchain/stake v1.1.0
+	github.com/endurio/ndrd/certgen v1.0.2
+	github.com/endurio/ndrd/chaincfg v1.2.1
+	github.com/endurio/ndrd/chaincfg/chainhash v1.0.1
+	github.com/endurio/ndrd/connmgr v1.0.2
+	github.com/endurio/ndrd/dcrec v0.0.0-20181212181811-1a370d38d671
+	github.com/endurio/ndrd/dcrjson v1.1.0
+	github.com/endurio/ndrd/dcrutil v1.2.0
+	github.com/endurio/ndrd/hdkeychain v1.1.1
+	github.com/endurio/ndrd/rpcclient v1.1.0
+	github.com/endurio/ndrd/txscript v1.0.2
+	github.com/endurio/ndrd/wire v1.2.0
+	github.com/endurio/ndrw/chain v1.1.0
+	github.com/endurio/ndrw/errors v1.0.1
+	github.com/endurio/ndrw/internal/helpers v1.0.1
+	github.com/endurio/ndrw/internal/zero v1.0.1
+	github.com/endurio/ndrw/p2p v1.0.1
+	github.com/endurio/ndrw/rpc/walletrpc v0.2.0
+	github.com/endurio/ndrw/spv v1.1.0
+	github.com/endurio/ndrw/ticketbuyer v1.0.2
+	github.com/endurio/ndrw/ticketbuyer/v2 v2.0.1
+	github.com/endurio/ndrw/version v1.0.1
+	github.com/endurio/ndrw/wallet v1.1.0
+	github.com/endurio/ndrw/walletseed v1.0.1
 	github.com/gorilla/websocket v1.2.0
 	github.com/jessevdk/go-flags v1.4.0
 	github.com/jrick/logrotate v1.0.0
@@ -37,20 +37,42 @@ require (
 )
 
 replace (
-	github.com/decred/dcrwallet/chain => ./chain
-	github.com/decred/dcrwallet/deployments => ./deployments
-	github.com/decred/dcrwallet/errors => ./errors
-	github.com/decred/dcrwallet/internal/helpers => ./internal/helpers
-	github.com/decred/dcrwallet/internal/zero => ./internal/zero
-	github.com/decred/dcrwallet/lru => ./lru
-	github.com/decred/dcrwallet/p2p => ./p2p
-	github.com/decred/dcrwallet/pgpwordlist => ./pgpwordlist
-	github.com/decred/dcrwallet/rpc/walletrpc => ./rpc/walletrpc
-	github.com/decred/dcrwallet/spv => ./spv
-	github.com/decred/dcrwallet/ticketbuyer => ./ticketbuyer
-	github.com/decred/dcrwallet/ticketbuyer/v2 => ./ticketbuyer/v2
-	github.com/decred/dcrwallet/validate => ./validate
-	github.com/decred/dcrwallet/version => ./version
-	github.com/decred/dcrwallet/wallet => ./wallet
-	github.com/decred/dcrwallet/walletseed => ./walletseed
+	github.com/endurio/ndrd => ../ndrd
+	github.com/endurio/ndrd/addrmgr => ../ndrd/addrmgr
+	github.com/endurio/ndrd/blockchain => ../ndrd/blockchain
+	github.com/endurio/ndrd/blockchain/stake => ../ndrd/blockchain/stake
+	github.com/endurio/ndrd/certgen => ../ndrd/certgen
+	github.com/endurio/ndrd/chaincfg => ../ndrd/chaincfg
+	github.com/endurio/ndrd/chaincfg/chainhash => ../ndrd/chaincfg/chainhash
+	github.com/endurio/ndrd/connmgr => ../ndrd/connmgr
+	github.com/endurio/ndrd/database => ../ndrd/database
+	github.com/endurio/ndrd/dcrec => ../ndrd/dcrec
+	github.com/endurio/ndrd/dcrec/edwards => ../ndrd/dcrec/edwards
+	github.com/endurio/ndrd/dcrec/secp256k1 => ../ndrd/dcrec/secp256k1
+	github.com/endurio/ndrd/dcrjson => ../ndrd/dcrjson
+	github.com/endurio/ndrd/dcrutil => ../ndrd/dcrutil
+	github.com/endurio/ndrd/gcs => ../ndrd/gcs
+	github.com/endurio/ndrd/hdkeychain => ../ndrd/hdkeychain
+	github.com/endurio/ndrd/mempool => ../ndrd/mempool
+	github.com/endurio/ndrd/mining => ../ndrd/mining
+	github.com/endurio/ndrd/rpcclient => ../ndrd/rpcclient
+	github.com/endurio/ndrd/txscript => ../ndrd/txscript
+	github.com/endurio/ndrd/wire => ../ndrd/wire
+	github.com/endurio/ndrw => ./
+	github.com/endurio/ndrw/chain => ./chain
+	github.com/endurio/ndrw/deployments => ./deployments
+	github.com/endurio/ndrw/errors => ./errors
+	github.com/endurio/ndrw/internal/helpers => ./internal/helpers
+	github.com/endurio/ndrw/internal/zero => ./internal/zero
+	github.com/endurio/ndrw/lru => ./lru
+	github.com/endurio/ndrw/p2p => ./p2p
+	github.com/endurio/ndrw/pgpwordlist => ./pgpwordlist
+	github.com/endurio/ndrw/rpc/walletrpc => ./rpc/walletrpc
+	github.com/endurio/ndrw/spv => ./spv
+	github.com/endurio/ndrw/ticketbuyer => ./ticketbuyer
+	github.com/endurio/ndrw/ticketbuyer/v2 => ./ticketbuyer/v2
+	github.com/endurio/ndrw/validate => ./validate
+	github.com/endurio/ndrw/version => ./version
+	github.com/endurio/ndrw/wallet => ./wallet
+	github.com/endurio/ndrw/walletseed => ./walletseed
 )

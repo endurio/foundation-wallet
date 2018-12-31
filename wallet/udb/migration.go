@@ -5,9 +5,9 @@
 package udb
 
 import (
-	"github.com/decred/dcrd/chaincfg"
-	"github.com/decred/dcrwallet/errors"
-	"github.com/decred/dcrwallet/wallet/walletdb"
+	"github.com/endurio/ndrd/chaincfg"
+	"github.com/endurio/ndrw/errors"
+	"github.com/endurio/ndrw/wallet/walletdb"
 )
 
 // Old package namespace bucket keys.  These are still used as of the very first

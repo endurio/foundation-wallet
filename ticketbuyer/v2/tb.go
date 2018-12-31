@@ -8,10 +8,10 @@ import (
 	"context"
 	"sync"
 
-	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrwallet/errors"
-	"github.com/decred/dcrwallet/wallet"
+	"github.com/endurio/ndrd/chaincfg/chainhash"
+	"github.com/endurio/ndrd/dcrutil"
+	"github.com/endurio/ndrw/errors"
+	"github.com/endurio/ndrw/wallet"
 )
 
 const minconf = 1

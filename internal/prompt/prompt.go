@@ -14,8 +14,8 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/decred/dcrd/hdkeychain"
-	"github.com/decred/dcrwallet/walletseed"
+	"github.com/endurio/ndrd/hdkeychain"
+	"github.com/endurio/ndrw/walletseed"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -353,7 +353,7 @@ func Seed(reader *bufio.Reader) (seed []byte, imported bool, err error) {
 // option of using this passphrase if public data encryption is enabled,
 // otherwise a user-specified passphrase will be prompted for.
 func Setup(r *bufio.Reader, insecurePubPass, configPubPass []byte) (privPass, pubPass, seed []byte, imported bool, err error) {
-	// Decred: no legacy keystore restore is needed (first decred wallet
+	// Decred: no legacy keystore restore is needed (first endurio wallet
 	// version did not use the legacy keystore from earlier versions of
 	// btcwallet).
 

@@ -20,8 +20,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/decred/dcrwallet/errors"
-	"github.com/decred/dcrwallet/wallet/walletdb"
+	"github.com/endurio/ndrw/errors"
+	"github.com/endurio/ndrw/wallet/walletdb"
 )
 
 // subTestFailError is used to signal that a sub test returned false.

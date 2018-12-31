@@ -7,15 +7,15 @@
 package txauthor
 
 import (
-	"github.com/decred/dcrd/chaincfg"
-	"github.com/decred/dcrd/dcrec"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/txscript"
-	"github.com/decred/dcrd/wire"
-	"github.com/decred/dcrwallet/errors"
-	h "github.com/decred/dcrwallet/internal/helpers"
-	"github.com/decred/dcrwallet/wallet/internal/txsizes"
-	"github.com/decred/dcrwallet/wallet/txrules"
+	"github.com/endurio/ndrd/chaincfg"
+	"github.com/endurio/ndrd/dcrec"
+	"github.com/endurio/ndrd/dcrutil"
+	"github.com/endurio/ndrd/txscript"
+	"github.com/endurio/ndrd/wire"
+	"github.com/endurio/ndrw/errors"
+	h "github.com/endurio/ndrw/internal/helpers"
+	"github.com/endurio/ndrw/wallet/internal/txsizes"
+	"github.com/endurio/ndrw/wallet/txrules"
 )
 
 const (

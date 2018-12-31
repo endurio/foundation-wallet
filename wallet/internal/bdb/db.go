@@ -10,8 +10,8 @@ import (
 	"os"
 
 	"github.com/boltdb/bolt"
-	"github.com/decred/dcrwallet/errors"
-	"github.com/decred/dcrwallet/wallet/walletdb"
+	"github.com/endurio/ndrw/errors"
+	"github.com/endurio/ndrw/wallet/walletdb"
 )
 
 // convertErr wraps a driver-specific error with an error code.

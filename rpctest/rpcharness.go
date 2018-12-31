@@ -16,12 +16,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/decred/dcrd/chaincfg"
-	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrwallet/errors"
+	"github.com/endurio/ndrd/chaincfg"
+	"github.com/endurio/ndrd/chaincfg/chainhash"
+	"github.com/endurio/ndrw/errors"
 
-	"github.com/decred/dcrd/dcrutil"
-	rpc "github.com/decred/dcrd/rpcclient"
+	"github.com/endurio/ndrd/dcrutil"
+	rpc "github.com/endurio/ndrd/rpcclient"
 )
 
 var (
@@ -56,12 +56,12 @@ var (
 	harnessStateMtx sync.RWMutex
 )
 
-// Harness fully encapsulates an active dcrd process, along with an embedded
+// Harness fully encapsulates an active ndrd process, along with an embedded
 // dcrwallet to provide a unified platform for creating RPC-driven integration
-// tests involving dcrd. The active dcrd node will typically be run in simnet
+// tests involving ndrd. The active ndrd node will typically be run in simnet
 // mode to allow for easy generation of test blockchains. Additionally, a
 // special method is provided which allows one to easily generate coinbase
-// spends. The active dcrd process is fully managed by Harness, which handles
+// spends. The active ndrd process is fully managed by Harness, which handles
 // the necessary initialization, and teardown of the process along with any
 // temporary directories created as a result. Multiple Harness instances may be
 // run concurrently, to allow for testing complex scenarios involving multuple
@@ -187,7 +187,7 @@ func NewHarness(activeNet *chaincfg.Params, handlers *rpc.NotificationHandlers,
 func (h *Harness) SetUp(createTestChain bool, numMatureOutputs uint32) error {
 	var err error
 
-	// Start the dcrd node itself. This spawns a new process which will be
+	// Start the ndrd node itself. This spawns a new process which will be
 	// managed
 	if err = h.node.Start(); err != nil {
 		return err
@@ -220,7 +220,7 @@ func (h *Harness) SetUp(createTestChain bool, numMatureOutputs uint32) error {
 	fmt.Println("Wallet RPC client connected.")
 	h.WalletRPC = walletClient
 
-	// Get a new address from the wallet to be set with dcrd's --miningaddr
+	// Get a new address from the wallet to be set with ndrd's --miningaddr
 	time.Sleep(5 * time.Second)
 	var miningAddr dcrutil.Address
 	for i := 0; i < 100; i++ {
@@ -351,7 +351,7 @@ func (h *Harness) IsUp() bool {
 }
 
 // connectRPCClient attempts to establish an RPC connection to the created
-// dcrd process belonging to this Harness instance. If the initial connection
+// ndrd process belonging to this Harness instance. If the initial connection
 // attempt fails, this function will retry h.maxConnRetries times, backing off
 // the time between subsequent attempts. If after h.maxConnRetries attempts,
 // we're not able to establish a connection, this function returns with an error.

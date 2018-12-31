@@ -5,21 +5,21 @@
 
 package wallet
 
-// This code was copied from dcrd/blockchain/difficulty.go and modified for
+// This code was copied from ndrd/blockchain/difficulty.go and modified for
 // dcrwallet's header storage.
 
 import (
 	"math/big"
 	"time"
 
-	"github.com/decred/dcrd/blockchain"
-	"github.com/decred/dcrd/chaincfg"
-	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/wire"
-	"github.com/decred/dcrwallet/deployments"
-	"github.com/decred/dcrwallet/errors"
-	"github.com/decred/dcrwallet/wallet/walletdb"
+	"github.com/endurio/ndrd/blockchain"
+	"github.com/endurio/ndrd/chaincfg"
+	"github.com/endurio/ndrd/chaincfg/chainhash"
+	"github.com/endurio/ndrd/dcrutil"
+	"github.com/endurio/ndrd/wire"
+	"github.com/endurio/ndrw/deployments"
+	"github.com/endurio/ndrw/errors"
+	"github.com/endurio/ndrw/wallet/walletdb"
 )
 
 // maxShift is the maximum shift for a difficulty that resets (e.g.
@@ -370,7 +370,7 @@ func (w *Wallet) ancestorHeaderAtHeight(dbtx walletdb.ReadTx, h *wire.BlockHeade
 	case height == int32(h.Height):
 		return h, nil
 	case height > int32(h.Height), height < 0:
-		return nil, nil // dcrd's blockNode.Ancestor returns nil for child heights
+		return nil, nil // ndrd's blockNode.Ancestor returns nil for child heights
 	}
 
 	if len(chain) > 0 && height-int32(chain[0].Header.Height) >= 0 {

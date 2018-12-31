@@ -68,7 +68,7 @@ const (
 	Consensus                       // Consensus violation
 	DoubleSpend                     // Transaction is a double spend
 	Protocol                        // Protocol violation
-	NoPeers                         // Decred network is unreachable due to lack of peers or dcrd RPC connections
+	NoPeers                         // Decred network is unreachable due to lack of peers or ndrd RPC connections
 	Deployment                      // Inactive consensus deployment
 )
 

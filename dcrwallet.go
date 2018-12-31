@@ -19,21 +19,21 @@ import (
 	"runtime/pprof"
 	"time"
 
-	"github.com/decred/dcrd/addrmgr"
-	"github.com/decred/dcrd/chaincfg"
-	dcrrpcclient "github.com/decred/dcrd/rpcclient"
-	"github.com/decred/dcrwallet/chain"
-	"github.com/decred/dcrwallet/errors"
-	"github.com/decred/dcrwallet/internal/prompt"
-	"github.com/decred/dcrwallet/internal/zero"
-	ldr "github.com/decred/dcrwallet/loader"
-	"github.com/decred/dcrwallet/p2p"
-	"github.com/decred/dcrwallet/rpc/legacyrpc"
-	"github.com/decred/dcrwallet/rpc/rpcserver"
-	"github.com/decred/dcrwallet/spv"
-	"github.com/decred/dcrwallet/ticketbuyer/v2"
-	"github.com/decred/dcrwallet/version"
-	"github.com/decred/dcrwallet/wallet"
+	"github.com/endurio/ndrd/addrmgr"
+	"github.com/endurio/ndrd/chaincfg"
+	dcrrpcclient "github.com/endurio/ndrd/rpcclient"
+	"github.com/endurio/ndrw/chain"
+	"github.com/endurio/ndrw/errors"
+	"github.com/endurio/ndrw/internal/prompt"
+	"github.com/endurio/ndrw/internal/zero"
+	ldr "github.com/endurio/ndrw/loader"
+	"github.com/endurio/ndrw/p2p"
+	"github.com/endurio/ndrw/rpc/legacyrpc"
+	"github.com/endurio/ndrw/rpc/rpcserver"
+	"github.com/endurio/ndrw/spv"
+	"github.com/endurio/ndrw/ticketbuyer/v2"
+	"github.com/endurio/ndrw/version"
+	"github.com/endurio/ndrw/wallet"
 )
 
 func init() {
@@ -309,7 +309,7 @@ func run(ctx context.Context) error {
 
 	// When not running with --noinitialload, it is the main package's
 	// responsibility to synchronize the wallet with the network through SPV or
-	// the trusted dcrd server.  This blocks until cancelled.
+	// the trusted ndrd server.  This blocks until cancelled.
 	if !cfg.NoInitialLoad {
 		if done(ctx) {
 			return ctx.Err()
@@ -506,7 +506,7 @@ func readCAFile() []byte {
 	return certs
 }
 
-// startChainRPC opens a RPC client connection to a dcrd server for blockchain
+// startChainRPC opens a RPC client connection to a ndrd server for blockchain
 // services.  This function uses the RPC options from the global config and
 // there is no recovery in case the server is not available or if there is an
 // authentication error.  Instead, all requests to the client will simply error.

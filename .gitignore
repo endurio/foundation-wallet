@@ -1,4 +1,5 @@
-dcrwallet
+ndrw
 vendor
 *~
 .vscode
+*.exe

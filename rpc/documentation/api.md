@@ -257,7 +257,7 @@ ___
 #### `StartConsensusRpc`
 
 The `StartConsensusRpc` method is used to provide clients the ability to
-dynamically start the dcrd RPC client.  This RPC client is used for wallet
+dynamically start the ndrd RPC client.  This RPC client is used for wallet
 syncing and publishing transactions to the Decred network.
 
 Since API version 3.0.0, starting the consensus server no longer automatically
@@ -267,7 +267,7 @@ synchronizes the wallet to the consensus server if it was previously loaded.
 
 - `string network_address`: The host/IP and optional port of the RPC server to
   connect to.  IP addresses may be IPv4 or IPv6.  If the port is missing, a
-  default port is chosen corresponding to the default dcrd RPC port of the
+  default port is chosen corresponding to the default ndrd RPC port of the
   active Decred network.
 
 - `string username`: The RPC username required to authenticate to the RPC
@@ -489,7 +489,7 @@ or upon received an error.
 
 - `string network_address`: The host/IP and optional port of the RPC server to
   connect to.  IP addresses may be IPv4 or IPv6.  If the port is missing, a
-  default port is chosen corresponding to the default dcrd RPC port of the
+  default port is chosen corresponding to the default ndrd RPC port of the
   active Decred network.
 
 - `string username`: The RPC username required to authenticate to the RPC
@@ -1783,7 +1783,7 @@ syncing.
 **Stability:** Unstable: The ticket price and height are pulled from separate
 daemon passthroughs and may race. Ideally these would be returned from stored
 values in the wallet when it updates from incoming stake ticket price
-notifications passed from the JSON RPC of dcrd. Right now, wallet block processing
+notifications passed from the JSON RPC of ndrd. Right now, wallet block processing
 is very slow and it's difficult for these notifications to stay in sync. In the
 future, this API may be completely removed in favour of a passthrough for that
 set of notifications.

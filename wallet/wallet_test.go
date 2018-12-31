@@ -8,7 +8,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/decred/dcrd/chaincfg"
+	"github.com/endurio/ndrd/chaincfg"
 )
 
 func TestCoinbaseMatured(t *testing.T) {
@@ -48,7 +48,7 @@ func TestTicketMatured(t *testing.T) {
 	}{
 		{0, 0, false},
 		{0, maturity - 1, false},
-		{0, maturity, false}, // dcrd off-by-one results in this being false
+		{0, maturity, false}, // ndrd off-by-one results in this being false
 		{0, maturity + 1, true},
 		{1, 0, false},
 		{maturity, 0, false},
@@ -75,7 +75,7 @@ func TestTicketExpired(t *testing.T) {
 	}{
 		{0, 0, false},
 		{0, expiry - 1, false},
-		{0, expiry, false}, // dcrd off-by-one results in this being false
+		{0, expiry, false}, // ndrd off-by-one results in this being false
 		{0, expiry + 1, true},
 		{1, 0, false},
 		{expiry, 0, false},

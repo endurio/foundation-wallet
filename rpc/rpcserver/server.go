@@ -9,11 +9,11 @@
 // Full documentation of the API implemented by this package is maintained in a
 // language-agnostic document:
 //
-//   https://github.com/decred/dcrwallet/blob/master/rpc/documentation/api.md
+//   https://github.com/endurio/ndrw/blob/master/rpc/documentation/api.md
 //
 // Any API changes must be performed according to the steps listed here:
 //
-//   https://github.com/decred/dcrwallet/blob/master/rpc/documentation/serverchanges.md
+//   https://github.com/endurio/ndrw/blob/master/rpc/documentation/serverchanges.md
 package rpcserver
 
 import (
@@ -31,33 +31,33 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/decred/dcrd/addrmgr"
-	"github.com/decred/dcrd/blockchain/stake"
-	"github.com/decred/dcrd/chaincfg"
-	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrec"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/hdkeychain"
-	"github.com/decred/dcrd/rpcclient"
-	"github.com/decred/dcrd/txscript"
-	"github.com/decred/dcrd/wire"
-	"github.com/decred/dcrwallet/chain"
-	"github.com/decred/dcrwallet/errors"
-	"github.com/decred/dcrwallet/internal/cfgutil"
-	h "github.com/decred/dcrwallet/internal/helpers"
-	"github.com/decred/dcrwallet/internal/zero"
-	"github.com/decred/dcrwallet/loader"
-	"github.com/decred/dcrwallet/netparams"
-	"github.com/decred/dcrwallet/p2p"
-	pb "github.com/decred/dcrwallet/rpc/walletrpc"
-	"github.com/decred/dcrwallet/spv"
-	"github.com/decred/dcrwallet/ticketbuyer"
-	tbv2 "github.com/decred/dcrwallet/ticketbuyer/v2"
-	"github.com/decred/dcrwallet/wallet"
-	"github.com/decred/dcrwallet/wallet/txauthor"
-	"github.com/decred/dcrwallet/wallet/txrules"
-	"github.com/decred/dcrwallet/wallet/udb"
-	"github.com/decred/dcrwallet/walletseed"
+	"github.com/endurio/ndrd/addrmgr"
+	"github.com/endurio/ndrd/blockchain/stake"
+	"github.com/endurio/ndrd/chaincfg"
+	"github.com/endurio/ndrd/chaincfg/chainhash"
+	"github.com/endurio/ndrd/dcrec"
+	"github.com/endurio/ndrd/dcrutil"
+	"github.com/endurio/ndrd/hdkeychain"
+	"github.com/endurio/ndrd/rpcclient"
+	"github.com/endurio/ndrd/txscript"
+	"github.com/endurio/ndrd/wire"
+	"github.com/endurio/ndrw/chain"
+	"github.com/endurio/ndrw/errors"
+	"github.com/endurio/ndrw/internal/cfgutil"
+	h "github.com/endurio/ndrw/internal/helpers"
+	"github.com/endurio/ndrw/internal/zero"
+	"github.com/endurio/ndrw/loader"
+	"github.com/endurio/ndrw/netparams"
+	"github.com/endurio/ndrw/p2p"
+	pb "github.com/endurio/ndrw/rpc/walletrpc"
+	"github.com/endurio/ndrw/spv"
+	"github.com/endurio/ndrw/ticketbuyer"
+	tbv2 "github.com/endurio/ndrw/ticketbuyer/v2"
+	"github.com/endurio/ndrw/wallet"
+	"github.com/endurio/ndrw/wallet/txauthor"
+	"github.com/endurio/ndrw/wallet/txrules"
+	"github.com/endurio/ndrw/wallet/udb"
+	"github.com/endurio/ndrw/walletseed"
 )
 
 // Public API version constants
@@ -168,7 +168,7 @@ type walletServer struct {
 }
 
 // loaderServer provides RPC clients with the ability to load and close wallets,
-// as well as establishing a RPC connection to a dcrd consensus server.
+// as well as establishing a RPC connection to a ndrd consensus server.
 type loaderServer struct {
 	ready     uint32 // atomic
 	loader    *loader.Loader

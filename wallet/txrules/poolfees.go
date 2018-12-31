@@ -9,9 +9,9 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/decred/dcrd/blockchain"
-	"github.com/decred/dcrd/chaincfg"
-	"github.com/decred/dcrd/dcrutil"
+	"github.com/endurio/ndrd/blockchain"
+	"github.com/endurio/ndrd/chaincfg"
+	"github.com/endurio/ndrd/dcrutil"
 )
 
 // ValidPoolFeeRate tests to see if a pool fee is a valid percentage from

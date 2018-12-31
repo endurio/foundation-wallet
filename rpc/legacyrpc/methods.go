@@ -17,25 +17,25 @@ import (
 	"sync"
 	"time"
 
-	"github.com/decred/dcrd/blockchain"
-	"github.com/decred/dcrd/blockchain/stake"
-	"github.com/decred/dcrd/chaincfg"
-	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrec"
-	"github.com/decred/dcrd/dcrjson"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/hdkeychain"
-	"github.com/decred/dcrd/rpcclient"
-	"github.com/decred/dcrd/txscript"
-	"github.com/decred/dcrd/wire"
-	"github.com/decred/dcrwallet/chain"
-	"github.com/decred/dcrwallet/errors"
-	"github.com/decred/dcrwallet/internal/helpers"
-	"github.com/decred/dcrwallet/p2p"
-	ver "github.com/decred/dcrwallet/version"
-	"github.com/decred/dcrwallet/wallet"
-	"github.com/decred/dcrwallet/wallet/txrules"
-	"github.com/decred/dcrwallet/wallet/udb"
+	"github.com/endurio/ndrd/blockchain"
+	"github.com/endurio/ndrd/blockchain/stake"
+	"github.com/endurio/ndrd/chaincfg"
+	"github.com/endurio/ndrd/chaincfg/chainhash"
+	"github.com/endurio/ndrd/dcrec"
+	"github.com/endurio/ndrd/dcrjson"
+	"github.com/endurio/ndrd/dcrutil"
+	"github.com/endurio/ndrd/hdkeychain"
+	"github.com/endurio/ndrd/rpcclient"
+	"github.com/endurio/ndrd/txscript"
+	"github.com/endurio/ndrd/wire"
+	"github.com/endurio/ndrw/chain"
+	"github.com/endurio/ndrw/errors"
+	"github.com/endurio/ndrw/internal/helpers"
+	"github.com/endurio/ndrw/p2p"
+	ver "github.com/endurio/ndrw/version"
+	"github.com/endurio/ndrw/wallet"
+	"github.com/endurio/ndrw/wallet/txrules"
+	"github.com/endurio/ndrw/wallet/udb"
 )
 
 // API version constants
@@ -194,7 +194,7 @@ func lazyApplyHandler(s *Server, request *dcrjson.Request) lazyHandler {
 			}
 			chainClient, err := chain.RPCClientFromBackend(n)
 			if err != nil {
-				return nil, rpcErrorf(dcrjson.ErrRPCClientNotConnected, "RPC passthrough requires dcrd RPC synchronization")
+				return nil, rpcErrorf(dcrjson.ErrRPCClientNotConnected, "RPC passthrough requires ndrd RPC synchronization")
 			}
 			resp, err := chainClient.RawRequest(request.Method, request.Params)
 			if err != nil {
@@ -893,7 +893,7 @@ func getAccount(s *Server, icmd interface{}) (interface{}, error) {
 
 // getAccountAddress handles a getaccountaddress by returning the most
 // recently-created chained address that has not yet been used (does not yet
-// appear in the blockchain, or any tx that has arrived in the dcrd mempool).
+// appear in the blockchain, or any tx that has arrived in the ndrd mempool).
 // If the most recently-requested address has been used, a new address (the
 // next chained address in the keypool) is used.  This can fail if the keypool
 // runs out (and will return dcrjson.ErrRPCWalletKeypoolRanOut if that happens).
@@ -1612,7 +1612,7 @@ var helpDescsMu sync.Mutex // Help may execute concurrently, so synchronize acce
 func help(s *Server, icmd interface{}) (interface{}, error) {
 	cmd := icmd.(*dcrjson.HelpCmd)
 	// TODO: The "help" RPC should use a HTTP POST client when calling down to
-	// dcrd for additional help methods.  This avoids including websocket-only
+	// ndrd for additional help methods.  This avoids including websocket-only
 	// requests in the help, which are not callable by wallet JSON-RPC clients.
 	var chainClient *rpcclient.Client
 	n, _ := s.walletLoader.NetworkBackend()
@@ -2823,7 +2823,7 @@ func signRawTransaction(s *Server, icmd interface{}) (interface{}, error) {
 		return nil, rpcErrorf(dcrjson.ErrRPCInvalidParameter, "invalid sighash flag")
 	}
 
-	// TODO: really we probably should look these up with dcrd anyway to
+	// TODO: really we probably should look these up with ndrd anyway to
 	// make sure that they match the blockchain if present.
 	inputs := make(map[wire.OutPoint][]byte)
 	scripts := make(map[string][]byte)
@@ -2874,7 +2874,7 @@ func signRawTransaction(s *Server, icmd interface{}) (interface{}, error) {
 	}
 
 	// Now we go and look for any inputs that we were not provided by
-	// querying dcrd with getrawtransaction. We queue up a bunch of async
+	// querying ndrd with getrawtransaction. We queue up a bunch of async
 	// requests and will wait for replies after we have checked the rest of
 	// the arguments.
 	var requested map[wire.OutPoint]rpcclient.FutureGetTxOutResult
@@ -2951,7 +2951,7 @@ func signRawTransaction(s *Server, icmd interface{}) (interface{}, error) {
 	for outPoint, resp := range requested {
 		result, err := resp.Receive()
 		if err != nil {
-			return nil, errors.E(errors.Op("dcrd.jsonrpc.gettxout"), err)
+			return nil, errors.E(errors.Op("ndrd.jsonrpc.gettxout"), err)
 		}
 		// gettxout returns JSON null if the output is found, but is spent by
 		// another transaction in the main chain.

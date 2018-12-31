@@ -14,12 +14,12 @@ import (
 	"io"
 	"os"
 
-	"github.com/decred/dcrd/chaincfg"
-	"github.com/decred/dcrutil/hdkeychain"
-	"github.com/decred/dcrwallet/wallet/walletdb"
-	_ "github.com/decred/dcrwallet/wallet/internal/bdb"
-	"github.com/decred/dcrwallet/wallet/udb"
-	"github.com/decred/dcrwallet/walletseed"
+	"github.com/endurio/ndrd/chaincfg"
+	"github.com/endurio/dcrutil/hdkeychain"
+	"github.com/endurio/ndrw/wallet/walletdb"
+	_ "github.com/endurio/ndrw/wallet/internal/bdb"
+	"github.com/endurio/ndrw/wallet/udb"
+	"github.com/endurio/ndrw/walletseed"
 )
 
 const dbname = "v1.db"

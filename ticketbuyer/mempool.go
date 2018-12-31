@@ -8,9 +8,9 @@ import (
 	"bytes"
 	"time"
 
-	"github.com/decred/dcrd/dcrjson"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrwallet/wallet"
+	"github.com/endurio/ndrd/dcrjson"
+	"github.com/endurio/ndrd/dcrutil"
+	"github.com/endurio/ndrw/wallet"
 )
 
 // ownTicketsInMempool finds all the tickets owned by the user in the

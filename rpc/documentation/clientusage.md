@@ -52,12 +52,12 @@ import (
 	"fmt"
 	"path/filepath"
 
-	pb "github.com/decred/dcrwallet/rpc/walletrpc"
+	pb "github.com/endurio/ndrw/rpc/walletrpc"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 
-	"github.com/decred/dcrd/dcrutil"
+	"github.com/endurio/ndrd/dcrutil"
 )
 
 var certificateFile = filepath.Join(dcrutil.AppDataDir("dcrwallet", false), "rpc.cert")
@@ -394,7 +394,7 @@ pip install grpcio
 Generate Python stubs from the `.proto`:
 
 ```bash
-$ protoc -I /path/to/decred/dcrwallet/rpc --python_out=. --grpc_out=. \
+$ protoc -I /path/to/endurio/ndrw/rpc --python_out=. --grpc_out=. \
   --plugin=protoc-gen-grpc=$(which grpc_python_plugin) \
   /path/to/dcrwallet/rpc/api.proto
 ```

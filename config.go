@@ -16,20 +16,20 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrwallet/errors"
-	"github.com/decred/dcrwallet/internal/cfgutil"
-	"github.com/decred/dcrwallet/netparams"
-	"github.com/decred/dcrwallet/ticketbuyer"
-	"github.com/decred/dcrwallet/version"
-	"github.com/decred/dcrwallet/wallet"
-	"github.com/decred/dcrwallet/wallet/txrules"
+	"github.com/endurio/ndrd/dcrutil"
+	"github.com/endurio/ndrw/errors"
+	"github.com/endurio/ndrw/internal/cfgutil"
+	"github.com/endurio/ndrw/netparams"
+	"github.com/endurio/ndrw/ticketbuyer"
+	"github.com/endurio/ndrw/version"
+	"github.com/endurio/ndrw/wallet"
+	"github.com/endurio/ndrw/wallet/txrules"
 	"github.com/decred/slog"
 	flags "github.com/jessevdk/go-flags"
 )
 
 const (
-	defaultCAFilename          = "dcrd.cert"
+	defaultCAFilename          = "ndrd.cert"
 	defaultConfigFilename      = "dcrwallet.conf"
 	defaultLogLevel            = "info"
 	defaultLogDirname          = "logs"
@@ -73,7 +73,7 @@ const (
 )
 
 var (
-	dcrdDefaultCAFile  = filepath.Join(dcrutil.AppDataDir("dcrd", false), "rpc.cert")
+	dcrdDefaultCAFile  = filepath.Join(dcrutil.AppDataDir("ndrd", false), "rpc.cert")
 	defaultAppDataDir  = dcrutil.AppDataDir("dcrwallet", false)
 	defaultConfigFile  = filepath.Join(defaultAppDataDir, defaultConfigFilename)
 	defaultRPCKeyFile  = filepath.Join(defaultAppDataDir, "rpc.key")
@@ -118,11 +118,11 @@ type config struct {
 	legacyTicketBuyer   bool
 
 	// RPC client options
-	RPCConnect       string                  `short:"c" long:"rpcconnect" description:"Hostname/IP and port of dcrd RPC server to connect to"`
-	CAFile           *cfgutil.ExplicitString `long:"cafile" description:"File containing root certificates to authenticate a TLS connections with dcrd"`
+	RPCConnect       string                  `short:"c" long:"rpcconnect" description:"Hostname/IP and port of ndrd RPC server to connect to"`
+	CAFile           *cfgutil.ExplicitString `long:"cafile" description:"File containing root certificates to authenticate a TLS connections with ndrd"`
 	DisableClientTLS bool                    `long:"noclienttls" description:"Disable TLS for the RPC client -- NOTE: This is only allowed if the RPC client is connecting to localhost"`
-	DcrdUsername     string                  `long:"dcrdusername" description:"Username for dcrd authentication"`
-	DcrdPassword     string                  `long:"dcrdpassword" default-mask:"-" description:"Password for dcrd authentication"`
+	DcrdUsername     string                  `long:"dcrdusername" description:"Username for ndrd authentication"`
+	DcrdPassword     string                  `long:"dcrdpassword" default-mask:"-" description:"Password for ndrd authentication"`
 	Proxy            string                  `long:"proxy" description:"Connect via SOCKS5 proxy (eg. 127.0.0.1:9050)"`
 	ProxyUser        string                  `long:"proxyuser" description:"Username for proxy server"`
 	ProxyPass        string                  `long:"proxypass" default-mask:"-" description:"Password for proxy server"`
@@ -150,8 +150,8 @@ type config struct {
 	NoLegacyRPC            bool                    `long:"nolegacyrpc" description:"Disable the legacy JSON-RPC server"`
 	LegacyRPCMaxClients    int64                   `long:"rpcmaxclients" description:"Max number of legacy JSON-RPC clients for standard connections"`
 	LegacyRPCMaxWebsockets int64                   `long:"rpcmaxwebsockets" description:"Max number of legacy JSON-RPC websocket connections"`
-	Username               string                  `short:"u" long:"username" description:"Username for legacy JSON-RPC and dcrd authentication (if dcrdusername is unset)"`
-	Password               string                  `short:"P" long:"password" default-mask:"-" description:"Password for legacy JSON-RPC and dcrd authentication (if dcrdpassword is unset)"`
+	Username               string                  `short:"u" long:"username" description:"Username for legacy JSON-RPC and ndrd authentication (if dcrdusername is unset)"`
+	Password               string                  `short:"P" long:"password" default-mask:"-" description:"Password for legacy JSON-RPC and ndrd authentication (if dcrdpassword is unset)"`
 
 	// IPC options
 	PipeTx            *uint `long:"pipetx" description:"File descriptor or handle of write end pipe to enable child -> parent process communication"`
@@ -816,12 +816,12 @@ func loadConfig(ctx context.Context) (*config, []string, error) {
 			return loadConfigError(err)
 		}
 	} else {
-		// If CAFile is unset, choose either the copy or local dcrd cert.
+		// If CAFile is unset, choose either the copy or local ndrd cert.
 		if !cfg.CAFile.ExplicitlySet() {
 			cfg.CAFile.Value = filepath.Join(cfg.AppDataDir.Value, defaultCAFilename)
 
 			// If the CA copy does not exist, check if we're connecting to
-			// a local dcrd and switch to its RPC cert if it exists.
+			// a local ndrd and switch to its RPC cert if it exists.
 			certExists, err := cfgutil.FileExists(cfg.CAFile.Value)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
@@ -953,10 +953,10 @@ func loadConfig(ctx context.Context) (*config, []string, error) {
 	cfg.RPCCert.Value = cleanAndExpandPath(cfg.RPCCert.Value)
 	cfg.RPCKey.Value = cleanAndExpandPath(cfg.RPCKey.Value)
 
-	// If the dcrd username or password are unset, use the same auth as for
-	// the client.  The two settings were previously shared for dcrd and
+	// If the ndrd username or password are unset, use the same auth as for
+	// the client.  The two settings were previously shared for ndrd and
 	// client auth, so this avoids breaking backwards compatibility while
-	// allowing users to use different auth settings for dcrd and wallet.
+	// allowing users to use different auth settings for ndrd and wallet.
 	if cfg.DcrdUsername == "" {
 		cfg.DcrdUsername = cfg.Username
 	}

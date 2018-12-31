@@ -8,8 +8,8 @@
 package helpers
 
 import (
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/wire"
+	"github.com/endurio/ndrd/dcrutil"
+	"github.com/endurio/ndrd/wire"
 )
 
 // SumOutputValues sums up the list of TxOuts and returns an Amount.

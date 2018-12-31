@@ -12,15 +12,15 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/decred/dcrd/chaincfg"
-	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrjson"
-	"github.com/decred/dcrd/dcrutil"
-	dcrrpcclient "github.com/decred/dcrd/rpcclient"
-	"github.com/decred/dcrd/txscript"
-	"github.com/decred/dcrd/wire"
-	"github.com/decred/dcrwallet/wallet/txauthor"
-	"github.com/decred/dcrwallet/wallet/txrules"
+	"github.com/endurio/ndrd/chaincfg"
+	"github.com/endurio/ndrd/chaincfg/chainhash"
+	"github.com/endurio/ndrd/dcrjson"
+	"github.com/endurio/ndrd/dcrutil"
+	dcrrpcclient "github.com/endurio/ndrd/rpcclient"
+	"github.com/endurio/ndrd/txscript"
+	"github.com/endurio/ndrd/wire"
+	"github.com/endurio/ndrw/wallet/txauthor"
+	"github.com/endurio/ndrw/wallet/txrules"
 	"github.com/jessevdk/go-flags"
 	"golang.org/x/crypto/ssh/terminal"
 )
@@ -42,8 +42,8 @@ func errContext(err error, context string) error {
 
 // Flags.
 var opts = struct {
-	TestNet               bool    `long:"testnet" description:"Use the test decred network"`
-	SimNet                bool    `long:"simnet" description:"Use the simulation decred network"`
+	TestNet               bool    `long:"testnet" description:"Use the test endurio network"`
+	SimNet                bool    `long:"simnet" description:"Use the simulation endurio network"`
 	RPCConnect            string  `short:"c" long:"connect" description:"Hostname[:port] of wallet RPC server"`
 	RPCUsername           string  `short:"u" long:"rpcuser" description:"Wallet RPC username"`
 	RPCPassword           string  `short:"P" long:"rpcpass" description:"Wallet RPC password"`
@@ -119,7 +119,7 @@ func init() {
 	}
 
 	if opts.TestNet && opts.SimNet {
-		fatalf("Multiple decred networks may not be used simultaneously")
+		fatalf("Multiple endurio networks may not be used simultaneously")
 	}
 	var activeNet = &chaincfg.MainNetParams
 	if opts.TestNet {

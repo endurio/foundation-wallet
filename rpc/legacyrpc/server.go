@@ -19,11 +19,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/decred/dcrd/chaincfg"
-	"github.com/decred/dcrd/dcrjson"
-	"github.com/decred/dcrwallet/errors"
-	"github.com/decred/dcrwallet/loader"
-	"github.com/decred/dcrwallet/ticketbuyer"
+	"github.com/endurio/ndrd/chaincfg"
+	"github.com/endurio/ndrd/dcrjson"
+	"github.com/endurio/ndrw/errors"
+	"github.com/endurio/ndrw/loader"
+	"github.com/endurio/ndrw/ticketbuyer"
 	"github.com/gorilla/websocket"
 )
 
@@ -235,7 +235,7 @@ func (s *Server) Stop() {
 
 // handlerClosure creates a closure function for handling requests of the given
 // method.  This may be a request that is handled directly by dcrwallet, or
-// a chain server request that is handled by passing the request down to dcrd.
+// a chain server request that is handled by passing the request down to ndrd.
 //
 // NOTE: These handlers do not handle special cases, such as the authenticate
 // method.  Each of these must be checked beforehand (the method is already

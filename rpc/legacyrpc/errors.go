@@ -8,8 +8,8 @@ package legacyrpc
 import (
 	"fmt"
 
-	"github.com/decred/dcrd/dcrjson"
-	"github.com/decred/dcrwallet/errors"
+	"github.com/endurio/ndrd/dcrjson"
+	"github.com/endurio/ndrw/errors"
 )
 
 func convertError(err error) *dcrjson.RPCError {

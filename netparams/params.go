@@ -5,7 +5,7 @@
 
 package netparams
 
-import "github.com/decred/dcrd/chaincfg"
+import "github.com/endurio/ndrd/chaincfg"
 
 // Params is used to group parameters for various networks such as the main
 // network and test networks.
@@ -17,7 +17,7 @@ type Params struct {
 }
 
 // MainNetParams contains parameters specific running dcrwallet and
-// dcrd on the main network (wire.MainNet).
+// ndrd on the main network (wire.MainNet).
 var MainNetParams = Params{
 	Params:            &chaincfg.MainNetParams,
 	JSONRPCClientPort: "9109",
@@ -26,7 +26,7 @@ var MainNetParams = Params{
 }
 
 // TestNet3Params contains parameters specific running dcrwallet and
-// dcrd on the test network (version 3) (wire.TestNet3).
+// ndrd on the test network (version 3) (wire.TestNet3).
 var TestNet3Params = Params{
 	Params:            &chaincfg.TestNet3Params,
 	JSONRPCClientPort: "19109",

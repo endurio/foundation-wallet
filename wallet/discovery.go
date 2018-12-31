@@ -11,18 +11,18 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/decred/dcrd/blockchain/stake"
-	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/gcs/blockcf"
-	hd "github.com/decred/dcrd/hdkeychain"
-	rpc "github.com/decred/dcrd/rpcclient"
-	"github.com/decred/dcrd/txscript"
-	"github.com/decred/dcrd/wire"
-	"github.com/decred/dcrwallet/errors"
-	"github.com/decred/dcrwallet/validate"
-	"github.com/decred/dcrwallet/wallet/walletdb"
-	"github.com/decred/dcrwallet/wallet/udb"
+	"github.com/endurio/ndrd/blockchain/stake"
+	"github.com/endurio/ndrd/chaincfg/chainhash"
+	"github.com/endurio/ndrd/dcrutil"
+	"github.com/endurio/ndrd/gcs/blockcf"
+	hd "github.com/endurio/ndrd/hdkeychain"
+	rpc "github.com/endurio/ndrd/rpcclient"
+	"github.com/endurio/ndrd/txscript"
+	"github.com/endurio/ndrd/wire"
+	"github.com/endurio/ndrw/errors"
+	"github.com/endurio/ndrw/validate"
+	"github.com/endurio/ndrw/wallet/walletdb"
+	"github.com/endurio/ndrw/wallet/udb"
 	"github.com/jrick/bitset"
 	"golang.org/x/sync/errgroup"
 )
@@ -542,14 +542,14 @@ func (w *Wallet) findLastUsedAccount(ctx context.Context, p Peer, blockCache blo
 }
 
 // existsAddrIndexFinder implements address and account discovery using the
-// exists address index of a trusted dcrd RPC server.
+// exists address index of a trusted ndrd RPC server.
 type existsAddrIndexFinder struct {
 	wallet *Wallet
 	client *rpc.Client
 }
 
 func (f *existsAddrIndexFinder) addressesUsed(addrs []dcrutil.Address) (bitset.Bytes, error) {
-	const op errors.Op = "dcrd.jsonrpc.existsaddresses"
+	const op errors.Op = "ndrd.jsonrpc.existsaddresses"
 
 	hexBitSet, err := f.client.ExistsAddresses(addrs)
 	if err != nil {

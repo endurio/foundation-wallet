@@ -9,13 +9,13 @@ import (
 	"encoding/hex"
 	"strings"
 
-	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/gcs"
-	"github.com/decred/dcrd/rpcclient"
-	"github.com/decred/dcrd/wire"
-	"github.com/decred/dcrwallet/errors"
-	"github.com/decred/dcrwallet/wallet"
+	"github.com/endurio/ndrd/chaincfg/chainhash"
+	"github.com/endurio/ndrd/dcrutil"
+	"github.com/endurio/ndrd/gcs"
+	"github.com/endurio/ndrd/rpcclient"
+	"github.com/endurio/ndrd/wire"
+	"github.com/endurio/ndrw/errors"
+	"github.com/endurio/ndrw/wallet"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -45,7 +45,7 @@ func RPCClientFromBackend(n wallet.NetworkBackend) (*rpcclient.Client, error) {
 }
 
 func (b *rpcBackend) GetBlocks(ctx context.Context, blockHashes []*chainhash.Hash) ([]*wire.MsgBlock, error) {
-	const op errors.Op = "dcrd.jsonrpc.getblock"
+	const op errors.Op = "ndrd.jsonrpc.getblock"
 
 	blocks := make([]*wire.MsgBlock, len(blockHashes))
 	var g errgroup.Group
@@ -65,7 +65,7 @@ func (b *rpcBackend) GetBlocks(ctx context.Context, blockHashes []*chainhash.Has
 }
 
 func (b *rpcBackend) GetCFilters(ctx context.Context, blockHashes []*chainhash.Hash) ([]*gcs.Filter, error) {
-	const opf = "dcrd.jsonrpc.getcfilter(%v)"
+	const opf = "ndrd.jsonrpc.getcfilter(%v)"
 
 	// TODO: this is spammy and would be better implemented with a single RPC.
 	filters := make([]*gcs.Filter, len(blockHashes))
@@ -90,7 +90,7 @@ func (b *rpcBackend) GetCFilters(ctx context.Context, blockHashes []*chainhash.H
 }
 
 func (b *rpcBackend) GetHeaders(ctx context.Context, blockLocators []*chainhash.Hash, hashStop *chainhash.Hash) ([]*wire.BlockHeader, error) {
-	const op errors.Op = "dcrd.jsonrpc.getheaders"
+	const op errors.Op = "ndrd.jsonrpc.getheaders"
 
 	r, err := b.rpcClient.GetHeaders(blockLocators, hashStop)
 	if err != nil {
@@ -113,7 +113,7 @@ func (b *rpcBackend) String() string {
 }
 
 func (b *rpcBackend) LoadTxFilter(ctx context.Context, reload bool, addrs []dcrutil.Address, outpoints []wire.OutPoint) error {
-	const op errors.Op = "dcrd.jsonrpc.loadtxfilter"
+	const op errors.Op = "ndrd.jsonrpc.loadtxfilter"
 
 	err := b.rpcClient.LoadTxFilter(reload, addrs, outpoints)
 	if err != nil {
@@ -123,7 +123,7 @@ func (b *rpcBackend) LoadTxFilter(ctx context.Context, reload bool, addrs []dcru
 }
 
 func (b *rpcBackend) PublishTransactions(ctx context.Context, txs ...*wire.MsgTx) error {
-	const op errors.Op = "dcrd.jsonrpc.sendrawtransaction"
+	const op errors.Op = "ndrd.jsonrpc.sendrawtransaction"
 
 	// sendrawtransaction does not allow orphans, so we can not concurrently or
 	// asynchronously send transactions.  All transaction sends are attempted,
@@ -146,7 +146,7 @@ func (b *rpcBackend) PublishTransactions(ctx context.Context, txs ...*wire.MsgTx
 }
 
 func (b *rpcBackend) Rescan(ctx context.Context, blocks []chainhash.Hash, r wallet.RescanSaver) error {
-	const op errors.Op = "dcrd.jsonrpc.rescan"
+	const op errors.Op = "ndrd.jsonrpc.rescan"
 
 	res, err := b.rpcClient.Rescan(blocks)
 	if err != nil {
@@ -175,7 +175,7 @@ func (b *rpcBackend) Rescan(ctx context.Context, blocks []chainhash.Hash, r wall
 }
 
 func (b *rpcBackend) StakeDifficulty(ctx context.Context) (dcrutil.Amount, error) {
-	const op errors.Op = "dcrd.jsonrpc.getstakedifficulty"
+	const op errors.Op = "ndrd.jsonrpc.getstakedifficulty"
 
 	r, err := b.rpcClient.GetStakeDifficulty()
 	if err != nil {
