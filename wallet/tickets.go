@@ -9,7 +9,6 @@ import (
 	"encoding/hex"
 	"time"
 
-	"github.com/endurio/ndrd/blockchain/stake"
 	"github.com/endurio/ndrd/chaincfg/chainhash"
 	"github.com/endurio/ndrd/dcrutil"
 	dcrrpcclient "github.com/endurio/ndrd/rpcclient"

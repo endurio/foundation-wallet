@@ -7,7 +7,6 @@ package udb
 import (
 	"crypto/sha256"
 
-	"github.com/endurio/ndrd/blockchain/stake"
 	"github.com/endurio/ndrd/chaincfg"
 	"github.com/endurio/ndrd/chaincfg/chainhash"
 	"github.com/endurio/ndrd/gcs/blockcf"

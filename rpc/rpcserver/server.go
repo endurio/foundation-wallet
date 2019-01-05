@@ -32,7 +32,6 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/endurio/ndrd/addrmgr"
-	"github.com/endurio/ndrd/blockchain/stake"
 	"github.com/endurio/ndrd/chaincfg"
 	"github.com/endurio/ndrd/chaincfg/chainhash"
 	"github.com/endurio/ndrd/dcrec"

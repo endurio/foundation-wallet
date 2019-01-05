@@ -8,7 +8,6 @@ package udb
 import (
 	"bytes"
 
-	"github.com/endurio/ndrd/blockchain/stake"
 	"github.com/endurio/ndrd/chaincfg/chainhash"
 	"github.com/endurio/ndrd/wire"
 	"github.com/endurio/ndrw/errors"

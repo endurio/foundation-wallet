@@ -16,14 +16,13 @@ import (
 	"io"
 	"os"
 
-	"github.com/endurio/ndrd/blockchain/stake"
-	"github.com/endurio/ndrd/chaincfg"
-	"github.com/endurio/ndrd/wire"
 	"github.com/endurio/dcrutil"
 	"github.com/endurio/dcrutil/hdkeychain"
-	"github.com/endurio/ndrw/wallet/walletdb"
+	"github.com/endurio/ndrd/chaincfg"
+	"github.com/endurio/ndrd/wire"
 	_ "github.com/endurio/ndrw/wallet/internal/bdb"
 	"github.com/endurio/ndrw/wallet/udb"
+	"github.com/endurio/ndrw/wallet/walletdb"
 	"github.com/endurio/ndrw/walletseed"
 )
 

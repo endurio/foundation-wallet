@@ -2,7 +2,6 @@ module github.com/endurio/ndrw/spv
 
 require (
 	github.com/endurio/ndrd/addrmgr v1.0.2
-	github.com/endurio/ndrd/blockchain/stake v1.1.0
 	github.com/endurio/ndrd/chaincfg/chainhash v1.0.1
 	github.com/endurio/ndrd/dcrutil v1.2.0
 	github.com/endurio/ndrd/gcs v1.0.2

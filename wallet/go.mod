@@ -3,7 +3,6 @@ module github.com/endurio/ndrw/wallet
 require (
 	github.com/boltdb/bolt v1.3.1
 	github.com/endurio/ndrd/blockchain v1.1.1
-	github.com/endurio/ndrd/blockchain/stake v1.1.0
 	github.com/endurio/ndrd/chaincfg v1.2.0
 	github.com/endurio/ndrd/chaincfg/chainhash v1.0.1
 	github.com/endurio/ndrd/dcrec v0.0.0-20181212181811-1a370d38d671

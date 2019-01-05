@@ -6,7 +6,6 @@
 package spv
 
 import (
-	"github.com/endurio/ndrd/blockchain/stake"
 	"github.com/endurio/ndrd/gcs/blockcf"
 	"github.com/endurio/ndrd/txscript"
 	"github.com/endurio/ndrd/wire"

@@ -5,7 +5,6 @@ require (
 	github.com/decred/slog v1.0.0
 	github.com/endurio/ndrd/addrmgr v1.0.2
 	github.com/endurio/ndrd/blockchain v1.1.1
-	github.com/endurio/ndrd/blockchain/stake v1.1.0
 	github.com/endurio/ndrd/certgen v1.0.2
 	github.com/endurio/ndrd/chaincfg v1.2.1
 	github.com/endurio/ndrd/chaincfg/chainhash v1.0.1
@@ -33,6 +32,8 @@ require (
 	github.com/jessevdk/go-flags v1.4.0
 	github.com/jrick/logrotate v1.0.0
 	golang.org/x/crypto v0.0.0-20181203042331-505ab145d0a9
+	golang.org/x/net v0.0.0-20181220203305-927f97764cc3 // indirect
+	golang.org/x/sys v0.0.0-20190102155601-82a175fd1598 // indirect
 	google.golang.org/grpc v1.17.0
 )
 
@@ -40,7 +41,6 @@ replace (
 	github.com/endurio/ndrd => ../ndrd
 	github.com/endurio/ndrd/addrmgr => ../ndrd/addrmgr
 	github.com/endurio/ndrd/blockchain => ../ndrd/blockchain
-	github.com/endurio/ndrd/blockchain/stake => ../ndrd/blockchain/stake
 	github.com/endurio/ndrd/certgen => ../ndrd/certgen
 	github.com/endurio/ndrd/chaincfg => ../ndrd/chaincfg
 	github.com/endurio/ndrd/chaincfg/chainhash => ../ndrd/chaincfg/chainhash
