@@ -23,10 +23,6 @@ func Initialize(db walletdb.DB, params *chaincfg.Params, seed, pubPass, privPass
 		if err != nil {
 			return errors.E(errors.IO, err)
 		}
-		stakemgrNs, err := tx.CreateTopLevelBucket(wstakemgrBucketKey)
-		if err != nil {
-			return errors.E(errors.IO, err)
-		}
 
 		// Create the address manager, transaction store, and stake store.
 		err = createAddressManager(addrmgrNs, seed, pubPass, privPass, params, &defaultScryptOptions)
@@ -34,10 +30,6 @@ func Initialize(db walletdb.DB, params *chaincfg.Params, seed, pubPass, privPass
 			return err
 		}
 		err = createStore(txmgrNs, params)
-		if err != nil {
-			return err
-		}
-		err = initializeEmpty(stakemgrNs)
 		if err != nil {
 			return err
 		}
@@ -69,10 +61,6 @@ func InitializeWatchOnly(db walletdb.DB, params *chaincfg.Params, hdPubKey strin
 		if err != nil {
 			return errors.E(errors.IO, err)
 		}
-		stakemgrNs, err := tx.CreateTopLevelBucket(wstakemgrBucketKey)
-		if err != nil {
-			return errors.E(errors.IO, err)
-		}
 
 		// Create the address manager, transaction store, and stake store.
 		err = createWatchOnly(addrmgrNs, hdPubKey, pubPass, params, &defaultScryptOptions)
@@ -80,10 +68,6 @@ func InitializeWatchOnly(db walletdb.DB, params *chaincfg.Params, hdPubKey strin
 			return err
 		}
 		err = createStore(txmgrNs, params)
-		if err != nil {
-			return err
-		}
-		err = initializeEmpty(stakemgrNs)
 		if err != nil {
 			return err
 		}

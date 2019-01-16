@@ -29,12 +29,6 @@ func MerkleRoots(block *wire.MsgBlock) error {
 		op := errors.Opf(opf, &blockHash)
 		return errors.E(op, errors.Consensus, "invalid regular merkle root")
 	}
-	merkles = blockchain.BuildMsgTxMerkleTreeStore(block.STransactions)
-	if block.Header.StakeRoot != *merkles[len(merkles)-1] {
-		blockHash := block.BlockHash()
-		op := errors.Opf(opf, &blockHash)
-		return errors.E(op, errors.Consensus, "invalid stake merkle root")
-	}
 
 	return nil
 }

@@ -16,7 +16,7 @@ import (
 // A NotExist error will be returned if the database has not been initialized.
 // The recorded database version must match exactly with DBVersion.  If the
 // version does not match, an Invalid error is returned.
-func Open(db walletdb.DB, params *chaincfg.Params, pubPass []byte) (addrMgr *Manager, txStore *Store, stakeStore *StakeStore, err error) {
+func Open(db walletdb.DB, params *chaincfg.Params, pubPass []byte) (addrMgr *Manager, txStore *Store, err error) {
 	err = walletdb.View(db, func(tx walletdb.ReadTx) error {
 		// Verify the database exists and the recorded version is supported by
 		// this software version.
@@ -36,7 +36,6 @@ func Open(db walletdb.DB, params *chaincfg.Params, pubPass []byte) (addrMgr *Man
 		}
 
 		addrmgrNs := tx.ReadBucket(waddrmgrBucketKey)
-		stakemgrNs := tx.ReadBucket(wstakemgrBucketKey)
 
 		addrMgr, err = loadManager(addrmgrNs, pubPass, params)
 		if err != nil {
@@ -46,7 +45,6 @@ func Open(db walletdb.DB, params *chaincfg.Params, pubPass []byte) (addrMgr *Man
 			chainParams:    params,
 			acctLookupFunc: addrMgr.AddrAccount,
 		}
-		stakeStore, err = openStakeStore(stakemgrNs, addrMgr, params)
 		return err
 	})
 	return

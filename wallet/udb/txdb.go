@@ -562,9 +562,6 @@ func readRawTxRecord(txHash *chainhash.Hash, v []byte, rec *TxRecord) error {
 		return errors.E(errors.IO, err)
 	}
 
-	// Calculate the stake TxType from the MsgTx.
-	rec.TxType = stake.DetermineTxType(&rec.MsgTx)
-
 	return nil
 }
 
@@ -1757,10 +1754,6 @@ func valueMultisigOut(sh [ripemd160.Size]byte, m uint8, n uint8,
 		v[22] |= 1 << 0
 	}
 
-	if tree == wire.TxTreeStake {
-		v[22] |= 1 << 1
-	}
-
 	copy(v[23:55], blockHash[:])
 	byteOrder.PutUint32(v[55:59], blockHeight)
 	byteOrder.PutUint64(v[59:67], uint64(amount))
@@ -1789,18 +1782,12 @@ func fetchMultisigOut(k, v []byte) (*MultisigOut, error) {
 		return nil, err
 	}
 	mso.OutPoint = &op
-	mso.OutPoint.Tree = wire.TxTreeRegular
 
 	copy(mso.ScriptHash[0:20], v[0:20])
 
 	mso.M = v[20]
 	mso.N = v[21]
 	mso.Spent = v[22]&(1<<0) != 0
-	mso.Tree = 0
-	isStakeTree := v[22]&(1<<1) != 0
-	if isStakeTree {
-		mso.Tree = 1
-	}
 
 	copy(mso.BlockHash[0:32], v[23:55])
 	mso.BlockHeight = byteOrder.Uint32(v[55:59])
@@ -1828,16 +1815,6 @@ func fetchMultisigOutSpent(v []byte) bool {
 	spent := v[22]&(1<<0) != 0
 
 	return spent
-}
-
-func fetchMultisigOutTree(v []byte) int8 {
-	isStakeTree := v[22]&(1<<1) != 0
-	tree := wire.TxTreeRegular
-	if isStakeTree {
-		tree = wire.TxTreeStake
-	}
-
-	return tree
 }
 
 func fetchMultisigOutSpentVerbose(v []byte) (bool, chainhash.Hash, uint32) {

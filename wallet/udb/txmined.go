@@ -88,7 +88,6 @@ type TxRecord struct {
 	Hash         chainhash.Hash
 	Received     time.Time
 	SerializedTx []byte // Optional: may be nil
-	TxType       stake.TxType
 }
 
 // NewTxRecord creates a new transaction record that may be inserted into the
@@ -103,7 +102,6 @@ func NewTxRecord(serializedTx []byte, received time.Time) (*TxRecord, error) {
 	if err != nil {
 		return nil, err
 	}
-	rec.TxType = stake.DetermineTxType(&rec.MsgTx)
 	hash := rec.MsgTx.TxHash()
 	copy(rec.Hash[:], hash[:])
 	return rec, nil
@@ -123,7 +121,6 @@ func NewTxRecordFromMsgTx(msgTx *wire.MsgTx, received time.Time) (*TxRecord, err
 		Received:     received,
 		SerializedTx: buf.Bytes(),
 	}
-	rec.TxType = stake.DetermineTxType(&rec.MsgTx)
 	hash := rec.MsgTx.TxHash()
 	copy(rec.Hash[:], hash[:])
 	return rec, nil
@@ -133,7 +130,6 @@ func NewTxRecordFromMsgTx(msgTx *wire.MsgTx, received time.Time) (*TxRecord, err
 // a script hash.
 type MultisigOut struct {
 	OutPoint     *wire.OutPoint
-	Tree         int8
 	ScriptHash   [ripemd160.Size]byte
 	M            uint8
 	N            uint8
@@ -650,136 +646,6 @@ func stakeValidate(ns walletdb.ReadWriteBucket, height int32) error {
 			}
 
 			minedBalance -= debitAmount
-		}
-	}
-
-	return putMinedBalance(ns, minedBalance)
-}
-
-// stakeInvalidate invalidates regular tree transactions from the main chain
-// block at some height.  This does not perform any changes when the block is
-// not marked invalid.  When not marked invalid, the invalidated byte is set to
-// 1 to mark the block as stake invalidated and the mined balance is decremented
-// for all credits.
-//
-// Stake validation or invalidation should only occur for the block at height
-// tip-1.
-//
-// See stakeValidate (which performs the reverse operation) for more details.
-func stakeInvalidate(ns walletdb.ReadWriteBucket, height int32) error {
-	k, v := existsBlockRecord(ns, height)
-	if v == nil {
-		return errors.E(errors.IO, errors.Errorf("missing block record for height %v", height))
-	}
-	if extractRawBlockRecordStakeInvalid(v) {
-		return nil
-	}
-
-	minedBalance, err := fetchMinedBalance(ns)
-	if err != nil {
-		return err
-	}
-
-	var blockRec blockRecord
-	err = readRawBlockRecord(k, v, &blockRec)
-	if err != nil {
-		return err
-	}
-
-	// Rewrite the block record, marking the regular tree as stake invalidated.
-	err = putRawBlockRecord(ns, k, valueBlockRecordStakeInvalidated(v))
-	if err != nil {
-		return err
-	}
-
-	for i := range blockRec.transactions {
-		txHash := &blockRec.transactions[i]
-
-		_, txv := existsTxRecord(ns, txHash, &blockRec.Block)
-		if txv == nil {
-			return errors.E(errors.IO, errors.Errorf("missing transaction record for tx %v block %v",
-				txHash, &blockRec.Block.Hash))
-		}
-		var txRec TxRecord
-		err = readRawTxRecord(txHash, txv, &txRec)
-		if err != nil {
-			return err
-		}
-
-		// Only regular tree transactions must be considered.
-		if txRec.TxType != stake.TxTypeRegular {
-			continue
-		}
-
-		// Move all credits from this tx to the invalidated credits bucket.
-		// Remove the unspent output for each invalidated credit.
-		// The mined balance is decremented for all moved credit outputs.
-		for i, output := range txRec.MsgTx.TxOut {
-			k, v := existsCredit(ns, &txRec.Hash, uint32(i), &blockRec.Block)
-			if v == nil {
-				continue
-			}
-
-			err = deleteRawCredit(ns, k)
-			if err != nil {
-				return err
-			}
-			err = ns.NestedReadWriteBucket(bucketStakeInvalidatedCredits).
-				Put(k, v)
-			if err != nil {
-				return errors.E(errors.IO, err)
-			}
-
-			unspentKey := canonicalOutPoint(txHash, uint32(i))
-			err = deleteRawUnspent(ns, unspentKey)
-			if err != nil {
-				return err
-			}
-
-			minedBalance -= dcrutil.Amount(output.Value)
-		}
-
-		// Move all debits from this tx to the invalidated debits bucket, and
-		// unspend any credit spents by the stake invalidated tx.  The mined
-		// balance is incremented for all previous credits that are spendable
-		// again.
-		for i := range txRec.MsgTx.TxIn {
-			debKey, credKey, err := existsDebit(ns, &txRec.Hash, uint32(i),
-				&blockRec.Block)
-			if err != nil {
-				return err
-			}
-			if debKey == nil {
-				continue
-			}
-
-			debVal := ns.NestedReadBucket(bucketDebits).Get(debKey)
-			debitAmount := extractRawDebitAmount(debVal)
-
-			_, err = unspendRawCredit(ns, credKey)
-			if err != nil {
-				return err
-			}
-
-			err = deleteRawDebit(ns, debKey)
-			if err != nil {
-				return err
-			}
-			err = ns.NestedReadWriteBucket(bucketStakeInvalidatedDebits).
-				Put(debKey, debVal)
-			if err != nil {
-				return errors.E(errors.IO, err)
-			}
-
-			prevOut := &txRec.MsgTx.TxIn[i].PreviousOutPoint
-			unspentKey := canonicalOutPoint(&prevOut.Hash, prevOut.Index)
-			unspentVal := extractRawDebitUnspentValue(debVal)
-			err = putRawUnspent(ns, unspentKey, unspentVal)
-			if err != nil {
-				return err
-			}
-
-			minedBalance += debitAmount
 		}
 	}
 
