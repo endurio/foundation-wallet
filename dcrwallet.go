@@ -31,7 +31,6 @@ import (
 	"github.com/endurio/ndrw/rpc/legacyrpc"
 	"github.com/endurio/ndrw/rpc/rpcserver"
 	"github.com/endurio/ndrw/spv"
-	"github.com/endurio/ndrw/ticketbuyer/v2"
 	"github.com/endurio/ndrw/version"
 	"github.com/endurio/ndrw/wallet"
 )
@@ -149,16 +148,7 @@ func run(ctx context.Context) error {
 	// --noinitialload is not set, this function is responsible for loading the
 	// wallet.  Otherwise, loading is deferred so it can be performed over RPC.
 	dbDir := networkDir(cfg.AppDataDir.Value, activeNet.Params)
-	stakeOptions := &ldr.StakeOptions{
-		VotingEnabled:       cfg.EnableVoting,
-		AddressReuse:        cfg.ReuseAddresses,
-		VotingAddress:       cfg.TBOpts.VotingAddress.Address,
-		PoolAddress:         cfg.PoolAddress.Address,
-		PoolFees:            cfg.PoolFees,
-		StakePoolColdExtKey: cfg.StakePoolColdExtKey,
-		TicketFee:           cfg.TicketFee.ToCoin(),
-	}
-	loader := ldr.NewLoader(activeNet.Params, dbDir, stakeOptions,
+	loader := ldr.NewLoader(activeNet.Params, dbDir,
 		cfg.GapLimit, cfg.AllowHighFees, cfg.RelayFee.ToCoin(), cfg.AccountGapLimit)
 
 	// Stop any services started by the loader after the shutdown procedure is
@@ -231,34 +221,6 @@ func run(ctx context.Context) error {
 			}
 		} else {
 			passphrase = startPromptPass(ctx, w)
-		}
-
-		// Start a v2 ticket buyer.
-		if cfg.EnableTicketBuyer && !cfg.legacyTicketBuyer {
-			acct, err := w.AccountNumber(cfg.PurchaseAccount)
-			if err != nil {
-				log.Errorf("Purchase account %q does not exist", cfg.PurchaseAccount)
-				return err
-			}
-			tb := ticketbuyer.New(w)
-			tb.AccessConfig(func(c *ticketbuyer.Config) {
-				c.Account = acct
-				c.VotingAccount = acct // TODO: Make this a unique config option. Set to acct for compat with v1.
-				c.Maintain = cfg.TBOpts.BalanceToMaintainAbsolute.Amount
-				c.VotingAddr = cfg.TBOpts.VotingAddress.Address
-				c.PoolFeeAddr = cfg.PoolAddress.Address
-				c.PoolFees = cfg.PoolFees
-			})
-			log.Infof("Starting ticket buyer")
-			tbdone := make(chan struct{})
-			go func() {
-				err := tb.Run(ctx, passphrase)
-				if err != nil && err != context.Canceled {
-					log.Errorf("Ticket buying ended: %v", err)
-				}
-				tbdone <- struct{}{}
-			}()
-			defer func() { <-tbdone }()
 		}
 	}
 
@@ -371,9 +333,6 @@ func startPromptPass(ctx context.Context, w *wallet.Wallet) []byte {
 		fmt.Println("*****************")
 		promptPass = true
 	}
-	if cfg.EnableTicketBuyer {
-		promptPass = true
-	}
 
 	if !promptPass {
 		return nil
@@ -459,13 +418,6 @@ func rpcClientConnectLoop(ctx context.Context, passphrase []byte, jsonRPCServer 
 		n := chain.BackendFromRPCClient(chainClient.Client)
 		w.SetNetworkBackend(n)
 		loader.SetNetworkBackend(n)
-
-		if cfg.EnableTicketBuyer && cfg.legacyTicketBuyer {
-			err = loader.StartTicketPurchase(passphrase, &cfg.tbCfg)
-			if err != nil {
-				log.Errorf("Unable to start ticket buyer: %v", err)
-			}
-		}
 
 		// Run wallet synchronization until it is cancelled or errors.  If the
 		// context was cancelled, return immediately instead of trying to

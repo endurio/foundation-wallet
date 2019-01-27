@@ -10,10 +10,7 @@ import (
 	"sync"
 
 	"github.com/endurio/ndrd/chaincfg"
-	"github.com/endurio/ndrd/dcrutil"
-	"github.com/endurio/ndrw/chain"
 	"github.com/endurio/ndrw/errors"
-	"github.com/endurio/ndrw/ticketbuyer"
 	"github.com/endurio/ndrw/wallet"
 	_ "github.com/endurio/ndrw/wallet/drivers/bdb" // driver loaded during init
 )
@@ -39,10 +36,8 @@ type Loader struct {
 	db          wallet.DB
 	dbDriver    string
 
-	purchaseManager *ticketbuyer.PurchaseManager
-	ntfnClient      wallet.MainTipChangedNotificationsClient
+	ntfnClient wallet.MainTipChangedNotificationsClient
 
-	stakeOptions    *StakeOptions
 	gapLimit        int
 	accountGapLimit int
 	allowHighFees   bool
@@ -51,26 +46,14 @@ type Loader struct {
 	mu sync.Mutex
 }
 
-// StakeOptions contains the various options necessary for stake mining.
-type StakeOptions struct {
-	VotingEnabled       bool
-	TicketFee           float64
-	AddressReuse        bool
-	VotingAddress       dcrutil.Address
-	PoolAddress         dcrutil.Address
-	PoolFees            float64
-	StakePoolColdExtKey string
-}
-
 // NewLoader constructs a Loader.
-func NewLoader(chainParams *chaincfg.Params, dbDirPath string, stakeOptions *StakeOptions, gapLimit int,
+func NewLoader(chainParams *chaincfg.Params, dbDirPath string, gapLimit int,
 	allowHighFees bool, relayFee float64, accountGapLimit int) *Loader {
 
 	return &Loader{
 		chainParams:     chainParams,
 		dbDirPath:       dbDirPath,
 		dbDriver:        defaultDbDriver,
-		stakeOptions:    stakeOptions,
 		gapLimit:        gapLimit,
 		accountGapLimit: accountGapLimit,
 		allowHighFees:   allowHighFees,
@@ -173,22 +156,14 @@ func (l *Loader) CreateWatchingOnlyWallet(extendedPubKey string, pubPass []byte)
 	}
 
 	// Open the watch-only wallet.
-	so := l.stakeOptions
 	cfg := &wallet.Config{
-		DB:                  db,
-		PubPassphrase:       pubPass,
-		VotingEnabled:       so.VotingEnabled,
-		AddressReuse:        so.AddressReuse,
-		VotingAddress:       so.VotingAddress,
-		PoolAddress:         so.PoolAddress,
-		PoolFees:            so.PoolFees,
-		TicketFee:           so.TicketFee,
-		GapLimit:            l.gapLimit,
-		AccountGapLimit:     l.accountGapLimit,
-		StakePoolColdExtKey: so.StakePoolColdExtKey,
-		AllowHighFees:       l.allowHighFees,
-		RelayFee:            l.relayFee,
-		Params:              l.chainParams,
+		DB:              db,
+		PubPassphrase:   pubPass,
+		GapLimit:        l.gapLimit,
+		AccountGapLimit: l.accountGapLimit,
+		AllowHighFees:   l.allowHighFees,
+		RelayFee:        l.relayFee,
+		Params:          l.chainParams,
 	}
 	w, err = wallet.Open(cfg)
 	if err != nil {
@@ -421,75 +396,6 @@ func (l *Loader) NetworkBackend() (n wallet.NetworkBackend, ok bool) {
 	n = l.backend
 	l.mu.Unlock()
 	return n, n != nil
-}
-
-// StartTicketPurchase launches the ticketbuyer to start purchasing tickets.
-func (l *Loader) StartTicketPurchase(passphrase []byte, ticketbuyerCfg *ticketbuyer.Config) error {
-	const op errors.Op = "loader.StartTicketPurchase"
-
-	defer l.mu.Unlock()
-	l.mu.Lock()
-
-	// Already running?
-	if l.purchaseManager != nil {
-		return errors.E(op, errors.Invalid, "ticket purchaser already started")
-	}
-
-	if l.wallet == nil {
-		return errors.E(op, errors.Invalid, "wallet must be loaded")
-	}
-
-	c, err := chain.RPCClientFromBackend(l.backend)
-	if err != nil {
-		return errors.E(op, errors.Invalid, "ndrd RPC client must be loaded")
-	}
-
-	w := l.wallet
-	p, err := ticketbuyer.NewTicketPurchaser(ticketbuyerCfg, c, w, l.chainParams)
-	if err != nil {
-		return errors.E(op, err)
-	}
-	n := w.NtfnServer.MainTipChangedNotifications()
-	pm := ticketbuyer.NewPurchaseManager(w, p, n.C, passphrase)
-	l.ntfnClient = n
-	l.purchaseManager = pm
-	pm.Start()
-	return nil
-}
-
-// stopTicketPurchase stops the ticket purchaser, waiting until it has finished.
-// Returns false if the ticket purchaser was not running. It must be called with
-// the mutex lock held.
-func (l *Loader) stopTicketPurchase() bool {
-	if l.purchaseManager == nil {
-		return false
-	}
-
-	l.ntfnClient.Done()
-	l.purchaseManager.Stop()
-	l.purchaseManager.WaitForShutdown()
-	l.purchaseManager = nil
-	return true
-}
-
-// StopTicketPurchase stops the ticket purchaser, waiting until it has finished.
-func (l *Loader) StopTicketPurchase() error {
-	const op errors.Op = "loader.StopTicketPurchase"
-	defer l.mu.Unlock()
-	l.mu.Lock()
-	if !l.stopTicketPurchase() {
-		return errors.E(op, errors.Invalid, "ticket purchaser is not running")
-	}
-	return nil
-}
-
-// PurchaseManager returns the ticket purchaser instance. If ticket purchasing
-// has been disabled, it returns nil.
-func (l *Loader) PurchaseManager() *ticketbuyer.PurchaseManager {
-	l.mu.Lock()
-	pm := l.purchaseManager
-	l.mu.Unlock()
-	return pm
 }
 
 func fileExists(filePath string) (bool, error) {

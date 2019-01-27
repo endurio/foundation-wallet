@@ -16,58 +16,34 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/decred/slog"
 	"github.com/endurio/ndrd/dcrutil"
 	"github.com/endurio/ndrw/errors"
 	"github.com/endurio/ndrw/internal/cfgutil"
 	"github.com/endurio/ndrw/netparams"
-	"github.com/endurio/ndrw/ticketbuyer"
 	"github.com/endurio/ndrw/version"
 	"github.com/endurio/ndrw/wallet"
 	"github.com/endurio/ndrw/wallet/txrules"
-	"github.com/decred/slog"
 	flags "github.com/jessevdk/go-flags"
 )
 
 const (
-	defaultCAFilename          = "ndrd.cert"
-	defaultConfigFilename      = "dcrwallet.conf"
-	defaultLogLevel            = "info"
-	defaultLogDirname          = "logs"
-	defaultLogFilename         = "dcrwallet.log"
-	defaultRPCMaxClients       = 10
-	defaultRPCMaxWebsockets    = 25
-	defaultEnableTicketBuyer   = false
-	defaultEnableVoting        = false
-	defaultReuseAddresses      = false
-	defaultRollbackTest        = false
-	defaultPruneTickets        = false
-	defaultPurchaseAccount     = "default"
-	defaultAutomaticRepair     = false
-	defaultPromptPass          = false
-	defaultPass                = ""
-	defaultPromptPublicPass    = false
-	defaultGapLimit            = wallet.DefaultGapLimit
-	defaultStakePoolColdExtKey = ""
-	defaultAllowHighFees       = false
-	defaultAccountGapLimit     = wallet.DefaultAccountGapLimit
-
-	// ticket buyer options
-	defaultMaxFee                    dcrutil.Amount = 1e6
-	defaultMinFee                    dcrutil.Amount = 1e5
-	defaultMaxPriceScale                            = 0.0
-	defaultAvgVWAPPriceDelta                        = 2880
-	defaultMaxPerBlock                              = 1
-	defaultBlocksToAvg                              = 11
-	defaultFeeTargetScaling                         = 1.0
-	defaultMaxInMempool                             = 40
-	defaultExpiryDelta                              = 16
-	defaultFeeSource                                = ticketbuyer.TicketFeeMedian
-	defaultAvgPriceMode                             = ticketbuyer.PriceTargetVWAP
-	defaultMaxPriceAbsolute                         = 0
-	defaultMaxPriceRelative                         = 1.25
-	defaultPriceTarget                              = 0
-	defaultBalanceToMaintainAbsolute                = 0
-	defaultBalanceToMaintainRelative                = 0.3
+	defaultCAFilename       = "ndrd.cert"
+	defaultConfigFilename   = "dcrwallet.conf"
+	defaultLogLevel         = "info"
+	defaultLogDirname       = "logs"
+	defaultLogFilename      = "dcrwallet.log"
+	defaultRPCMaxClients    = 10
+	defaultRPCMaxWebsockets = 25
+	defaultReuseAddresses   = false
+	defaultRollbackTest     = false
+	defaultAutomaticRepair  = false
+	defaultPromptPass       = false
+	defaultPass             = ""
+	defaultPromptPublicPass = false
+	defaultGapLimit         = wallet.DefaultGapLimit
+	defaultAllowHighFees    = false
+	defaultAccountGapLimit  = wallet.DefaultAccountGapLimit
 
 	walletDbName = "wallet.db"
 )
@@ -98,24 +74,15 @@ type config struct {
 	MemProfile         string                  `long:"memprofile" description:"Write mem profile to the specified file"`
 
 	// Wallet options
-	WalletPass          string               `long:"walletpass" default-mask:"-" description:"The public wallet password -- Only required if the wallet was created with one"`
-	PromptPass          bool                 `long:"promptpass" description:"The private wallet password is prompted for at start up, so the wallet starts unlocked without a time limit"`
-	Pass                string               `long:"pass" description:"The private wallet passphrase"`
-	PromptPublicPass    bool                 `long:"promptpublicpass" description:"The public wallet password is prompted for at start up"`
-	DisallowFree        bool                 `long:"disallowfree" description:"Force transactions to always include a fee"`
-	EnableTicketBuyer   bool                 `long:"enableticketbuyer" description:"Enable the automatic ticket buyer"`
-	EnableVoting        bool                 `long:"enablevoting" description:"Enable creation of votes and revocations for owned tickets"`
-	ReuseAddresses      bool                 `long:"reuseaddresses" description:"Reuse addresses for ticket purchase to cut down on address overuse"`
-	PurchaseAccount     string               `long:"purchaseaccount" description:"Name of the account to buy tickets from"`
-	PoolAddress         *cfgutil.AddressFlag `long:"pooladdress" description:"The ticket pool address where ticket fees will go to"`
-	PoolFees            float64              `long:"poolfees" description:"The per-ticket fee mandated by the ticket pool as a percent (e.g. 1.00 for 1.00% fee)"`
-	GapLimit            int                  `long:"gaplimit" description:"The size of gaps between used addresses.  Used for address scanning and when generating addresses with the wrap option."`
-	StakePoolColdExtKey string               `long:"stakepoolcoldextkey" description:"Enables the wallet as a stake pool with an extended key in the format of \"xpub...:index\" to derive cold wallet addresses to send fees to"`
-	AllowHighFees       bool                 `long:"allowhighfees" description:"Force the RPC client to use the 'allowHighFees' flag when sending transactions"`
-	RelayFee            *cfgutil.AmountFlag  `long:"txfee" description:"Sets the wallet's tx fee per kb"`
-	TicketFee           *cfgutil.AmountFlag  `long:"ticketfee" description:"Sets the wallet's ticket fee per kb"`
-	AccountGapLimit     int                  `long:"accountgaplimit" description:"Number of accounts that can be created in a row without using any of them"`
-	legacyTicketBuyer   bool
+	WalletPass       string              `long:"walletpass" default-mask:"-" description:"The public wallet password -- Only required if the wallet was created with one"`
+	PromptPass       bool                `long:"promptpass" description:"The private wallet password is prompted for at start up, so the wallet starts unlocked without a time limit"`
+	Pass             string              `long:"pass" description:"The private wallet passphrase"`
+	PromptPublicPass bool                `long:"promptpublicpass" description:"The public wallet password is prompted for at start up"`
+	DisallowFree     bool                `long:"disallowfree" description:"Force transactions to always include a fee"`
+	GapLimit         int                 `long:"gaplimit" description:"The size of gaps between used addresses.  Used for address scanning and when generating addresses with the wrap option."`
+	AllowHighFees    bool                `long:"allowhighfees" description:"Force the RPC client to use the 'allowHighFees' flag when sending transactions"`
+	RelayFee         *cfgutil.AmountFlag `long:"txfee" description:"Sets the wallet's tx fee per kb"`
+	AccountGapLimit  int                 `long:"accountgaplimit" description:"Number of accounts that can be created in a row without using any of them"`
 
 	// RPC client options
 	RPCConnect       string                  `short:"c" long:"rpcconnect" description:"Hostname/IP and port of ndrd RPC server to connect to"`
@@ -158,41 +125,11 @@ type config struct {
 	PipeRx            *uint `long:"piperx" description:"File descriptor or handle of read end pipe to enable parent -> child process communication"`
 	RPCListenerEvents bool  `long:"rpclistenerevents" description:"Notify JSON-RPC and gRPC listener addresses over the TX pipe"`
 
-	TBOpts ticketBuyerOptions `group:"Ticket Buyer Options" namespace:"ticketbuyer"`
-	tbCfg  ticketbuyer.Config
-
 	// Deprecated options
 	DataDir         *cfgutil.ExplicitString `short:"b" long:"datadir" default-mask:"-" description:"DEPRECATED -- use appdata instead"`
-	PruneTickets    bool                    `long:"prunetickets" description:"DEPRECATED -- old tickets are always pruned"`
-	TicketAddress   *cfgutil.AddressFlag    `long:"ticketaddress" description:"DEPRECATED -- use ticketbuyer.votingaddress instead"`
 	AddrIdxScanLen  int                     `long:"addridxscanlen" description:"DEPRECATED -- use gaplimit instead"`
 	RollbackTest    bool                    `hidden:"y" long:"rollbacktest" description:"Rollback testing is a simnet testing mode that eventually stops wallet and examines wtxmgr database integrity"`
 	AutomaticRepair bool                    `hidden:"y" long:"automaticrepair" description:"Attempt to repair the wallet automatically if a database inconsistency is found"`
-}
-
-type ticketBuyerOptions struct {
-	BalanceToMaintainAbsolute *cfgutil.AmountFlag  `long:"balancetomaintainabsolute" description:"Amount of funds to keep in wallet when stake mining"`
-	VotingAddress             *cfgutil.AddressFlag `long:"votingaddress" description:"Purchase tickets with voting rights assigned to this address"`
-
-	// Deprecated options
-	AvgPriceMode              string              `long:"avgpricemode" description:"DEPRECATED -- The mode to use for calculating the average price if pricetarget is disabled (vwap, pool, dual)"`
-	AvgPriceVWAPDelta         int                 `long:"avgpricevwapdelta" description:"DEPRECATED -- The number of blocks to use from the current block to calculate the VWAP"`
-	MaxFee                    *cfgutil.AmountFlag `long:"maxfee" description:"DEPRECATED -- Maximum ticket fee per KB"`
-	MinFee                    *cfgutil.AmountFlag `long:"minfee" description:"DEPRECATED -- Minimum ticket fee per KB"`
-	FeeSource                 string              `long:"feesource" description:"DEPRECATED -- The fee source to use for ticket fee per KB (median or mean)"`
-	MaxPerBlock               int                 `long:"maxperblock" description:"DEPRECATED -- Maximum tickets per block, with negative numbers indicating buy one ticket every 1-in-n blocks"`
-	BlocksToAvg               int                 `long:"blockstoavg" description:"DEPRECATED -- Number of blocks to average for fees calculation"`
-	FeeTargetScaling          float64             `long:"feetargetscaling" description:"DEPRECATED -- Scaling factor for setting the ticket fee, multiplies by the average fee"`
-	MaxInMempool              int                 `long:"maxinmempool" description:"DEPRECATED -- The maximum number of your tickets allowed in mempool before purchasing more tickets"`
-	ExpiryDelta               int                 `long:"expirydelta" description:"DEPRECATED -- Number of blocks in the future before the ticket expires"`
-	MaxPriceAbsolute          *cfgutil.AmountFlag `long:"maxpriceabsolute" description:"DEPRECATED -- Maximum absolute price to purchase a ticket"`
-	MaxPriceScale             float64             `long:"maxpricescale" description:"DEPRECATED -- Attempt to prevent the stake difficulty from going above this multiplier (>1.0) by manipulation, 0 to disable"`
-	MaxPriceRelative          float64             `long:"maxpricerelative" description:"DEPRECATED -- Scaling factor for setting the maximum price, multiplies by the average price"`
-	BalanceToMaintainRelative float64             `long:"balancetomaintainrelative" description:"DEPRECATED -- Proportion of funds to leave in wallet when stake mining"`
-	PriceTarget               *cfgutil.AmountFlag `long:"pricetarget" description:"DEPRECATED -- A target to try to seek setting the stake price to rather than meeting the average price, 0 to disable"`
-	NoSpreadTicketPurchases   bool                `long:"nospreadticketpurchases" description:"DEPRECATED -- Do not spread ticket purchases evenly throughout the window"`
-	SpreadTicketPurchases     bool                `long:"spreadticketpurchases" description:"DEPRECATED -- Spread ticket purchases evenly throughout the window"`
-	DontWaitForTickets        bool                `long:"dontwaitfortickets" description:"DEPRECATED -- Don't wait until your last round of tickets have entered the blockchain to attempt to purchase more"`
 }
 
 // cleanAndExpandPath expands environement variables and leading ~ in the
@@ -356,16 +293,9 @@ func loadConfig(ctx context.Context) (*config, []string, error) {
 		TLSCurve:               cfgutil.NewCurveFlag(cfgutil.CurveP521),
 		LegacyRPCMaxClients:    defaultRPCMaxClients,
 		LegacyRPCMaxWebsockets: defaultRPCMaxWebsockets,
-		EnableTicketBuyer:      defaultEnableTicketBuyer,
-		EnableVoting:           defaultEnableVoting,
-		ReuseAddresses:         defaultReuseAddresses,
-		PruneTickets:           defaultPruneTickets,
-		PurchaseAccount:        defaultPurchaseAccount,
 		GapLimit:               defaultGapLimit,
-		StakePoolColdExtKey:    defaultStakePoolColdExtKey,
 		AllowHighFees:          defaultAllowHighFees,
 		RelayFee:               cfgutil.NewAmountFlag(txrules.DefaultRelayFeePerKb),
-		TicketFee:              cfgutil.NewAmountFlag(txrules.DefaultRelayFeePerKb),
 		PoolAddress:            cfgutil.NewAddressFlag(nil),
 		AccountGapLimit:        defaultAccountGapLimit,
 
@@ -374,30 +304,7 @@ func loadConfig(ctx context.Context) (*config, []string, error) {
 		TicketAddress:   cfgutil.NewAddressFlag(nil),
 		AddrIdxScanLen:  defaultGapLimit,
 		RollbackTest:    defaultRollbackTest,
-		AutomaticRepair: defaultAutomaticRepair,
-
-		// Ticket Buyer Options
-		TBOpts: ticketBuyerOptions{
-			BalanceToMaintainAbsolute: cfgutil.NewAmountFlag(defaultBalanceToMaintainAbsolute),
-			VotingAddress:             cfgutil.NewAddressFlag(nil),
-
-			MaxPriceScale:             defaultMaxPriceScale,
-			AvgPriceMode:              defaultAvgPriceMode,
-			AvgPriceVWAPDelta:         defaultAvgVWAPPriceDelta,
-			MaxFee:                    cfgutil.NewAmountFlag(defaultMaxFee),
-			MinFee:                    cfgutil.NewAmountFlag(defaultMinFee),
-			FeeSource:                 defaultFeeSource,
-			MaxPerBlock:               defaultMaxPerBlock,
-			BlocksToAvg:               defaultBlocksToAvg,
-			FeeTargetScaling:          defaultFeeTargetScaling,
-			MaxInMempool:              defaultMaxInMempool,
-			ExpiryDelta:               defaultExpiryDelta,
-			MaxPriceAbsolute:          cfgutil.NewAmountFlag(defaultMaxPriceAbsolute),
-			MaxPriceRelative:          defaultMaxPriceRelative,
-			PriceTarget:               cfgutil.NewAmountFlag(defaultPriceTarget),
-			BalanceToMaintainRelative: defaultBalanceToMaintainRelative,
-		},
-	}
+		AutomaticRepair: defaultAutomaticRepair}
 
 	// Pre-parse the command line options to see if an alternative config
 	// file or the version flag was specified.
@@ -539,138 +446,6 @@ func loadConfig(ctx context.Context) (*config, []string, error) {
 		if !cfg.AppDataDir.ExplicitlySet() {
 			cfg.AppDataDir.Value = cfg.DataDir.Value
 		}
-	}
-	if cfg.PruneTickets {
-		fmt.Fprintln(os.Stderr, "prunetickets option is no longer necessary "+
-			"or used -- please update your config")
-	}
-
-	// Check for ticket buyer options which do not appear in the v2 API.  Any
-	// non-default deprecated option will cause the old ticket buyer to be used.
-	// Otherwise, the new buyer is opportunistically used.  The old buyer is not
-	// compatible with SPV.
-	var deprecatedTBOpt bool
-	checkDeprecatedTBOpt := func(name string, deprecated bool) {
-		if deprecatedTBOpt { // only warn once
-			return
-		}
-		if deprecated {
-			fmt.Fprintf(os.Stderr, "%s: --ticketbuyer.%s is deprecated -- using "+
-				"legacy ticket buyer\n", funcName, name)
-			deprecatedTBOpt = true
-		}
-	}
-	checkDeprecatedTBOpt("avgpricemode", cfg.TBOpts.AvgPriceMode != defaultAvgPriceMode)
-	checkDeprecatedTBOpt("avgpricevwapdelta", cfg.TBOpts.AvgPriceVWAPDelta != defaultAvgVWAPPriceDelta)
-	checkDeprecatedTBOpt("maxfee", cfg.TBOpts.MaxFee.Amount != defaultMaxFee)
-	checkDeprecatedTBOpt("minfee", cfg.TBOpts.MinFee.Amount != defaultMinFee)
-	checkDeprecatedTBOpt("feesource", cfg.TBOpts.FeeSource != defaultFeeSource)
-	checkDeprecatedTBOpt("maxperblock", cfg.TBOpts.MaxPerBlock != defaultMaxPerBlock)
-	checkDeprecatedTBOpt("blockstoavg", cfg.TBOpts.BlocksToAvg != defaultBlocksToAvg)
-	checkDeprecatedTBOpt("feetargetscaling", cfg.TBOpts.FeeTargetScaling != defaultFeeTargetScaling)
-	checkDeprecatedTBOpt("maxinmempool", cfg.TBOpts.MaxInMempool != defaultMaxInMempool)
-	checkDeprecatedTBOpt("expirydelta", cfg.TBOpts.ExpiryDelta != defaultExpiryDelta)
-	checkDeprecatedTBOpt("maxpriceabsolute", cfg.TBOpts.MaxPriceAbsolute.Amount != defaultMaxPriceAbsolute)
-	checkDeprecatedTBOpt("maxpricescale", cfg.TBOpts.MaxPriceScale != defaultMaxPriceScale)
-	checkDeprecatedTBOpt("maxpricerelative", cfg.TBOpts.MaxPriceRelative != defaultMaxPriceRelative)
-	checkDeprecatedTBOpt("balancetomaintainrelative", cfg.TBOpts.BalanceToMaintainRelative != defaultBalanceToMaintainRelative)
-	checkDeprecatedTBOpt("pricetarget", cfg.TBOpts.PriceTarget.Amount != defaultPriceTarget)
-	checkDeprecatedTBOpt("nospreadticketpurchases", cfg.TBOpts.NoSpreadTicketPurchases)
-	checkDeprecatedTBOpt("spreadticketpurchases", cfg.TBOpts.SpreadTicketPurchases)
-	checkDeprecatedTBOpt("dontwaitfortickets", cfg.TBOpts.DontWaitForTickets)
-	cfg.legacyTicketBuyer = deprecatedTBOpt
-	if cfg.EnableTicketBuyer && cfg.legacyTicketBuyer && cfg.SPV {
-		err := errors.Errorf("%v: legacy ticket buyer cannot be used with SPV -- "+
-			"disable SPV or deprecated options to continue", funcName)
-		fmt.Fprintln(os.Stderr, err)
-		return loadConfigError(err)
-	}
-
-	if cfg.TBOpts.SpreadTicketPurchases {
-		fmt.Fprintln(os.Stderr, "ticketbuyer.spreadticketpurchases option "+
-			"has been replaced by ticketbuyer.nospreadticketpurchases -- "+
-			"please update your config")
-	}
-
-	// Make sure the fee source type given is valid.
-	switch cfg.TBOpts.FeeSource {
-	case ticketbuyer.TicketFeeMean:
-	case ticketbuyer.TicketFeeMedian:
-	default:
-		str := "%s: Invalid fee source '%s'"
-		err := errors.Errorf(str, funcName, cfg.TBOpts.FeeSource)
-		fmt.Fprintln(os.Stderr, err)
-		return loadConfigError(err)
-	}
-
-	// Make sure a valid average price mode is given.
-	switch cfg.TBOpts.AvgPriceMode {
-	case ticketbuyer.PriceTargetVWAP:
-	case ticketbuyer.PriceTargetPool:
-	case ticketbuyer.PriceTargetDual:
-	default:
-		str := "%s: Invalid average price mode '%s'"
-		err := errors.Errorf(str, funcName, cfg.TBOpts.AvgPriceMode)
-		fmt.Fprintln(os.Stderr, err)
-		return loadConfigError(err)
-	}
-
-	// Sanity check MaxPriceRelative
-	if cfg.TBOpts.MaxPriceRelative < 0 {
-		str := "%s: maxpricerelative cannot be negative: %v"
-		err := errors.Errorf(str, funcName, cfg.TBOpts.MaxPriceRelative)
-		fmt.Fprintln(os.Stderr, err)
-		return loadConfigError(err)
-	}
-
-	// Sanity check MinFee and MaxFee
-	if cfg.TBOpts.MinFee.ToCoin() > cfg.TBOpts.MaxFee.ToCoin() {
-		str := "%s: minfee cannot be higher than maxfee: (min %v, max %v)"
-		err := errors.Errorf(str, funcName, cfg.TBOpts.MinFee, cfg.TBOpts.MaxFee)
-		fmt.Fprintln(os.Stderr, err)
-		return loadConfigError(err)
-	}
-	if cfg.TBOpts.MaxFee.ToCoin() < 0 {
-		str := "%s: maxfee cannot be less than zero: %v"
-		err := errors.Errorf(str, funcName, cfg.TBOpts.MaxFee)
-		fmt.Fprintln(os.Stderr, err)
-		return loadConfigError(err)
-	}
-	if cfg.TBOpts.MinFee.ToCoin() < 0 {
-		str := "%s: minfee cannot be less than zero: %v"
-		err := errors.Errorf(str, funcName, cfg.TBOpts.MinFee)
-		fmt.Fprintln(os.Stderr, err)
-		return loadConfigError(err)
-	}
-
-	// Sanity check BalanceToMaintainAbsolute
-	if cfg.TBOpts.BalanceToMaintainAbsolute.ToCoin() < 0 {
-		str := "%s: balancetomaintainabsolute cannot be negative: %v"
-		err := errors.Errorf(str, funcName, cfg.TBOpts.BalanceToMaintainAbsolute)
-		fmt.Fprintln(os.Stderr, err)
-		return loadConfigError(err)
-	}
-
-	// Sanity check BalanceToMaintainRelative
-	if cfg.TBOpts.BalanceToMaintainRelative < 0 {
-		str := "%s: balancetomaintainabsolute cannot be negative: %v"
-		err := errors.Errorf(str, funcName, cfg.TBOpts.BalanceToMaintainRelative)
-		fmt.Fprintln(os.Stderr, err)
-		return loadConfigError(err)
-	}
-	if cfg.TBOpts.BalanceToMaintainRelative > 1 {
-		str := "%s: balancetomaintainrelative cannot be greater then 1: %v"
-		err := errors.Errorf(str, funcName, cfg.TBOpts.BalanceToMaintainRelative)
-		fmt.Fprintln(os.Stderr, err)
-		return loadConfigError(err)
-	}
-
-	// Sanity check ExpiryDelta
-	if cfg.TBOpts.ExpiryDelta <= 0 {
-		str := "%s: expirydelta must be greater then zero: %v"
-		err := errors.Errorf(str, funcName, cfg.TBOpts.ExpiryDelta)
-		fmt.Fprintln(os.Stderr, err)
-		return loadConfigError(err)
 	}
 
 	// Exit if you try to use a simulation wallet with a standard
@@ -964,56 +739,11 @@ func loadConfig(ctx context.Context) (*config, []string, error) {
 		cfg.DcrdPassword = cfg.Password
 	}
 
-	// Warn if user still has an old ticket buyer configuration file.
-	oldTBConfigFile := filepath.Join(cfg.AppDataDir.Value, "ticketbuyer.conf")
-	if _, err := os.Stat(oldTBConfigFile); err == nil {
-		log.Warnf("%s is no longer used and should be removed. "+
-			"Please prepend 'ticketbuyer.' to each option and "+
-			"move it under the [Ticket Buyer Options] section "+
-			"of %s\n",
-			oldTBConfigFile, configFilePath)
-	}
-
-	// Warn if user still is still using --ticketaddress
-	votingAddress := cfg.TBOpts.VotingAddress.Address
-	if cfg.TicketAddress.Address != nil {
-		log.Warnf("--ticketaddress has been DEPRECATED.  Use " +
-			"--ticketbuyer.votingaddress instead")
-		if votingAddress == nil {
-			votingAddress = cfg.TicketAddress.Address
-		}
-	}
-
 	// Warn if user still is still using --addridxscanlen
 	if cfg.AddrIdxScanLen != defaultGapLimit && cfg.GapLimit == defaultGapLimit {
 		log.Warnf("--addridxscanlen has been DEPRECATED.  Use " +
 			"--gaplimit instead")
 		cfg.GapLimit = cfg.AddrIdxScanLen
-	}
-
-	// Build ticketbuyer config
-	cfg.tbCfg = ticketbuyer.Config{
-		AccountName:               cfg.PurchaseAccount,
-		AvgPriceMode:              cfg.TBOpts.AvgPriceMode,
-		AvgPriceVWAPDelta:         cfg.TBOpts.AvgPriceVWAPDelta,
-		BalanceToMaintainAbsolute: int64(cfg.TBOpts.BalanceToMaintainAbsolute.Amount),
-		BalanceToMaintainRelative: cfg.TBOpts.BalanceToMaintainRelative,
-		BlocksToAvg:               cfg.TBOpts.BlocksToAvg,
-		DontWaitForTickets:        cfg.TBOpts.DontWaitForTickets,
-		ExpiryDelta:               cfg.TBOpts.ExpiryDelta,
-		FeeSource:                 cfg.TBOpts.FeeSource,
-		FeeTargetScaling:          cfg.TBOpts.FeeTargetScaling,
-		MinFee:                    int64(cfg.TBOpts.MinFee.Amount),
-		MaxFee:                    int64(cfg.TBOpts.MaxFee.Amount),
-		MaxPerBlock:               cfg.TBOpts.MaxPerBlock,
-		MaxPriceAbsolute:          int64(cfg.TBOpts.MaxPriceAbsolute.Amount),
-		MaxPriceRelative:          cfg.TBOpts.MaxPriceRelative,
-		MaxInMempool:              cfg.TBOpts.MaxInMempool,
-		PoolAddress:               cfg.PoolAddress.Address,
-		PoolFees:                  cfg.PoolFees,
-		NoSpreadTicketPurchases:   cfg.TBOpts.NoSpreadTicketPurchases,
-		VotingAddress:             votingAddress,
-		TxFee:                     int64(cfg.RelayFee.Amount),
 	}
 
 	// Make list of old versions of testnet directories.

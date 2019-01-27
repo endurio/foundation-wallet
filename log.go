@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/decred/slog"
 	"github.com/endurio/ndrd/connmgr"
 	dcrrpcclient "github.com/endurio/ndrd/rpcclient"
 	"github.com/endurio/ndrw/chain"
@@ -18,11 +19,8 @@ import (
 	"github.com/endurio/ndrw/rpc/legacyrpc"
 	"github.com/endurio/ndrw/rpc/rpcserver"
 	"github.com/endurio/ndrw/spv"
-	"github.com/endurio/ndrw/ticketbuyer"
-	ticketbuyerv2 "github.com/endurio/ndrw/ticketbuyer/v2"
 	"github.com/endurio/ndrw/wallet"
 	"github.com/endurio/ndrw/wallet/udb"
-	"github.com/decred/slog"
 	"github.com/jrick/logrotate/rotator"
 )
 
@@ -69,8 +67,6 @@ func init() {
 	loader.UseLogger(loaderLog)
 	wallet.UseLogger(walletLog)
 	udb.UseLogger(walletLog)
-	ticketbuyer.UseLogger(tkbyLog)
-	ticketbuyerv2.UseLogger(tkbyLog)
 	chain.UseLogger(syncLog)
 	dcrrpcclient.UseLogger(syncLog)
 	spv.UseLogger(syncLog)

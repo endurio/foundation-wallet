@@ -23,8 +23,6 @@ require (
 	github.com/endurio/ndrw/p2p v1.0.1
 	github.com/endurio/ndrw/rpc/walletrpc v0.2.0
 	github.com/endurio/ndrw/spv v1.1.0
-	github.com/endurio/ndrw/ticketbuyer v1.0.2
-	github.com/endurio/ndrw/ticketbuyer/v2 v2.0.1
 	github.com/endurio/ndrw/version v1.0.1
 	github.com/endurio/ndrw/wallet v1.1.0
 	github.com/endurio/ndrw/walletseed v1.0.1
@@ -32,7 +30,6 @@ require (
 	github.com/jessevdk/go-flags v1.4.0
 	github.com/jrick/logrotate v1.0.0
 	golang.org/x/crypto v0.0.0-20181203042331-505ab145d0a9
-	golang.org/x/net v0.0.0-20181220203305-927f97764cc3 // indirect
 	golang.org/x/sys v0.0.0-20190102155601-82a175fd1598 // indirect
 	google.golang.org/grpc v1.17.0
 )
@@ -69,8 +66,6 @@ replace (
 	github.com/endurio/ndrw/pgpwordlist => ./pgpwordlist
 	github.com/endurio/ndrw/rpc/walletrpc => ./rpc/walletrpc
 	github.com/endurio/ndrw/spv => ./spv
-	github.com/endurio/ndrw/ticketbuyer => ./ticketbuyer
-	github.com/endurio/ndrw/ticketbuyer/v2 => ./ticketbuyer/v2
 	github.com/endurio/ndrw/validate => ./validate
 	github.com/endurio/ndrw/version => ./version
 	github.com/endurio/ndrw/wallet => ./wallet
