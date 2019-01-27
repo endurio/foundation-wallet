@@ -874,7 +874,7 @@ func (s *Syncer) handleBlockAnnouncements(ctx context.Context, rp *p2p.RemotePee
 		s.sidechainMu.Lock()
 
 		for i := range headers {
-			haveBlock, _, err := s.wallet.BlockInMainChain(blockHashes[i])
+			haveBlock, err := s.wallet.BlockInMainChain(blockHashes[i])
 			if err != nil {
 				return err
 			}
@@ -945,7 +945,7 @@ func (s *Syncer) handleBlockAnnouncements(ctx context.Context, rp *p2p.RemotePee
 	// Announced blocks not in the main chain are logged as sidechain or orphan
 	// blocks.
 	for _, n := range newBlocks {
-		haveBlock, _, err := s.wallet.BlockInMainChain(n.Hash)
+		haveBlock, err := s.wallet.BlockInMainChain(n.Hash)
 		if err != nil {
 			return err
 		}
@@ -1034,7 +1034,7 @@ func (s *Syncer) getHeaders(ctx context.Context, rp *p2p.RemotePeer) error {
 		var added int
 		s.sidechainMu.Lock()
 		for _, n := range nodes {
-			haveBlock, _, _ := s.wallet.BlockInMainChain(n.Hash)
+			haveBlock, _ := s.wallet.BlockInMainChain(n.Hash)
 			if haveBlock {
 				continue
 			}

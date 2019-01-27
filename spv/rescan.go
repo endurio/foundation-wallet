@@ -18,26 +18,18 @@ import (
 // added to fadded.
 //
 // This function may only be called with the filter mutex held.
-func (s *Syncer) rescanCheckTransactions(matches *[]*wire.MsgTx, fadded *blockcf.Entries, txs []*wire.MsgTx, tree int8) {
+func (s *Syncer) rescanCheckTransactions(matches *[]*wire.MsgTx, fadded *blockcf.Entries, txs []*wire.MsgTx) {
 	for i, tx := range txs {
 		// Keep track of whether the transaction has already been added
 		// to the result.  It shouldn't be added twice.
 		added := false
 
-		txty := stake.TxTypeRegular
-		if tree == wire.TxTreeStake {
-			txty = stake.DetermineTxType(tx)
-		}
-
 		// Coinbases and stakebases are handled specially: all inputs of a
 		// coinbase and the first (stakebase) input of a vote are skipped over
 		// as they generate coins and do not reference any previous outputs.
 		inputs := tx.TxIn
-		if i == 0 && txty == stake.TxTypeRegular {
+		if i == 0 {
 			goto LoopOutputs
-		}
-		if txty == stake.TxTypeSSGen {
-			inputs = inputs[1:]
 		}
 
 		for _, input := range inputs {
@@ -66,7 +58,6 @@ func (s *Syncer) rescanCheckTransactions(matches *[]*wire.MsgTx, fadded *blockcf
 				op := wire.OutPoint{
 					Hash:  tx.TxHash(),
 					Index: uint32(i),
-					Tree:  tree,
 				}
 				if !s.rescanFilter.ExistsUnspentOutPoint(&op) {
 					s.rescanFilter.AddUnspentOutPoint(&op)
@@ -88,8 +79,7 @@ func (s *Syncer) rescanCheckTransactions(matches *[]*wire.MsgTx, fadded *blockcf
 // the filter.
 func (s *Syncer) rescanBlock(block *wire.MsgBlock) (matches []*wire.MsgTx, fadded blockcf.Entries) {
 	s.filterMu.Lock()
-	s.rescanCheckTransactions(&matches, &fadded, block.STransactions, wire.TxTreeStake)
-	s.rescanCheckTransactions(&matches, &fadded, block.Transactions, wire.TxTreeRegular)
+	s.rescanCheckTransactions(&matches, &fadded, block.Transactions)
 	s.filterMu.Unlock()
 	return matches, fadded
 }
