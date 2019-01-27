@@ -72,13 +72,10 @@ func NewRPCClientConfig(chainParams *chaincfg.Params, connConfig *dcrrpcclient.C
 		quit:                      make(chan struct{}),
 	}
 	ntfnCallbacks := &dcrrpcclient.NotificationHandlers{
-		OnBlockConnected:        client.onBlockConnected,
-		OnBlockDisconnected:     client.onBlockDisconnected,
-		OnRelevantTxAccepted:    client.onRelevantTxAccepted,
-		OnReorganization:        client.onReorganization,
-		OnWinningTickets:        client.onWinningTickets,
-		OnSpentAndMissedTickets: client.onSpentAndMissedTickets,
-		OnStakeDifficulty:       client.onStakeDifficulty,
+		OnBlockConnected:     client.onBlockConnected,
+		OnBlockDisconnected:  client.onBlockDisconnected,
+		OnRelevantTxAccepted: client.onRelevantTxAccepted,
+		OnReorganization:     client.onReorganization,
 	}
 	rpcClient, err := dcrrpcclient.New(client.connConfig, ntfnCallbacks)
 	if err != nil {

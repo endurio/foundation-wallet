@@ -193,32 +193,6 @@ func (s *RPCSyncer) Run(ctx context.Context, startupSync bool) error {
 		}
 		return s.handleNotifications(ctx)
 	})
-	g.Go(func() error {
-		return s.handleVoteNotifications(ctx)
-	})
-	g.Go(func() error {
-		err := s.rpcClient.NotifySpentAndMissedTickets()
-		if err != nil {
-			const op errors.Op = "ndrd.jsonrpc.notifyspentandmissedtickets"
-			return errors.E(op, err)
-		}
-
-		if s.wallet.VotingEnabled() {
-			// Request notifications for winning tickets.
-			err := s.rpcClient.NotifyWinningTickets()
-			if err != nil {
-				const op errors.Op = "ndrd.jsonrpc.notifywinningtickets"
-				return errors.E(op, err)
-			}
-
-			vb := s.wallet.VoteBits()
-			log.Infof("Wallet voting enabled: vote bits = %#04x, "+
-				"extended vote bits = %x", vb.Bits, vb.ExtendedBits)
-			log.Infof("Please ensure your wallet remains unlocked so it may vote")
-		}
-
-		return nil
-	})
 	err = g.Wait()
 	if err != nil {
 		return errors.E(op, err)
@@ -333,11 +307,6 @@ func (s *RPCSyncer) handleNotifications(ctx context.Context) error {
 				}
 				err = s.wallet.AcceptMempoolTx(n.transaction)
 
-			case missedTickets:
-				op = "ndrd.jsonrpc.spentandmissedtickets"
-				err = s.wallet.RevokeOwnedTickets(n.tickets)
-				nonFatal = true
-
 			default:
 				log.Warnf("Notification handler received unknown notification type %T", n)
 				continue
@@ -354,35 +323,6 @@ func (s *RPCSyncer) handleNotifications(ctx context.Context) error {
 			}
 
 			return err
-		}
-	}
-}
-
-func (s *RPCSyncer) handleVoteNotifications(ctx context.Context) error {
-	c := s.rpcClient.notificationsVoting()
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-
-		case n, ok := <-c:
-			if !ok {
-				return errors.E(errors.NoPeers, "RPC client disconnected")
-			}
-
-			var op errors.Op
-			var err error
-			switch n := n.(type) {
-			case winningTickets:
-				op = "ndrd.jsonrpc.winningtickets"
-				err = s.wallet.VoteOnOwnedTickets(n.tickets, n.blockHash, int32(n.blockHeight))
-			default:
-				log.Warnf("Voting handler received unknown notification type %T", n)
-			}
-			if err != nil {
-				err = errors.E(op, err)
-				log.Errorf("Failed to process consensus server notification: %v", err)
-			}
 		}
 	}
 }
@@ -504,7 +444,7 @@ func (s *RPCSyncer) startupSync(ctx context.Context) error {
 
 		var added int
 		for _, n := range nodes {
-			haveBlock, _, _ := s.wallet.BlockInMainChain(n.Hash)
+			haveBlock, _ := s.wallet.BlockInMainChain(n.Hash)
 			if haveBlock {
 				continue
 			}

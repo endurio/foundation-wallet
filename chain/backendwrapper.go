@@ -174,20 +174,6 @@ func (b *rpcBackend) Rescan(ctx context.Context, blocks []chainhash.Hash, r wall
 	return nil
 }
 
-func (b *rpcBackend) StakeDifficulty(ctx context.Context) (dcrutil.Amount, error) {
-	const op errors.Op = "ndrd.jsonrpc.getstakedifficulty"
-
-	r, err := b.rpcClient.GetStakeDifficulty()
-	if err != nil {
-		return 0, errors.E(op, err)
-	}
-	amount, err := dcrutil.NewAmount(r.NextStakeDifficulty)
-	if err != nil {
-		return 0, errors.E(op, err)
-	}
-	return amount, nil
-}
-
 func (b *rpcBackend) RPCClient() *rpcclient.Client {
 	return b.rpcClient
 }
