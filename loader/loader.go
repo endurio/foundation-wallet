@@ -239,22 +239,14 @@ func (l *Loader) CreateNewWallet(pubPassphrase, privPassphrase, seed []byte) (w 
 	}
 
 	// Open the newly-created wallet.
-	so := l.stakeOptions
 	cfg := &wallet.Config{
-		DB:                  db,
-		PubPassphrase:       pubPassphrase,
-		VotingEnabled:       so.VotingEnabled,
-		AddressReuse:        so.AddressReuse,
-		VotingAddress:       so.VotingAddress,
-		PoolAddress:         so.PoolAddress,
-		PoolFees:            so.PoolFees,
-		TicketFee:           so.TicketFee,
-		GapLimit:            l.gapLimit,
-		AccountGapLimit:     l.accountGapLimit,
-		StakePoolColdExtKey: so.StakePoolColdExtKey,
-		AllowHighFees:       l.allowHighFees,
-		RelayFee:            l.relayFee,
-		Params:              l.chainParams,
+		DB:              db,
+		PubPassphrase:   pubPassphrase,
+		GapLimit:        l.gapLimit,
+		AccountGapLimit: l.accountGapLimit,
+		AllowHighFees:   l.allowHighFees,
+		RelayFee:        l.relayFee,
+		Params:          l.chainParams,
 	}
 	w, err = wallet.Open(cfg)
 	if err != nil {
@@ -300,22 +292,14 @@ func (l *Loader) OpenExistingWallet(pubPassphrase []byte) (w *wallet.Wallet, rer
 		}
 	}()
 
-	so := l.stakeOptions
 	cfg := &wallet.Config{
-		DB:                  db,
-		PubPassphrase:       pubPassphrase,
-		VotingEnabled:       so.VotingEnabled,
-		AddressReuse:        so.AddressReuse,
-		VotingAddress:       so.VotingAddress,
-		PoolAddress:         so.PoolAddress,
-		PoolFees:            so.PoolFees,
-		TicketFee:           so.TicketFee,
-		GapLimit:            l.gapLimit,
-		AccountGapLimit:     l.accountGapLimit,
-		StakePoolColdExtKey: so.StakePoolColdExtKey,
-		AllowHighFees:       l.allowHighFees,
-		RelayFee:            l.relayFee,
-		Params:              l.chainParams,
+		DB:              db,
+		PubPassphrase:   pubPassphrase,
+		GapLimit:        l.gapLimit,
+		AccountGapLimit: l.accountGapLimit,
+		AllowHighFees:   l.allowHighFees,
+		RelayFee:        l.relayFee,
+		Params:          l.chainParams,
 	}
 	w, err = wallet.Open(cfg)
 	if err != nil {
@@ -367,8 +351,6 @@ func (l *Loader) UnloadWallet() error {
 	if l.wallet == nil {
 		return errors.E(op, errors.Invalid, "wallet is unopened")
 	}
-
-	l.stopTicketPurchase()
 
 	l.wallet.Stop()
 	l.wallet.WaitForShutdown()
