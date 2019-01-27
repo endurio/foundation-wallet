@@ -729,10 +729,6 @@ func keyCredit(txHash *chainhash.Hash, index uint32, block *Block) []byte {
 	return k
 }
 
-func condenseOpCode(opCode uint8) byte {
-	return (opCode - 0xb9) << 2
-}
-
 // valueUnspentCredit creates a new credit value for an unspent credit.  All
 // credits are created unspent, and are only marked spent later, so there is no
 // value function to create either spent or unspent credits.
@@ -740,7 +736,7 @@ func valueUnspentCredit(cred *credit, scrType scriptType, scrLoc uint32,
 	scrLen uint32, account uint32, dbVersion uint32) []byte {
 	v := make([]byte, creditValueSize)
 	byteOrder.PutUint64(v, uint64(cred.amount))
-	v[8] = condenseOpCode(cred.opCode)
+	v[8] = 0
 	if cred.change {
 		v[8] |= 1 << 1
 	}
@@ -845,11 +841,6 @@ func fetchRawCreditUnspentValue(k []byte) ([]byte, error) {
 		return nil, errors.E(errors.IO, errors.Errorf("credit key len %d", len(k)))
 	}
 	return k[32:68], nil
-}
-
-// fetchRawCreditTagOpCode fetches the compressed OP code for a transaction.
-func fetchRawCreditTagOpCode(v []byte) uint8 {
-	return (((v[8] >> 2) & 0x07) + 0xb9)
 }
 
 // fetchRawCreditIsCoinbase returns whether or not the credit is a coinbase
@@ -1011,7 +1002,6 @@ func (it *creditIterator) readElem() error {
 	it.elem.Amount = dcrutil.Amount(byteOrder.Uint64(it.cv))
 	it.elem.Spent = it.cv[8]&(1<<0) != 0
 	it.elem.Change = it.cv[8]&(1<<1) != 0
-	it.elem.OpCode = fetchRawCreditTagOpCode(it.cv)
 	it.elem.IsCoinbase = fetchRawCreditIsCoinbase(it.cv)
 	it.elem.HasExpiry = fetchRawCreditHasExpiry(it.cv, it.dbVersion)
 
@@ -1393,12 +1383,12 @@ const (
 	unconfValueSize = 22
 )
 
-func valueUnminedCredit(amount dcrutil.Amount, change bool, opCode uint8,
+func valueUnminedCredit(amount dcrutil.Amount, change bool,
 	IsCoinbase bool, hasExpiry bool, scrType scriptType, scrLoc uint32, scrLen uint32,
 	account uint32, dbVersion uint32) []byte {
 	v := make([]byte, unconfValueSize)
 	byteOrder.PutUint64(v, uint64(amount))
-	v[8] = condenseOpCode(opCode)
+	v[8] = 0
 	if change {
 		v[8] |= 1 << 1
 	}
@@ -1452,10 +1442,6 @@ func fetchRawUnminedCreditAmountChange(v []byte) (dcrutil.Amount, bool, error) {
 	amt := dcrutil.Amount(byteOrder.Uint64(v))
 	change := v[8]&(1<<1) != 0
 	return amt, change, nil
-}
-
-func fetchRawUnminedCreditTagOpcode(v []byte) uint8 {
-	return (((v[8] >> 2) & 0x07) + 0xb9)
 }
 
 func fetchRawUnminedCreditTagIsCoinbase(v []byte) bool {
@@ -1740,7 +1726,7 @@ func keyMultisigOut(hash chainhash.Hash, index uint32) []byte {
 }
 
 func valueMultisigOut(sh [ripemd160.Size]byte, m uint8, n uint8,
-	spent bool, tree int8, blockHash chainhash.Hash,
+	spent bool, blockHash chainhash.Hash,
 	blockHeight uint32, amount dcrutil.Amount, spentBy chainhash.Hash,
 	sbi uint32, txHash chainhash.Hash) []byte {
 	v := make([]byte, 135)

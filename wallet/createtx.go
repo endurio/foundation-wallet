@@ -1287,20 +1287,6 @@ func (w *Wallet) findEligibleOutputs(dbtx walletdb.ReadTx, account uint32, minco
 
 		// Make sure everything we're trying to spend is actually mature.
 		switch {
-		case class == txscript.StakeSubmissionTy:
-			continue
-		case class == txscript.StakeGenTy:
-			if !coinbaseMatured(w.chainParams, output.Height, currentHeight) {
-				continue
-			}
-		case class == txscript.StakeRevocationTy:
-			if !coinbaseMatured(w.chainParams, output.Height, currentHeight) {
-				continue
-			}
-		case class == txscript.StakeSubChangeTy:
-			if !ticketChangeMatured(w.chainParams, output.Height, currentHeight) {
-				continue
-			}
 		case class == txscript.PubKeyHashTy:
 			if output.FromCoinBase {
 				if !coinbaseMatured(w.chainParams, output.Height, currentHeight) {

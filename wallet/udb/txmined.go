@@ -8,7 +8,6 @@ package udb
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
 	"sort"
 	"time"
 
@@ -77,7 +76,6 @@ type credit struct {
 	amount     dcrutil.Amount
 	change     bool
 	spentBy    indexedIncidence // Index == ^uint32(0) if unspent
-	opCode     uint8
 	isCoinbase bool
 	hasExpiry  bool
 }
@@ -217,14 +215,6 @@ func (s *Store) ExtendMainChain(ns walletdb.ReadWriteBucket, header *wire.BlockH
 	}
 
 	var err error
-	if approvesParent(header.VoteBits) {
-		err = stakeValidate(ns, currentTipHeight)
-	} else {
-		err = stakeInvalidate(ns, currentTipHeight)
-	}
-	if err != nil {
-		return err
-	}
 
 	// Add the header
 	var headerBuffer bytes.Buffer
@@ -274,7 +264,7 @@ func (s *Store) UpdateProcessedTxsBlockMarker(dbtx walletdb.ReadWriteTx, hash *c
 	ns := dbtx.ReadWriteBucket(wtxmgrBucketKey)
 	prev := s.ProcessedTxsBlockMarker(dbtx)
 	for {
-		mainChain, _ := s.BlockInMainChain(dbtx, prev)
+		mainChain := s.BlockInMainChain(dbtx, prev)
 		if mainChain {
 			break
 		}
@@ -288,7 +278,7 @@ func (s *Store) UpdateProcessedTxsBlockMarker(dbtx walletdb.ReadWriteTx, hash *c
 	if err != nil {
 		return err
 	}
-	if mainChain, _ := s.BlockInMainChain(dbtx, hash); !mainChain {
+	if mainChain := s.BlockInMainChain(dbtx, hash); !mainChain {
 		return errors.E(errors.Invalid, errors.Errorf("%v is not a main chain block", hash))
 	}
 	header, err := s.GetBlockHeader(dbtx, hash)
@@ -518,140 +508,6 @@ type BlockHeaderData struct {
 	SerializedHeader RawBlockHeader
 }
 
-// stakeValidate validates regular tree transactions from the main chain block
-// at some height.  This does not perform any changes when the block is not
-// marked invalid.  When currently invalidated, the invalidated byte is set to 0
-// to mark the block as stake validated and the mined balance is incremented for
-// all credits of this block.
-//
-// Stake validation or invalidation should only occur for the block at height
-// tip-1.
-func stakeValidate(ns walletdb.ReadWriteBucket, height int32) error {
-	k, v := existsBlockRecord(ns, height)
-	if v == nil {
-		return errors.E(errors.IO, errors.Errorf("missing block record for height %v", height))
-	}
-	if !extractRawBlockRecordStakeInvalid(v) {
-		return nil
-	}
-
-	minedBalance, err := fetchMinedBalance(ns)
-	if err != nil {
-		return err
-	}
-
-	var blockRec blockRecord
-	err = readRawBlockRecord(k, v, &blockRec)
-	if err != nil {
-		return err
-	}
-
-	// Rewrite the block record, marking the regular tree as stake validated.
-	err = putRawBlockRecord(ns, k, valueBlockRecordStakeValidated(v))
-	if err != nil {
-		return err
-	}
-
-	for i := range blockRec.transactions {
-		txHash := &blockRec.transactions[i]
-
-		_, txv := existsTxRecord(ns, txHash, &blockRec.Block)
-		if txv == nil {
-			return errors.E(errors.IO, errors.Errorf("missing transaction record for tx %v block %v",
-				txHash, &blockRec.Block.Hash))
-		}
-		var txRec TxRecord
-		err = readRawTxRecord(txHash, txv, &txRec)
-		if err != nil {
-			return err
-		}
-
-		// Only regular tree transactions must be considered.
-		if txRec.TxType != stake.TxTypeRegular {
-			continue
-		}
-
-		// Move all credits from this tx to the non-invalidated credits bucket.
-		// Add an unspent output for each validated credit.
-		// The mined balance is incremented for all moved credit outputs.
-		creditOutPoint := wire.OutPoint{Hash: txRec.Hash} // Index set in loop
-		for i, output := range txRec.MsgTx.TxOut {
-			k, v := existsInvalidatedCredit(ns, &txRec.Hash, uint32(i), &blockRec.Block)
-			if v == nil {
-				continue
-			}
-
-			err = ns.NestedReadWriteBucket(bucketStakeInvalidatedCredits).
-				Delete(k)
-			if err != nil {
-				return errors.E(errors.IO, err)
-			}
-			err = putRawCredit(ns, k, v)
-			if err != nil {
-				return err
-			}
-
-			creditOutPoint.Index = uint32(i)
-			err = putUnspent(ns, &creditOutPoint, &blockRec.Block)
-			if err != nil {
-				return err
-			}
-
-			minedBalance += dcrutil.Amount(output.Value)
-		}
-
-		// Move all debits from this tx to the non-invalidated debits bucket,
-		// and spend any previous credits spent by the stake validated tx.
-		// Remove utxos for all spent previous credits.  The mined balance is
-		// decremented for all previous credits that are no longer spendable.
-		debitIncidence := indexedIncidence{
-			incidence: incidence{txHash: txRec.Hash, block: blockRec.Block},
-			// index set for each rec input below.
-		}
-		for i := range txRec.MsgTx.TxIn {
-			debKey, credKey, err := existsInvalidatedDebit(ns, &txRec.Hash, uint32(i),
-				&blockRec.Block)
-			if err != nil {
-				return err
-			}
-			if debKey == nil {
-				continue
-			}
-			debitIncidence.index = uint32(i)
-
-			debVal := ns.NestedReadBucket(bucketStakeInvalidatedDebits).
-				Get(debKey)
-			debitAmount := extractRawDebitAmount(debVal)
-
-			_, err = spendCredit(ns, credKey, &debitIncidence)
-			if err != nil {
-				return err
-			}
-
-			prevOut := &txRec.MsgTx.TxIn[i].PreviousOutPoint
-			unspentKey := canonicalOutPoint(&prevOut.Hash, prevOut.Index)
-			err = deleteRawUnspent(ns, unspentKey)
-			if err != nil {
-				return err
-			}
-
-			err = ns.NestedReadWriteBucket(bucketStakeInvalidatedDebits).
-				Delete(debKey)
-			if err != nil {
-				return errors.E(errors.IO, err)
-			}
-			err = putRawDebit(ns, debKey, debVal)
-			if err != nil {
-				return err
-			}
-
-			minedBalance -= debitAmount
-		}
-	}
-
-	return putMinedBalance(ns, minedBalance)
-}
-
 // GetMainChainBlockHashForHeight returns the block hash of the block on the
 // main chain at a given height.
 func (s *Store) GetMainChainBlockHashForHeight(ns walletdb.ReadBucket, height int32) (chainhash.Hash, error) {
@@ -690,21 +546,21 @@ func (s *Store) GetBlockHeader(dbtx walletdb.ReadTx, blockHash *chainhash.Hash) 
 // BlockInMainChain returns whether a block identified by its hash is in the
 // current main chain and if so, whether it has been stake invalidated by the
 // next main chain block.
-func (s *Store) BlockInMainChain(dbtx walletdb.ReadTx, blockHash *chainhash.Hash) (inMainChain bool, invalidated bool) {
+func (s *Store) BlockInMainChain(dbtx walletdb.ReadTx, blockHash *chainhash.Hash) (inMainChain bool) {
 	ns := dbtx.ReadBucket(wtxmgrBucketKey)
 	header := existsBlockHeader(ns, keyBlockHeader(blockHash))
 	if header == nil {
-		return false, false
+		return false
 	}
 
 	_, v := existsBlockRecord(ns, extractBlockHeaderHeight(header))
 	if v == nil {
-		return false, false
+		return false
 	}
 	if !bytes.Equal(extractRawBlockRecordHash(v), blockHash[:]) {
-		return false, false
+		return false
 	}
-	return true, extractRawBlockRecordStakeInvalid(v)
+	return true
 }
 
 // GetBlockMetaForHash returns the BlockMeta for a block specified by its hash.
@@ -865,12 +721,7 @@ func (s *Store) moveMinedTx(ns walletdb.ReadWriteBucket, addrmgrNs walletdb.Read
 			return errors.E(errors.IO, errors.Errorf("missing credit "+
 				"%v, key %x, spent by %v", &input.PreviousOutPoint, credKey, &rec.Hash))
 		}
-		creditOpCode := fetchRawCreditTagOpCode(credVal)
 
-		// Do not decrement ticket amounts.
-		if !(creditOpCode == txscript.OP_SSTX) {
-			minedBalance -= amt
-		}
 		err = deleteRawUnspent(ns, unspentKey)
 		if err != nil {
 			return err
@@ -911,7 +762,6 @@ func (s *Store) moveMinedTx(ns walletdb.ReadWriteBucket, addrmgrNs walletdb.Read
 		cred.outPoint.Index = i
 		cred.amount = amount
 		cred.change = change
-		cred.opCode = fetchRawUnminedCreditTagOpcode(v)
 		cred.isCoinbase = fetchRawUnminedCreditTagIsCoinbase(v)
 
 		// Legacy credit output values may be of the wrong
@@ -943,11 +793,6 @@ func (s *Store) moveMinedTx(ns walletdb.ReadWriteBucket, addrmgrNs walletdb.Read
 		err = putUnspent(ns, &cred.outPoint, &block.Block)
 		if err != nil {
 			return err
-		}
-
-		// Do not increment ticket credits.
-		if !(cred.opCode == txscript.OP_SSTX) {
-			minedBalance += amount
 		}
 	}
 
@@ -990,14 +835,6 @@ func (s *Store) InsertMinedTx(ns walletdb.ReadWriteBucket, addrmgrNs walletdb.Re
 		},
 		// index set for each iteration below
 	}
-	txType := stake.DetermineTxType(&rec.MsgTx)
-
-	invalidated := false
-	if txType == stake.TxTypeRegular {
-		height := extractBlockHeaderHeight(blockHeader)
-		_, rawBlockRecVal := existsBlockRecord(ns, height)
-		invalidated = extractRawBlockRecordStakeInvalid(rawBlockRecVal)
-	}
 
 	for i, input := range rec.MsgTx.TxIn {
 		unspentKey, credKey := existsUnspent(ns, &input.PreviousOutPoint)
@@ -1021,44 +858,20 @@ func (s *Store) InsertMinedTx(ns walletdb.ReadWriteBucket, addrmgrNs walletdb.Re
 			continue
 		}
 
-		if invalidated {
-			// Add an invalidated debit but do not spend the previous credit,
-			// remove it from the utxo set, or decrement the mined balance.
-			debKey := keyDebit(&rec.Hash, uint32(i), &block.Block)
-			credVal := existsRawCredit(ns, credKey)
-			credAmt, err := fetchRawCreditAmount(credVal)
-			if err != nil {
-				return err
-			}
-			debVal := valueDebit(credAmt, credKey)
-			err = ns.NestedReadWriteBucket(bucketStakeInvalidatedDebits).
-				Put(debKey, debVal)
-			if err != nil {
-				return errors.E(errors.IO, err)
-			}
-		} else {
-			spender.index = uint32(i)
-			amt, err := spendCredit(ns, credKey, &spender)
-			if err != nil {
-				return err
-			}
-			err = putDebit(ns, &rec.Hash, uint32(i), amt, &block.Block,
-				credKey)
-			if err != nil {
-				return err
-			}
+		spender.index = uint32(i)
+		amt, err := spendCredit(ns, credKey, &spender)
+		if err != nil {
+			return err
+		}
+		err = putDebit(ns, &rec.Hash, uint32(i), amt, &block.Block,
+			credKey)
+		if err != nil {
+			return err
+		}
 
-			// Don't decrement spent ticket amounts.
-			isTicketInput := (txType == stake.TxTypeSSGen && i == 1) ||
-				(txType == stake.TxTypeSSRtx && i == 0)
-			if !isTicketInput {
-				minedBalance -= amt
-			}
-
-			err = deleteRawUnspent(ns, unspentKey)
-			if err != nil {
-				return err
-			}
+		err = deleteRawUnspent(ns, unspentKey)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -1076,27 +889,10 @@ func (s *Store) InsertMinedTx(ns walletdb.ReadWriteBucket, addrmgrNs walletdb.Re
 		return nil
 	}
 
-	// If the transaction is a ticket purchase, record it in the ticket
-	// purchases bucket.
-	if txType == stake.TxTypeSStx {
-		tk := rec.Hash[:]
-		tv := existsRawTicketRecord(ns, tk)
-		if tv == nil {
-			tv = valueTicketRecord(-1)
-			err := putRawTicketRecord(ns, tk, tv)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
 	// If the exact tx (not a double spend) is already included but
 	// unconfirmed, move it to a block.
 	v = existsRawUnmined(ns, rec.Hash[:])
 	if v != nil {
-		if invalidated {
-			panic(fmt.Sprintf("unimplemented: moveMinedTx called on a stake-invalidated tx: block %v height %v tx %v", &block.Hash, block.Height, &rec.Hash))
-		}
 		return s.moveMinedTx(ns, addrmgrNs, rec, k, v, &block)
 	}
 
@@ -1138,62 +934,8 @@ func (s *Store) AddCredit(ns walletdb.ReadWriteBucket, rec *TxRecord, block *Blo
 		return errors.E(errors.Invalid, "transaction output index for credit does not exist")
 	}
 
-	invalidated := false
-	if rec.TxType == stake.TxTypeRegular && block != nil {
-		blockHeader := existsBlockHeader(ns, block.Hash[:])
-		height := extractBlockHeaderHeight(blockHeader)
-		_, rawBlockRecVal := existsBlockRecord(ns, height)
-		invalidated = extractRawBlockRecordStakeInvalid(rawBlockRecVal)
-	}
-	if invalidated {
-		// Write an invalidated credit.  Do not create a utxo for the output,
-		// and do not increment the mined balance.
-		pkScript := rec.MsgTx.TxOut[index].PkScript
-		k := keyCredit(&rec.Hash, index, &block.Block)
-		cred := credit{
-			outPoint: wire.OutPoint{
-				Hash:  rec.Hash,
-				Index: index,
-			},
-			block:      block.Block,
-			amount:     dcrutil.Amount(rec.MsgTx.TxOut[index].Value),
-			change:     change,
-			spentBy:    indexedIncidence{index: ^uint32(0)},
-			opCode:     getP2PKHOpCode(pkScript),
-			isCoinbase: blockchain.IsCoinBaseTx(&rec.MsgTx),
-			hasExpiry:  rec.MsgTx.Expiry != 0,
-		}
-		scTy := pkScriptType(pkScript)
-		scLoc := uint32(rec.MsgTx.PkScriptLocs()[index])
-		v := valueUnspentCredit(&cred, scTy, scLoc, uint32(len(pkScript)),
-			account, DBVersion)
-		err := ns.NestedReadWriteBucket(bucketStakeInvalidatedCredits).Put(k, v)
-		if err != nil {
-			return errors.E(errors.IO, err)
-		}
-		return nil
-	}
-
 	_, err := s.addCredit(ns, rec, block, index, change, account)
 	return err
-}
-
-// getP2PKHOpCode returns opNonstake for non-stake transactions, or
-// the stake op code tag for stake transactions.
-func getP2PKHOpCode(pkScript []byte) uint8 {
-	class := txscript.GetScriptClass(txscript.DefaultScriptVersion, pkScript)
-	switch {
-	case class == txscript.StakeSubmissionTy:
-		return txscript.OP_SSTX
-	case class == txscript.StakeGenTy:
-		return txscript.OP_SSGEN
-	case class == txscript.StakeRevocationTy:
-		return txscript.OP_SSRTX
-	case class == txscript.StakeSubChangeTy:
-		return txscript.OP_SSTXCHANGE
-	}
-
-	return opNonstake
 }
 
 // pkScriptType determines the general type of pkScript for the purposes of
@@ -1211,23 +953,6 @@ func pkScriptType(pkScript []byte) scriptType {
 		return scriptTypeP2PKHAlt
 	case txscript.PubkeyAltTy:
 		return scriptTypeP2PKAlt
-	case txscript.StakeSubmissionTy:
-		fallthrough
-	case txscript.StakeGenTy:
-		fallthrough
-	case txscript.StakeRevocationTy:
-		fallthrough
-	case txscript.StakeSubChangeTy:
-		subClass, err := txscript.GetStakeOutSubclass(pkScript)
-		if err != nil {
-			return scriptTypeUnspecified
-		}
-		switch subClass {
-		case txscript.PubKeyHashTy:
-			return scriptTypeSP2PKH
-		case txscript.ScriptHashTy:
-			return scriptTypeSP2SH
-		}
 	}
 
 	return scriptTypeUnspecified
@@ -1236,7 +961,6 @@ func pkScriptType(pkScript []byte) scriptType {
 func (s *Store) addCredit(ns walletdb.ReadWriteBucket, rec *TxRecord, block *BlockMeta,
 	index uint32, change bool, account uint32) (bool, error) {
 
-	opCode := getP2PKHOpCode(rec.MsgTx.TxOut[index].PkScript)
 	isCoinbase := blockchain.IsCoinBaseTx(&rec.MsgTx)
 	hasExpiry := rec.MsgTx.Expiry != wire.NoExpiryValue
 
@@ -1256,7 +980,7 @@ func (s *Store) addCredit(ns walletdb.ReadWriteBucket, rec *TxRecord, block *Blo
 		scrLen := len(rec.MsgTx.TxOut[index].PkScript)
 
 		v := valueUnminedCredit(dcrutil.Amount(rec.MsgTx.TxOut[index].Value),
-			change, opCode, isCoinbase, hasExpiry, scrType, uint32(scrLoc),
+			change, isCoinbase, hasExpiry, scrType, uint32(scrLoc),
 			uint32(scrLen), account, DBVersion)
 		return true, putRawUnminedCredit(ns, k, v)
 	}
@@ -1279,7 +1003,6 @@ func (s *Store) addCredit(ns walletdb.ReadWriteBucket, rec *TxRecord, block *Blo
 		amount:     txOutAmt,
 		change:     change,
 		spentBy:    indexedIncidence{index: ^uint32(0)},
-		opCode:     opCode,
 		isCoinbase: isCoinbase,
 		hasExpiry:  rec.MsgTx.Expiry != wire.NoExpiryValue,
 	}
@@ -1299,12 +1022,10 @@ func (s *Store) addCredit(ns walletdb.ReadWriteBucket, rec *TxRecord, block *Blo
 	if err != nil {
 		return false, err
 	}
-	// Update the balance so long as it's not a ticket output.
-	if !(opCode == txscript.OP_SSTX) {
-		err = putMinedBalance(ns, minedBalance+txOutAmt)
-		if err != nil {
-			return false, err
-		}
+	// Update the balance
+	err = putMinedBalance(ns, minedBalance+txOutAmt)
+	if err != nil {
+		return false, err
 	}
 
 	return true, putUnspent(ns, &cred.outPoint, &block.Block)
@@ -1358,18 +1079,6 @@ func (s *Store) AddMultisigOut(ns walletdb.ReadWriteBucket, rec *TxRecord, block
 	if err != nil {
 		return err
 	}
-	tree := wire.TxTreeRegular
-	isStakeType := class == txscript.StakeSubmissionTy ||
-		class == txscript.StakeSubChangeTy ||
-		class == txscript.StakeGenTy ||
-		class == txscript.StakeRevocationTy
-	if isStakeType {
-		class, err = txscript.GetStakeOutSubclass(p2shScript)
-		if err != nil {
-			return errors.E(errors.Bug, err)
-		}
-		tree = wire.TxTreeStake
-	}
 	if class != txscript.ScriptHashTy {
 		return errors.E(errors.Invalid, "multisig output must be P2SH")
 	}
@@ -1392,7 +1101,6 @@ func (s *Store) AddMultisigOut(ns walletdb.ReadWriteBucket, rec *TxRecord, block
 		m,
 		n,
 		false,
-		tree,
 		block.Block.Hash,
 		uint32(block.Block.Height),
 		dcrutil.Amount(rec.MsgTx.TxOut[index].Value),
@@ -1526,7 +1234,6 @@ func (s *Store) rollback(ns walletdb.ReadWriteBucket, addrmgrNs walletdb.ReadBuc
 					coinBaseCredits = append(coinBaseCredits, wire.OutPoint{
 						Hash:  rec.Hash,
 						Index: uint32(i),
-						Tree:  wire.TxTreeRegular,
 					})
 
 					outPointKey := canonicalOutPoint(&rec.Hash, uint32(i))
@@ -1566,19 +1273,12 @@ func (s *Store) rollback(ns walletdb.ReadWriteBucket, addrmgrNs walletdb.ReadBuc
 				return err
 			}
 
-			txType := stake.DetermineTxType(&rec.MsgTx)
-
 			// For each debit recorded for this transaction, mark
 			// the credit it spends as unspent (as long as it still
 			// exists) and delete the debit.  The previous output is
 			// recorded in the unconfirmed store for every previous
 			// output, not just debits.
 			for i, input := range rec.MsgTx.TxIn {
-				// Skip stakebases.
-				if i == 0 && txType == stake.TxTypeSSGen {
-					continue
-				}
-
 				prevOut := &input.PreviousOutPoint
 				prevOutKey := canonicalOutPoint(&prevOut.Hash,
 					prevOut.Index)
@@ -1610,7 +1310,6 @@ func (s *Store) rollback(ns walletdb.ReadWriteBucket, addrmgrNs walletdb.ReadBuc
 					return errors.E(errors.IO, errors.Errorf("missing credit "+
 						"%v, key %x, spent by %v", prevOut, credKey, &rec.Hash))
 				}
-				creditOpCode := fetchRawCreditTagOpCode(credVal)
 
 				// unspendRawCredit does not error in case the no credit exists
 				// for this key, but this behavior is correct.  Since
@@ -1639,12 +1338,6 @@ func (s *Store) rollback(ns walletdb.ReadWriteBucket, addrmgrNs walletdb.ReadBuc
 				unspentVal, err := fetchRawCreditUnspentValue(credKey)
 				if err != nil {
 					return err
-				}
-
-				// Ticket output spends are never decremented, so no need
-				// to add them back.
-				if !(creditOpCode == txscript.OP_SSTX) {
-					minedBalance += amt
 				}
 
 				err = putRawUnspent(ns, prevOutKey, unspentVal)
@@ -1689,7 +1382,6 @@ func (s *Store) rollback(ns walletdb.ReadWriteBucket, addrmgrNs walletdb.ReadBuc
 				if err != nil {
 					return err
 				}
-				opCode := fetchRawCreditTagOpCode(v)
 				isCoinbase := fetchRawCreditIsCoinbase(v)
 				hasExpiry := fetchRawCreditHasExpiry(v, DBVersion)
 
@@ -1703,7 +1395,7 @@ func (s *Store) rollback(ns walletdb.ReadWriteBucket, addrmgrNs walletdb.ReadBuc
 				}
 
 				outPointKey := canonicalOutPoint(&rec.Hash, uint32(i))
-				unminedCredVal := valueUnminedCredit(amt, change, opCode,
+				unminedCredVal := valueUnminedCredit(amt, change,
 					isCoinbase, hasExpiry, scrType, uint32(scrLoc), uint32(scrLen),
 					acct, DBVersion)
 				err = putRawUnminedCredit(ns, outPointKey, unminedCredVal)
@@ -1718,12 +1410,7 @@ func (s *Store) rollback(ns walletdb.ReadWriteBucket, addrmgrNs walletdb.ReadBuc
 
 				credKey := existsRawUnspent(ns, outPointKey)
 				if credKey != nil {
-					// Ticket amounts were never added, so ignore them when
-					// correcting the balance.
-					isTicketOutput := (txType == stake.TxTypeSStx && i == 0)
-					if !isTicketOutput {
-						minedBalance -= dcrutil.Amount(output.Value)
-					}
+					minedBalance -= dcrutil.Amount(output.Value)
 					err = deleteRawUnspent(ns, outPointKey)
 					if err != nil {
 						return err
@@ -1830,7 +1517,6 @@ func (s *Store) outputCreditInfo(ns walletdb.ReadBucket, op wire.OutPoint, block
 	}
 
 	var amt dcrutil.Amount
-	var opCode uint8
 	var isCoinbase bool
 	var hasExpiry bool
 	var mined bool
@@ -1845,7 +1531,6 @@ func (s *Store) outputCreditInfo(ns walletdb.ReadBucket, op wire.OutPoint, block
 			return nil, err
 		}
 
-		opCode = fetchRawUnminedCreditTagOpcode(unminedCredV)
 		hasExpiry = fetchRawCreditHasExpiry(unminedCredV, DBVersion)
 
 		v := existsRawUnmined(ns, op.Hash[:])
@@ -1873,7 +1558,6 @@ func (s *Store) outputCreditInfo(ns walletdb.ReadBucket, op wire.OutPoint, block
 			return nil, err
 		}
 
-		opCode = fetchRawCreditTagOpCode(minedCredV)
 		isCoinbase = fetchRawCreditIsCoinbase(minedCredV)
 		hasExpiry = fetchRawCreditHasExpiry(minedCredV, DBVersion)
 
@@ -1887,11 +1571,6 @@ func (s *Store) outputCreditInfo(ns walletdb.ReadBucket, op wire.OutPoint, block
 		if err != nil {
 			return nil, err
 		}
-	}
-
-	op.Tree = wire.TxTreeRegular
-	if opCode != opNonstake {
-		op.Tree = wire.TxTreeStake
 	}
 
 	c := &Credit{
@@ -2003,21 +1682,13 @@ func (s *Store) UnspentOutpoints(ns walletdb.ReadBucket) ([]wire.OutPoint, error
 			return nil, err
 		}
 
-		kC := keyCredit(&op.Hash, op.Index, block)
-		vC := existsRawCredit(ns, kC)
-		opCode := fetchRawCreditTagOpCode(vC)
-		op.Tree = wire.TxTreeRegular
-		if opCode != opNonstake {
-			op.Tree = wire.TxTreeStake
-		}
-
 		unspent = append(unspent, op)
 	}
 	c.Close()
 
 	c = ns.NestedReadBucket(bucketUnminedCredits).ReadCursor()
 	defer c.Close()
-	for k, v := c.First(); k != nil; k, v = c.Next() {
+	for k, _ := c.First(); k != nil; k, _ = c.Next() {
 		if existsRawUnminedInput(ns, k) != nil {
 			// Output is spent by an unmined transaction.
 			// Skip to next unmined credit.
@@ -2028,12 +1699,6 @@ func (s *Store) UnspentOutpoints(ns walletdb.ReadBucket) ([]wire.OutPoint, error
 		err := readCanonicalOutPoint(k, &op)
 		if err != nil {
 			return nil, err
-		}
-
-		opCode := fetchRawUnminedCreditTagOpcode(v)
-		op.Tree = wire.TxTreeRegular
-		if opCode != opNonstake {
-			op.Tree = wire.TxTreeStake
 		}
 
 		unspent = append(unspent, op)
@@ -2059,205 +1724,6 @@ func (s *Store) IsUnspentOutpoint(dbtx walletdb.ReadTx, op *wire.OutPoint) bool 
 		return existsRawUnminedInput(ns, k) == nil
 	}
 	return false
-}
-
-// UnspentTickets returns all unspent tickets that are known for this wallet.
-// Tickets that have been spent by an unmined vote that is not a vote on the tip
-// block are also considered unspent and are returned.  The order of the hashes
-// is undefined.
-func (s *Store) UnspentTickets(dbtx walletdb.ReadTx, syncHeight int32, includeImmature bool) ([]chainhash.Hash, error) {
-	ns := dbtx.ReadBucket(wtxmgrBucketKey)
-	tipBlock, _ := s.MainChainTip(ns)
-	var tickets []chainhash.Hash
-	c := ns.NestedReadBucket(bucketTickets).ReadCursor()
-	defer c.Close()
-	var hash chainhash.Hash
-	for ticketHash, _ := c.First(); ticketHash != nil; ticketHash, _ = c.Next() {
-		copy(hash[:], ticketHash)
-
-		// Skip over tickets that are spent by votes or revocations.  As long as
-		// the ticket is relevant to the wallet, output zero is recorded as a
-		// credit.  Use the credit's spent tracking to determine if the ticket
-		// is spent or not.
-		opKey := canonicalOutPoint(&hash, 0)
-		if existsRawUnspent(ns, opKey) == nil {
-			// No unspent record indicates the output was spent by a mined
-			// transaction.
-			continue
-		}
-		if spenderHash := existsRawUnminedInput(ns, opKey); spenderHash != nil {
-			// A non-nil record for the outpoint indicates that there exists an
-			// unmined transaction that spends the output.  Determine if the
-			// spender is a vote, and append the hash if the vote is not for the
-			// tip block height.  Otherwise continue to the next ticket.
-			serializedSpender := extractRawUnminedTx(existsRawUnmined(ns, spenderHash))
-			if serializedSpender == nil {
-				continue
-			}
-			var spender wire.MsgTx
-			err := spender.Deserialize(bytes.NewReader(serializedSpender))
-			if err != nil {
-				return nil, errors.E(errors.IO, err)
-			}
-			if stake.IsSSGen(&spender) {
-				voteBlock, _ := stake.SSGenBlockVotedOn(&spender)
-				if voteBlock != tipBlock {
-					goto Include
-				}
-			}
-
-			continue
-		}
-
-		// When configured to exclude immature tickets, skip the transaction if
-		// is unmined or has not reached ticket maturity yet.
-		if !includeImmature {
-			txRecKey, _ := latestTxRecord(ns, ticketHash)
-			if txRecKey == nil {
-				continue
-			}
-			var height int32
-			err := readRawTxRecordBlockHeight(txRecKey, &height)
-			if err != nil {
-				return nil, err
-			}
-			if !ticketMatured(s.chainParams, height, syncHeight) {
-				continue
-			}
-		}
-
-	Include:
-		tickets = append(tickets, hash)
-	}
-	return tickets, nil
-}
-
-// OwnTicket returns whether ticketHash is the hash of a ticket purchase
-// transaction managed by the wallet.
-func (s *Store) OwnTicket(dbtx walletdb.ReadTx, ticketHash *chainhash.Hash) bool {
-	ns := dbtx.ReadBucket(wtxmgrBucketKey)
-	v := existsRawTicketRecord(ns, ticketHash[:])
-	return v != nil
-}
-
-// Ticket embeds a TxRecord for a ticket purchase transaction, the block it is
-// mined in (if any), and the transaction hash of the vote or revocation
-// transaction that spends the ticket (if any).
-type Ticket struct {
-	TxRecord
-	Block       Block          // Height -1 if unmined
-	SpenderHash chainhash.Hash // Zero value if unspent
-}
-
-// TicketIterator is used to iterate over all ticket purchase transactions.
-type TicketIterator struct {
-	Ticket
-	ns     walletdb.ReadBucket
-	c      walletdb.ReadCursor
-	ck, cv []byte
-	err    error
-}
-
-// IterateTickets returns an object used to iterate over all ticket purchase
-// transactions.
-func (s *Store) IterateTickets(dbtx walletdb.ReadTx) *TicketIterator {
-	ns := dbtx.ReadBucket(wtxmgrBucketKey)
-	c := ns.NestedReadBucket(bucketTickets).ReadCursor()
-	ck, cv := c.First()
-	return &TicketIterator{ns: ns, c: c, ck: ck, cv: cv}
-}
-
-// Next reads the next Ticket from the database, writing it to the iterator's
-// embedded Ticket member.  Returns false after all tickets have been iterated
-// over or an error occurs.
-func (it *TicketIterator) Next() bool {
-	if it.err != nil {
-		return false
-	}
-
-	// Some tickets may be recorded in the tickets bucket but the transaction
-	// records for them are missing because they were double spent and removed.
-	// Add a label here so that the code below can branch back here to skip to
-	// the next ticket.  This could also be implemented using a for loop, but at
-	// the loss of an indent.
-CheckNext:
-
-	// The cursor value will be nil when all items in the bucket have been
-	// iterated over.
-	if it.cv == nil {
-		return false
-	}
-
-	// Determine whether there is a mined transaction record for the ticket
-	// purchase, an unmined transaction record, or no recorded transaction at
-	// all.
-	var ticketHash chainhash.Hash
-	copy(ticketHash[:], it.ck)
-	if k, v := latestTxRecord(it.ns, it.ck); v != nil {
-		// Ticket is recorded mined
-		err := readRawTxRecordBlock(k, &it.Block)
-		if err != nil {
-			it.err = err
-			return false
-		}
-		err = readRawTxRecord(&ticketHash, v, &it.TxRecord)
-		if err != nil {
-			it.err = err
-			return false
-		}
-
-		// Check if the ticket is spent or not.  Look up the credit for output 0
-		// and check if either a debit is recorded or the output is spent by an
-		// unmined transaction.
-		_, credVal := existsCredit(it.ns, &ticketHash, 0, &it.Block)
-		if credVal != nil {
-			if extractRawCreditIsSpent(credVal) {
-				debKey := extractRawCreditSpenderDebitKey(credVal)
-				debHash := extractRawDebitHash(debKey)
-				copy(it.SpenderHash[:], debHash)
-			} else {
-				it.SpenderHash = chainhash.Hash{}
-			}
-		} else {
-			opKey := canonicalOutPoint(&ticketHash, 0)
-			spenderVal := existsRawUnminedInput(it.ns, opKey)
-			if spenderVal != nil {
-				copy(it.SpenderHash[:], spenderVal)
-			} else {
-				it.SpenderHash = chainhash.Hash{}
-			}
-		}
-	} else if v := existsRawUnmined(it.ns, ticketHash[:]); v != nil {
-		// Ticket is recorded unmined
-		it.Block = Block{Height: -1}
-		// Unmined tickets cannot be spent
-		it.SpenderHash = chainhash.Hash{}
-		err := readRawTxRecord(&ticketHash, v, &it.TxRecord)
-		if err != nil {
-			it.err = err
-			return false
-		}
-	} else {
-		// Transaction was removed, skip to next
-		it.ck, it.cv = it.c.Next()
-		goto CheckNext
-	}
-
-	// Advance the cursor to the next item before returning.  Next expects the
-	// cursor key and value to be set to the next item to read.
-	it.ck, it.cv = it.c.Next()
-
-	return true
-}
-
-// Err returns the final error state of the iterator.  It should be checked
-// after iteration completes when Next returns false.
-func (it *TicketIterator) Err() error { return it.err }
-
-func (it *TicketIterator) Close() {
-	if it.c != nil {
-		it.c.Close()
-	}
 }
 
 // MultisigCredit is a redeemable P2SH multisignature credit.
@@ -2319,7 +1785,6 @@ func (s *Store) UnspentMultisigCreditsForAddress(ns walletdb.ReadBucket, addr dc
 		}
 		m, n := fetchMultisigOutMN(val)
 		amount := fetchMultisigOutAmount(val)
-		op.Tree = fetchMultisigOutTree(val)
 
 		msc := &MultisigCredit{
 			&op,
@@ -2339,7 +1804,6 @@ type minimalCredit struct {
 	txRecordKey []byte
 	index       uint32
 	Amount      int64
-	tree        int8
 	unmined     bool
 }
 
@@ -2373,29 +1837,6 @@ func confirms(txHeight, curHeight int32) int32 {
 // reached coinbase maturity in a chain with tip height curHeight.
 func coinbaseMatured(params *chaincfg.Params, txHeight, curHeight int32) bool {
 	return txHeight >= 0 && curHeight-txHeight+1 > int32(params.CoinbaseMaturity)
-}
-
-// ticketChangeMatured returns whether a ticket change mined at
-// txHeight has reached ticket maturity in a chain with a tip height
-// curHeight.
-func ticketChangeMatured(params *chaincfg.Params, txHeight, curHeight int32) bool {
-	return txHeight >= 0 && curHeight-txHeight+1 > int32(params.SStxChangeMaturity)
-}
-
-// ticketMatured returns whether a ticket mined at txHeight has
-// reached ticket maturity in a chain with a tip height curHeight.
-func ticketMatured(params *chaincfg.Params, txHeight, curHeight int32) bool {
-	// ndrd has an off-by-one in the calculation of the ticket
-	// maturity, which results in maturity being one block higher
-	// than the params would indicate.
-	return txHeight >= 0 && curHeight-txHeight > int32(params.TicketMaturity)
-}
-
-// ticketExpired returns whether a ticket mined at txHeight has
-// reached ticket expiry in a chain with a tip height curHeight.
-func ticketExpired(params *chaincfg.Params, txHeight, curHeight int32) bool {
-	// Ticket maturity off-by-one extends to the expiry depth as well.
-	return txHeight >= 0 && curHeight-txHeight > int32(params.TicketMaturity)+int32(params.TicketExpiry)
 }
 
 func (s *Store) fastCreditPkScriptLookup(ns walletdb.ReadBucket, credKey []byte, unminedCredKey []byte) ([]byte, error) {
@@ -2545,11 +1986,6 @@ func (s *Store) UnspentOutputsForAmount(ns, addrmgrNs walletdb.ReadBucket, neede
 		if spent {
 			continue
 		}
-		// Skip ticket outputs, as only SSGen can spend these.
-		opcode := fetchRawCreditTagOpCode(cVal)
-		if opcode == txscript.OP_SSTX {
-			continue
-		}
 
 		// Only include this output if it meets the required number of
 		// confirmations.  Coinbase transactions must have have reached
@@ -2572,29 +2008,11 @@ func (s *Store) UnspentOutputsForAmount(ns, addrmgrNs walletdb.ReadBucket, neede
 				continue
 			}
 		}
-		if opcode == txscript.OP_SSGEN || opcode == txscript.OP_SSRTX {
-			if !coinbaseMatured(s.chainParams, txHeight, syncHeight) {
-				continue
-			}
-		}
-		if opcode == txscript.OP_SSTXCHANGE {
-			if !ticketChangeMatured(s.chainParams, txHeight, syncHeight) {
-				continue
-			}
-		}
-
-		// Determine the txtree for the outpoint by whether or not it's
-		// using stake tagged outputs.
-		tree := wire.TxTreeRegular
-		if opcode != opNonstake {
-			tree = wire.TxTreeStake
-		}
 
 		mc := &minimalCredit{
 			extractRawCreditTxRecordKey(cKey),
 			extractRawCreditIndex(cKey),
 			int64(amt),
-			tree,
 			false,
 		}
 
@@ -2640,25 +2058,6 @@ func (s *Store) UnspentOutputsForAmount(ns, addrmgrNs walletdb.ReadBucket, neede
 				return nil, err
 			}
 
-			// Skip ticket outputs, as only SSGen can spend these.
-			opcode := fetchRawUnminedCreditTagOpcode(v)
-			if opcode == txscript.OP_SSTX {
-				continue
-			}
-
-			// Skip outputs that are not mature.
-			switch opcode {
-			case txscript.OP_SSGEN, txscript.OP_SSRTX, txscript.OP_SSTXCHANGE:
-				continue
-			}
-
-			// Determine the txtree for the outpoint by whether or not it's
-			// using stake tagged outputs.
-			tree := wire.TxTreeRegular
-			if opcode != opNonstake {
-				tree = wire.TxTreeStake
-			}
-
 			localOp := new(wire.OutPoint)
 			err = readCanonicalOutPoint(k, localOp)
 			if err != nil {
@@ -2670,7 +2069,6 @@ func (s *Store) UnspentOutputsForAmount(ns, addrmgrNs walletdb.ReadBucket, neede
 				localOp.Hash[:],
 				localOp.Index,
 				int64(amt),
-				tree,
 				true,
 			}
 
@@ -2821,12 +2219,6 @@ func (s *Store) MakeInputSource(ns, addrmgrNs walletdb.ReadBucket, account uint3
 				continue
 			}
 
-			// Skip ticket outputs, as only SSGen can spend these.
-			opcode := fetchRawCreditTagOpCode(cVal)
-			if opcode == txscript.OP_SSTX {
-				continue
-			}
-
 			// Only include this output if it meets the required number of
 			// confirmations.  Coinbase transactions must have have reached
 			// maturity before their outputs may be spent.
@@ -2836,27 +2228,10 @@ func (s *Store) MakeInputSource(ns, addrmgrNs walletdb.ReadBucket, account uint3
 			}
 
 			// Skip outputs that are not mature.
-			if opcode == opNonstake && fetchRawCreditIsCoinbase(cVal) {
+			if fetchRawCreditIsCoinbase(cVal) {
 				if !coinbaseMatured(s.chainParams, txHeight, syncHeight) {
 					continue
 				}
-			}
-			if opcode == txscript.OP_SSGEN || opcode == txscript.OP_SSRTX {
-				if !coinbaseMatured(s.chainParams, txHeight, syncHeight) {
-					continue
-				}
-			}
-			if opcode == txscript.OP_SSTXCHANGE {
-				if !ticketChangeMatured(s.chainParams, txHeight, syncHeight) {
-					continue
-				}
-			}
-
-			// Determine the txtree for the outpoint by whether or not it's
-			// using stake tagged outputs.
-			tree := wire.TxTreeRegular
-			if opcode != opNonstake {
-				tree = wire.TxTreeStake
 			}
 
 			var op wire.OutPoint
@@ -2865,7 +2240,6 @@ func (s *Store) MakeInputSource(ns, addrmgrNs walletdb.ReadBucket, account uint3
 				return nil, err
 			}
 
-			op.Tree = tree
 			input := wire.NewTxIn(&op, int64(amt), nil)
 			var scriptSize int
 
@@ -2879,25 +2253,6 @@ func (s *Store) MakeInputSource(ns, addrmgrNs walletdb.ReadBucket, account uint3
 				scriptSize = txsizes.RedeemP2PKHSigScriptSize
 			case txscript.PubKeyTy:
 				scriptSize = txsizes.RedeemP2PKSigScriptSize
-			case txscript.StakeRevocationTy, txscript.StakeSubChangeTy,
-				txscript.StakeGenTy:
-				scriptClass, err = txscript.GetStakeOutSubclass(pkScript)
-				if err != nil {
-					return nil, fmt.Errorf(
-						"failed to extract nested script in stake output: %v",
-						err)
-				}
-
-				// For stake transactions we expect P2PKH and P2SH script class
-				// types only but ignore P2SH script type since it can pay
-				// to any script which the wallet may not recognize.
-				if scriptClass != txscript.PubKeyHashTy {
-					log.Errorf("unexpected nested script class for credit: %v",
-						scriptClass)
-					continue
-				}
-
-				scriptSize = txsizes.RedeemP2PKHSigScriptSize
 			default:
 				log.Errorf("unexpected script class for credit: %v",
 					scriptClass)
@@ -2961,34 +2316,12 @@ func (s *Store) MakeInputSource(ns, addrmgrNs walletdb.ReadBucket, account uint3
 				return nil, err
 			}
 
-			// Skip ticket outputs, as only SSGen can spend these.
-			opcode := fetchRawUnminedCreditTagOpcode(v)
-			if opcode == txscript.OP_SSTX {
-				continue
-			}
-
-			// Skip outputs that are not mature.
-			if opcode == txscript.OP_SSGEN || opcode == txscript.OP_SSRTX {
-				continue
-			}
-			if opcode == txscript.OP_SSTXCHANGE {
-				continue
-			}
-
-			// Determine the txtree for the outpoint by whether or not it's
-			// using stake tagged outputs.
-			tree := wire.TxTreeRegular
-			if opcode != opNonstake {
-				tree = wire.TxTreeStake
-			}
-
 			var op wire.OutPoint
 			err = readCanonicalOutPoint(k, &op)
 			if err != nil {
 				return nil, err
 			}
 
-			op.Tree = tree
 			input := wire.NewTxIn(&op, int64(amt), nil)
 			var scriptSize int
 
@@ -3002,25 +2335,6 @@ func (s *Store) MakeInputSource(ns, addrmgrNs walletdb.ReadBucket, account uint3
 				scriptSize = txsizes.RedeemP2PKHSigScriptSize
 			case txscript.PubKeyTy:
 				scriptSize = txsizes.RedeemP2PKSigScriptSize
-			case txscript.StakeRevocationTy, txscript.StakeSubChangeTy,
-				txscript.StakeGenTy:
-				scriptClass, err = txscript.GetStakeOutSubclass(pkScript)
-				if err != nil {
-					return nil, fmt.Errorf(
-						"failed to extract nested script in stake output: %v",
-						err)
-				}
-
-				// For stake transactions we expect P2PKH and P2SH script class
-				// types only but ignore P2SH script type since it can pay
-				// to any script which the wallet may not recognize.
-				if scriptClass != txscript.PubKeyHashTy {
-					log.Errorf("unexpected nested script class for credit: %v",
-						scriptClass)
-					continue
-				}
-
-				scriptSize = txsizes.RedeemP2PKHSigScriptSize
 			default:
 				log.Errorf("unexpected script class for credit: %v",
 					scriptClass)
@@ -3090,7 +2404,6 @@ func (s *Store) balanceFullScan(ns, addrmgrNs walletdb.ReadBucket, minConf int32
 		}
 
 		height := extractRawCreditHeight(cKey)
-		opcode := fetchRawCreditTagOpCode(cVal)
 
 		ab, ok := accountBalances[thisAcct]
 		if !ok {
@@ -3103,122 +2416,16 @@ func (s *Store) balanceFullScan(ns, addrmgrNs walletdb.ReadBucket, minConf int32
 			ab.Total += utxoAmt
 		}
 
-		switch opcode {
-		case opNonstake:
-			isConfirmed := confirmed(minConf, height, syncHeight)
-			creditFromCoinbase := fetchRawCreditIsCoinbase(cVal)
-			matureCoinbase := (creditFromCoinbase &&
-				coinbaseMatured(s.chainParams, height, syncHeight))
+		isConfirmed := confirmed(minConf, height, syncHeight)
+		creditFromCoinbase := fetchRawCreditIsCoinbase(cVal)
+		matureCoinbase := (creditFromCoinbase &&
+			coinbaseMatured(s.chainParams, height, syncHeight))
 
-			if (isConfirmed && !creditFromCoinbase) ||
-				matureCoinbase {
-				ab.Spendable += utxoAmt
-			} else if creditFromCoinbase && !matureCoinbase {
-				ab.ImmatureCoinbaseRewards += utxoAmt
-			}
-
-		case txscript.OP_SSTX:
-			// Locked as stake ticket.
-			txHash := extractRawCreditTxHash(k)
-
-			blockRec, err := fetchBlockRecord(ns, height)
-			if err != nil {
-				c.Close()
-				return nil, err
-			}
-
-			_, txv := existsTxRecord(ns, &txHash, &blockRec.Block)
-			if txv == nil {
-				c.Close()
-				return nil, errors.E(errors.IO, errors.Errorf("missing transaction record for tx %v block %v", txHash, &blockRec.Block.Hash))
-			}
-
-			var rec TxRecord
-			err = readRawTxRecord(&txHash, txv, &rec)
-			if err != nil {
-				c.Close()
-				return nil, err
-			}
-			votingAuthorityAmt := dcrutil.Amount(0)
-			lockedByTicketsAmt := dcrutil.Amount(0)
-
-			// Calculate total input amount which will allow a proper fee calculation.
-			// Fee is needed to be removed from the stake.AmountFromSStxPkScrCommitment
-			// due to the way tickets are constructed and rewards are calculated.
-			totalInputAmount := dcrutil.Amount(0)
-			for i := range rec.MsgTx.TxIn {
-				_, credKey, err := existsDebit(ns,
-					&txHash, uint32(i), &blockRec.Block)
-				if err != nil {
-					c.Close()
-					return nil, err
-				}
-				if credKey == nil {
-					continue
-				}
-				credVal := existsRawCredit(ns, credKey)
-				if credVal == nil {
-					c.Close()
-					return nil, errors.E(errors.IO, "missing credit for unspent output")
-				}
-				inputAmount, err := fetchRawCreditAmount(credVal)
-				if err != nil {
-					c.Close()
-					return nil, err
-				}
-				totalInputAmount += inputAmount
-			}
-			for i, txout := range rec.MsgTx.TxOut {
-				if i%2 != 0 {
-					addr, err := stake.AddrFromSStxPkScrCommitment(txout.PkScript,
-						s.chainParams)
-					if err != nil {
-						c.Close()
-						return nil, err
-					}
-					amt, err := stake.AmountFromSStxPkScrCommitment(txout.PkScript)
-					if err != nil {
-						c.Close()
-						return nil, err
-					}
-					votingAuthorityAmt += amt
-					if _, err := s.acctLookupFunc(addrmgrNs, addr); err != nil {
-						if errors.Is(errors.NotExist, err) {
-							continue
-						}
-						c.Close()
-						return nil, err
-					}
-					lockedByTicketsAmt += amt
-				}
-			}
-			// Calculate the fee here due to the commitamt in the OP_SSTX output script being the total
-			// value in.
-			fee := dcrutil.Amount(0)
-			if totalInputAmount > 0 {
-				fee = totalInputAmount - utxoAmt
-			}
-			if lockedByTicketsAmt > 0 {
-				// Only calculate proper lockedbyticketstamt if > 0
-				ab.LockedByTickets += lockedByTicketsAmt - fee
-			}
-			ab.VotingAuthority += votingAuthorityAmt - fee
-		case txscript.OP_SSGEN:
-			fallthrough
-		case txscript.OP_SSRTX:
-			if coinbaseMatured(s.chainParams, height, syncHeight) {
-				ab.Spendable += utxoAmt
-			} else {
-				ab.ImmatureStakeGeneration += utxoAmt
-			}
-
-		case txscript.OP_SSTXCHANGE:
-			if ticketChangeMatured(s.chainParams, height, syncHeight) {
-				ab.Spendable += utxoAmt
-			}
-
-		default:
-			log.Warnf("Unhandled opcode: %v", opcode)
+		if (isConfirmed && !creditFromCoinbase) ||
+			matureCoinbase {
+			ab.Spendable += utxoAmt
+		} else if creditFromCoinbase && !matureCoinbase {
+			ab.ImmatureCoinbaseRewards += utxoAmt
 		}
 	}
 
@@ -3260,103 +2467,10 @@ func (s *Store) balanceFullScan(ns, addrmgrNs walletdb.ReadBucket, minConf int32
 			ab.Total += utxoAmt
 		}
 
-		// Skip ticket outputs, as only SSGen can spend these.
-		opcode := fetchRawUnminedCreditTagOpcode(v)
-
-		switch opcode {
-		case opNonstake:
-			if minConf == 0 {
-				ab.Spendable += utxoAmt
-			} else if !fetchRawCreditIsCoinbase(v) {
-				ab.Unconfirmed += utxoAmt
-			}
-		case txscript.OP_SSTX:
-			txHash := extractRawUnminedCreditTxHash(k)
-
-			rawUnmined := existsRawUnmined(ns, txHash)
-			if rawUnmined == nil {
-				continue
-			}
-			serializedTx := extractRawUnminedTx(rawUnmined)
-			var rec TxRecord
-			err = rec.MsgTx.Deserialize(bytes.NewReader(serializedTx))
-			if err != nil {
-				return nil, err
-			}
-			votingAuthorityAmt := dcrutil.Amount(0)
-			lockedByTicketsAmt := dcrutil.Amount(0)
-
-			// Calculate total input amount which will allow a proper fee calculation.
-			// Fee is needed to be removed from the stake.AmountFromSStxPkScrCommitment
-			// due to the way tickets are constructed and rewards are calculated.
-			totalInputAmount := dcrutil.Amount(0)
-			for _, txin := range rec.MsgTx.TxIn {
-				rawUnmined := existsRawUnmined(ns, txin.PreviousOutPoint.Hash[:])
-				if rawUnmined != nil {
-					serializedTx := extractRawUnminedTx(rawUnmined)
-					var tx wire.MsgTx
-					err = tx.Deserialize(bytes.NewReader(serializedTx))
-					if err != nil {
-						return nil, err
-					}
-					if int(txin.PreviousOutPoint.Index) < len(tx.TxOut) {
-						totalInputAmount += dcrutil.Amount(tx.TxOut[txin.PreviousOutPoint.Index].Value)
-					}
-				} else {
-					_, txVal := latestTxRecord(ns, txin.PreviousOutPoint.Hash[:])
-					if txVal == nil {
-						continue
-					}
-					var tx wire.MsgTx
-					err = readRawTxRecordMsgTx(&txin.PreviousOutPoint.Hash, txVal, &tx)
-					if err != nil {
-						return nil, err
-					}
-					if int(txin.PreviousOutPoint.Index) < len(tx.TxOut) {
-						totalInputAmount += dcrutil.Amount(tx.TxOut[txin.PreviousOutPoint.Index].Value)
-					}
-				}
-			}
-			for i, txout := range rec.MsgTx.TxOut {
-				if i%2 != 0 {
-					addr, err := stake.AddrFromSStxPkScrCommitment(txout.PkScript,
-						s.chainParams)
-					if err != nil {
-						return nil, err
-					}
-					amt, err := stake.AmountFromSStxPkScrCommitment(txout.PkScript)
-					if err != nil {
-						return nil, err
-					}
-					votingAuthorityAmt += amt
-					if _, err := s.acctLookupFunc(addrmgrNs, addr); err != nil {
-						if errors.Is(errors.NotExist, err) {
-							continue
-						}
-						return nil, err
-					}
-					lockedByTicketsAmt += amt
-				}
-			}
-			// Calculate the fee here due to the commitamt in the OP_SSTX output script being the total
-			// value in.
-			fee := dcrutil.Amount(0)
-			if totalInputAmount > 0 {
-				fee = totalInputAmount - utxoAmt
-			}
-			if lockedByTicketsAmt > 0 {
-				// Only calculate proper lockedbyticketstamt if > 0
-				ab.LockedByTickets += lockedByTicketsAmt - fee
-			}
-			ab.VotingAuthority += votingAuthorityAmt - fee
-		case txscript.OP_SSGEN:
-			fallthrough
-		case txscript.OP_SSRTX:
-			ab.ImmatureStakeGeneration += utxoAmt
-		case txscript.OP_SSTXCHANGE:
-			continue
-		default:
-			log.Warnf("Unhandled unconfirmed opcode %v: %v", opcode, v)
+		if minConf == 0 {
+			ab.Spendable += utxoAmt
+		} else if !fetchRawCreditIsCoinbase(v) {
+			ab.Unconfirmed += utxoAmt
 		}
 	}
 
@@ -3367,11 +2481,9 @@ func (s *Store) balanceFullScan(ns, addrmgrNs walletdb.ReadBucket, minConf int32
 type Balances struct {
 	Account                 uint32
 	ImmatureCoinbaseRewards dcrutil.Amount
-	ImmatureStakeGeneration dcrutil.Amount
 	LockedByTickets         dcrutil.Amount
 	Spendable               dcrutil.Amount
 	Total                   dcrutil.Amount
-	VotingAuthority         dcrutil.Amount
 	Unconfirmed             dcrutil.Amount
 }
 

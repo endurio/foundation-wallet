@@ -3046,34 +3046,6 @@ func (w *Wallet) ListUnspent(minconf, maxconf int32, addresses map[string]struct
 				}
 			}
 
-			switch details.TxRecord.TxType {
-			case stake.TxTypeSStx:
-				// Ticket commitment, only spendable after ticket maturity.
-				if output.Index == 0 {
-					if !ticketMatured(w.chainParams, details.Height(), tipHeight) {
-						continue
-					}
-				}
-				// Change outputs.
-				if (output.Index > 0) && (output.Index%2 == 0) {
-					if !ticketChangeMatured(w.chainParams, details.Height(), tipHeight) {
-						continue
-					}
-				}
-			case stake.TxTypeSSGen:
-				// All non-OP_RETURN outputs for SSGen tx are only spendable
-				// after coinbase maturity many blocks.
-				if !coinbaseMatured(w.chainParams, details.Height(), tipHeight) {
-					continue
-				}
-			case stake.TxTypeSSRtx:
-				// All outputs for SSRtx tx are only spendable
-				// after coinbase maturity many blocks.
-				if !coinbaseMatured(w.chainParams, details.Height(), tipHeight) {
-					continue
-				}
-			}
-
 			// Exclude locked outputs from the result set.
 			if w.LockedOutpoint(output.OutPoint) {
 				continue
@@ -3729,29 +3701,6 @@ func confirms(txHeight, curHeight int32) int32 {
 // reached coinbase maturity in a chain with tip height curHeight.
 func coinbaseMatured(params *chaincfg.Params, txHeight, curHeight int32) bool {
 	return txHeight >= 0 && curHeight-txHeight+1 > int32(params.CoinbaseMaturity)
-}
-
-// ticketChangeMatured returns whether a ticket change mined at
-// txHeight has reached ticket maturity in a chain with a tip height
-// curHeight.
-func ticketChangeMatured(params *chaincfg.Params, txHeight, curHeight int32) bool {
-	return txHeight >= 0 && curHeight-txHeight+1 > int32(params.SStxChangeMaturity)
-}
-
-// ticketMatured returns whether a ticket mined at txHeight has
-// reached ticket maturity in a chain with a tip height curHeight.
-func ticketMatured(params *chaincfg.Params, txHeight, curHeight int32) bool {
-	// ndrd has an off-by-one in the calculation of the ticket
-	// maturity, which results in maturity being one block higher
-	// than the params would indicate.
-	return txHeight >= 0 && curHeight-txHeight > int32(params.TicketMaturity)
-}
-
-// ticketExpired returns whether a ticket mined at txHeight has
-// reached ticket expiry in a chain with a tip height curHeight.
-func ticketExpired(params *chaincfg.Params, txHeight, curHeight int32) bool {
-	// Ticket maturity off-by-one extends to the expiry depth as well.
-	return txHeight >= 0 && curHeight-txHeight > int32(params.TicketMaturity)+int32(params.TicketExpiry)
 }
 
 // AccountTotalReceivedResult is a single result for the

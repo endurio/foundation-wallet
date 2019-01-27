@@ -11,7 +11,6 @@ import (
 	"github.com/endurio/ndrd/chaincfg/chainhash"
 	"github.com/endurio/ndrd/gcs/blockcf"
 	"github.com/endurio/ndrd/hdkeychain"
-	"github.com/endurio/ndrd/txscript"
 	"github.com/endurio/ndrd/wire"
 	"github.com/endurio/ndrw/errors"
 	"github.com/endurio/ndrw/wallet/internal/snacl"
@@ -33,30 +32,19 @@ const (
 	//
 	// See lastUsedAddressIndexUpgrade for the code that implements the upgrade
 	// path.
-	lastUsedAddressIndexVersion = 2
-
-	// votingPreferencesVersion is the third version of the database.  It
-	// removes all per-ticket vote bits, replacing them with vote preferences
-	// for choices on individual agendas from the current stake version.
-	votingPreferencesVersion = 3
+	lastUsedAddressIndexVersion = initialVersion + 1
 
 	// noEncryptedSeedVersion is the fourth version of the database.  It removes
 	// the encrypted seed that earlier versions may have saved in the database
 	// (or more commonly, encrypted zeros on mainnet wallets).
-	noEncryptedSeedVersion = 4
+	noEncryptedSeedVersion = lastUsedAddressIndexVersion + 1
 
 	// lastReturnedAddressVersion is the fifth version of the database.  It adds
 	// additional indexes to each BIP0044 account row that keep track of the
 	// index of the last returned child address in the internal and external
 	// account branches.  This is used to prevent returning identical addresses
 	// across application restarts.
-	lastReturnedAddressVersion = 5
-
-	// ticketBucketVersion is the sixth version of the database.  It adds a
-	// bucket for recording the hashes of all tickets and provides additional
-	// APIs to check the status of tickets and whether they are spent by a vote
-	// or revocation.
-	ticketBucketVersion = 6
+	lastReturnedAddressVersion = noEncryptedSeedVersion + 1
 
 	// slip0044CoinTypeVersion is the seventh version of the database.  It
 	// introduces the possibility of the BIP0044 coin type key being either the
@@ -65,20 +53,20 @@ const (
 	// required keys (the upgrade is done in a backwards-compatible way) but the
 	// database version is bumped to prevent older software from assuming that
 	// coin type 20 exists (the upgrade is not forwards-compatible).
-	slip0044CoinTypeVersion = 7
+	slip0044CoinTypeVersion = lastReturnedAddressVersion + 1
 
 	// hasExpiryVersion is the eight version of the database. It adds the
 	// hasExpiry field to the credit struct, adds fetchRawCreditHasExpiry
 	// helper func and extends sstxchange type utxo checks to only make sstchange
 	// with expiries set available to spend after coinbase maturity (16 blocks).
-	hasExpiryVersion = 8
+	hasExpiryVersion = slip0044CoinTypeVersion + 1
 
 	// hasExpiryFixedVersion is the ninth version of the database.  It corrects
 	// the previous upgrade by writing the has expiry bit to an unused bit flag
 	// rather than in the stake flags and fixes various UTXO selection issues
 	// caused by misinterpreting ticket outputs as spendable by regular
 	// transactions.
-	hasExpiryFixedVersion = 9
+	hasExpiryFixedVersion = hasExpiryVersion + 1
 
 	// cfVersion is the tenth version of the database.  It adds a bucket to
 	// store compact filters, which are required for Decred's SPV
@@ -86,7 +74,7 @@ const (
 	// main chain compact filters were saved.  This version does not begin to
 	// save compact filter headers, since the SPV implementation is expected to
 	// use header commitments in a later release for validation.
-	cfVersion = 10
+	cfVersion = hasExpiryFixedVersion + 1
 
 	// lastProcessedTxsBlockVersion is the eleventh version of the database.  It
 	// adds a txmgr namespace root key which records the final hash of all
@@ -96,7 +84,7 @@ const (
 	// rescan should occur.  During upgrade, the current tip block is recorded
 	// as this block to avoid an additional or extra long rescan from occuring
 	// from properly-synced wallets.
-	lastProcessedTxsBlockVersion = 11
+	lastProcessedTxsBlockVersion = cfVersion + 1
 
 	// DBVersion is the latest version of the database that is understood by the
 	// program.  Databases with recorded versions higher than this will fail to
@@ -109,10 +97,8 @@ const (
 // version zero so upgrades[0] is nil.
 var upgrades = [...]func(walletdb.ReadWriteTx, []byte, *chaincfg.Params) error{
 	lastUsedAddressIndexVersion - 1:  lastUsedAddressIndexUpgrade,
-	votingPreferencesVersion - 1:     votingPreferencesUpgrade,
 	noEncryptedSeedVersion - 1:       noEncryptedSeedUpgrade,
 	lastReturnedAddressVersion - 1:   lastReturnedAddressUpgrade,
-	ticketBucketVersion - 1:          ticketBucketUpgrade,
 	slip0044CoinTypeVersion - 1:      slip0044CoinTypeUpgrade,
 	hasExpiryVersion - 1:             hasExpiryUpgrade,
 	hasExpiryFixedVersion - 1:        hasExpiryFixedUpgrade,
@@ -282,8 +268,6 @@ func votingPreferencesUpgrade(tx walletdb.ReadWriteTx, publicPassphrase []byte, 
 	const newVersion = 3
 
 	metadataBucket := tx.ReadWriteBucket(unifiedDBMetadata{}.rootBucketKey())
-	stakemgrBucket := tx.ReadWriteBucket(wstakemgrBucketKey)
-	ticketPurchasesBucket := stakemgrBucket.NestedReadWriteBucket(sstxRecordsBucketName)
 
 	// Assert that this function is only called on version 2 databases.
 	dbVersion, err := unifiedDBMetadata{}.getVersion(metadataBucket)
@@ -292,27 +276,6 @@ func votingPreferencesUpgrade(tx walletdb.ReadWriteTx, publicPassphrase []byte, 
 	}
 	if dbVersion != oldVersion {
 		return errors.E(errors.Invalid, "votingPreferencesUpgrade inappropriately called")
-	}
-
-	// Update every ticket purchase with the new database version.  This removes
-	// all per-ticket vote bits.
-	ticketPurchases := make(map[chainhash.Hash]*sstxRecord)
-	c := ticketPurchasesBucket.ReadCursor()
-	defer c.Close()
-	for k, _ := c.First(); k != nil; k, _ = c.Next() {
-		var hash chainhash.Hash
-		copy(hash[:], k)
-		ticketPurchase, err := fetchSStxRecord(stakemgrBucket, &hash, oldVersion)
-		if err != nil {
-			return err
-		}
-		ticketPurchases[hash] = ticketPurchase
-	}
-	for _, ticketPurchase := range ticketPurchases {
-		err := putSStxRecord(stakemgrBucket, ticketPurchase, newVersion)
-		if err != nil {
-			return err
-		}
 	}
 
 	// Create the top level bucket for agenda preferences.
@@ -405,90 +368,6 @@ func lastReturnedAddressUpgrade(tx walletdb.ReadWriteTx, publicPassphrase []byte
 	// by the imported account but the row must be upgraded regardless to avoid
 	// deserialization errors due to the row value length checks.
 	err = upgradeAcct(ImportedAddrAccount)
-	if err != nil {
-		return err
-	}
-
-	// Write the new database version.
-	return unifiedDBMetadata{}.putVersion(metadataBucket, newVersion)
-}
-
-func ticketBucketUpgrade(tx walletdb.ReadWriteTx, publicPassphrase []byte, params *chaincfg.Params) error {
-	const oldVersion = 5
-	const newVersion = 6
-
-	metadataBucket := tx.ReadWriteBucket(unifiedDBMetadata{}.rootBucketKey())
-	txmgrBucket := tx.ReadWriteBucket(wtxmgrBucketKey)
-
-	// Assert that this function is only called on version 5 databases.
-	dbVersion, err := unifiedDBMetadata{}.getVersion(metadataBucket)
-	if err != nil {
-		return err
-	}
-	if dbVersion != oldVersion {
-		return errors.E(errors.Invalid, "ticketBucketUpgrade inappropriately called")
-	}
-
-	// Create the tickets bucket.
-	_, err = txmgrBucket.CreateBucket(bucketTickets)
-	if err != nil {
-		return err
-	}
-
-	// Add an entry in the tickets bucket for every mined and unmined ticket
-	// purchase transaction.  Use -1 as the selected height since this value is
-	// unknown at this time and the field is not yet being used.
-	ticketHashes := make(map[chainhash.Hash]struct{})
-	c := txmgrBucket.NestedReadBucket(bucketTxRecords).ReadCursor()
-	for k, v := c.First(); v != nil; k, v = c.Next() {
-		var hash chainhash.Hash
-		err := readRawTxRecordHash(k, &hash)
-		if err != nil {
-			c.Close()
-			return err
-		}
-		var rec TxRecord
-		err = readRawTxRecord(&hash, v, &rec)
-		if err != nil {
-			c.Close()
-			return err
-		}
-		if stake.IsSStx(&rec.MsgTx) {
-			ticketHashes[hash] = struct{}{}
-		}
-	}
-	c.Close()
-
-	c = txmgrBucket.NestedReadBucket(bucketUnmined).ReadCursor()
-	for k, v := c.First(); v != nil; k, v = c.Next() {
-		var hash chainhash.Hash
-		err := readRawUnminedHash(k, &hash)
-		if err != nil {
-			c.Close()
-			return err
-		}
-		var rec TxRecord
-		err = readRawTxRecord(&hash, v, &rec)
-		if err != nil {
-			c.Close()
-			return err
-		}
-		if stake.IsSStx(&rec.MsgTx) {
-			ticketHashes[hash] = struct{}{}
-		}
-	}
-	c.Close()
-	for ticketHash := range ticketHashes {
-		err := putTicketRecord(txmgrBucket, &ticketHash, -1)
-		if err != nil {
-			return err
-		}
-	}
-
-	// Remove previous stakebase input from the unmined inputs bucket, if any
-	// was recorded.
-	stakebaseOutpoint := canonicalOutPoint(&chainhash.Hash{}, ^uint32(0))
-	err = txmgrBucket.NestedReadWriteBucket(bucketUnminedInputs).Delete(stakebaseOutpoint)
 	if err != nil {
 		return err
 	}
@@ -652,13 +531,6 @@ func hasExpiryFixedUpgrade(tx walletdb.ReadWriteTx, publicPassphrase []byte, par
 
 			vCpy[8] &^= 1 << 4 // Clear bad hasExpiry/OP_SSTXCHANGE flag
 			vCpy[8] |= 1 << 6  // Set correct hasExpiry flag
-			// Reset OP_SSTXCHANGE flag if this is a ticket purchase
-			// OP_SSTXCHANGE output.
-			out := record.MsgTx.TxOut[extractRawCreditIndex(k)]
-			if stake.IsSStx(&record.MsgTx) &&
-				txscript.GetScriptClass(out.Version, out.PkScript) == txscript.StakeSubChangeTy {
-				vCpy[8] |= 1 << 4
-			}
 
 			creditsKV[string(k)] = vCpy
 		}
@@ -698,18 +570,6 @@ func hasExpiryFixedUpgrade(tx walletdb.ReadWriteTx, publicPassphrase []byte, par
 
 			vCpy[8] &^= 1 << 4 // Clear bad hasExpiry/OP_SSTXCHANGE flag
 			vCpy[8] |= 1 << 6  // Set correct hasExpiry flag
-			// Reset OP_SSTXCHANGE flag if this is a ticket purchase
-			// OP_SSTXCHANGE output.
-			idx, err := fetchRawUnminedCreditIndex(k)
-			if err != nil {
-				unminedCursor.Close()
-				return err
-			}
-			out := record.MsgTx.TxOut[idx]
-			if stake.IsSStx(&record.MsgTx) &&
-				txscript.GetScriptClass(out.Version, out.PkScript) == txscript.StakeSubChangeTy {
-				vCpy[8] |= 1 << 4
-			}
 
 			unminedCreditsKV[string(k)] = vCpy
 		}
