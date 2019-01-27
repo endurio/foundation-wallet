@@ -20,8 +20,8 @@ import (
 	"github.com/endurio/ndrd/wire"
 	"github.com/endurio/ndrw/errors"
 	"github.com/endurio/ndrw/validate"
-	"github.com/endurio/ndrw/wallet/walletdb"
 	"github.com/endurio/ndrw/wallet/udb"
+	"github.com/endurio/ndrw/wallet/walletdb"
 	"github.com/jrick/bitset"
 	"golang.org/x/sync/errgroup"
 )
@@ -35,28 +35,6 @@ func blockCommitments(block *wire.MsgBlock) map[string]struct{} {
 	for _, tx := range block.Transactions {
 		for _, out := range tx.TxOut {
 			c[string(out.PkScript)] = struct{}{}
-		}
-	}
-	for _, tx := range block.STransactions {
-		switch stake.DetermineTxType(tx) {
-		case stake.TxTypeSStx: // Ticket purchase
-			for i := 2; i < len(tx.TxOut); i += 2 { // Iterate change outputs
-				out := tx.TxOut[i]
-				if out.Value != 0 {
-					script := out.PkScript[1:] // Slice off stake opcode
-					c[string(script)] = struct{}{}
-				}
-			}
-		case stake.TxTypeSSGen: // Vote
-			for _, out := range tx.TxOut[2:] { // Iterate generated coins
-				script := out.PkScript[1:] // Slice off stake opcode
-				c[string(script)] = struct{}{}
-			}
-		case stake.TxTypeSSRtx: // Revocation
-			for _, out := range tx.TxOut {
-				script := out.PkScript[1:] // Slice off stake opcode
-				c[string(script)] = struct{}{}
-			}
 		}
 	}
 	return c
