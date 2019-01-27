@@ -66,6 +66,8 @@ type Wallet struct {
 	Manager *udb.Manager
 	TxStore *udb.Store
 
+	subsidyCache *blockchain.SubsidyCache
+
 	// Start up flags/settings
 	gapLimit        int
 	accountGapLimit int
