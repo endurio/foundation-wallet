@@ -14,12 +14,11 @@ import (
 	"github.com/endurio/ndrd/chaincfg/chainhash"
 	"github.com/endurio/ndrd/dcrutil"
 	"github.com/endurio/ndrd/hdkeychain"
-	dcrrpcclient "github.com/endurio/ndrd/rpcclient"
 	"github.com/endurio/ndrd/txscript"
 	"github.com/endurio/ndrd/wire"
 	"github.com/endurio/ndrw/errors"
-	"github.com/endurio/ndrw/wallet/walletdb"
 	"github.com/endurio/ndrw/wallet/udb"
+	"github.com/endurio/ndrw/wallet/walletdb"
 )
 
 // TODO: It would be good to send errors during notification creation to the rpc
@@ -173,58 +172,6 @@ func makeTxSummary(dbtx walletdb.ReadTx, w *Wallet, details *udb.TxDetails) Tran
 		Fee:         fee,
 		Timestamp:   receiveTime.Unix(),
 		Type:        transactionType,
-	}
-}
-
-func makeTicketSummary(chainClient *dcrrpcclient.Client, dbtx walletdb.ReadTx, w *Wallet, details *udb.TicketDetails) *TicketSummary {
-	var ticketStatus = TicketStatusLive
-
-	ticketTransactionDetails := makeTxSummary(dbtx, w, details.Ticket)
-	if details.Spender != nil {
-		spenderTransactionDetails := makeTxSummary(dbtx, w, details.Spender)
-		if details.Spender.TxType == stake.TxTypeSSGen {
-			ticketStatus = TicketStatusVoted
-		} else if details.Spender.TxType == stake.TxTypeSSRtx {
-			ticketStatus = TicketStatusRevoked
-		} else {
-			// chainClient can be nil if in spv mode
-			if chainClient != nil {
-				// Final check to see if ticket was missed otherwise it's live
-				live, err := chainClient.ExistsLiveTicket(&details.Ticket.Hash)
-				if err != nil {
-					log.Errorf("Unable to check if ticket was live for ticket status: %v", &details.Ticket.Hash)
-					ticketStatus = TicketStatusUnknown
-				} else if !live {
-					ticketStatus = TicketStatusMissed
-				}
-			}
-		}
-		return &TicketSummary{
-			Ticket:  &ticketTransactionDetails,
-			Spender: &spenderTransactionDetails,
-			Status:  ticketStatus,
-		}
-	}
-
-	if details.Ticket.Height() == int32(-1) {
-		ticketStatus = TicketStatusUnmined
-	} else {
-		txmgrNs := dbtx.ReadBucket(wtxmgrNamespaceKey)
-
-		_, tipHeight := w.TxStore.MainChainTip(txmgrNs)
-
-		// Check if ticket age is not yet mature
-		if !ticketMatured(w.chainParams, details.Ticket.Height(), tipHeight) {
-			ticketStatus = TicketStatusImmature
-			// Check if ticket age is over TicketExpiry limit and therefore expired
-		} else if ticketExpired(w.chainParams, details.Ticket.Height(), tipHeight) {
-			ticketStatus = TicketStatusExpired
-		}
-	}
-	return &TicketSummary{
-		Ticket:  &ticketTransactionDetails,
-		Spender: nil,
-		Status:  ticketStatus,
 	}
 }
 
@@ -479,31 +426,12 @@ const (
 
 	// TransactionTypeCoinbase is the transaction type for all coinbase transactions.
 	TransactionTypeCoinbase
-
-	// TransactionTypeTicketPurchase transaction type for all transactions that
-	// consume regular transactions as inputs and have commitments for future votes
-	// as outputs.
-	TransactionTypeTicketPurchase
-
-	// TransactionTypeVote transaction type for all transactions that consume a ticket
-	// and also offer a stake base reward output.
-	TransactionTypeVote
-
-	// TransactionTypeRevocation transaction type for all transactions that consume a
-	// ticket, but offer no stake base reward.
-	TransactionTypeRevocation
 )
 
 // TxTransactionType returns the correct TransactionType given a wire transaction
 func TxTransactionType(tx *wire.MsgTx) TransactionType {
 	if blockchain.IsCoinBaseTx(tx) {
 		return TransactionTypeCoinbase
-	} else if stake.IsSStx(tx) {
-		return TransactionTypeTicketPurchase
-	} else if stake.IsSSGen(tx) {
-		return TransactionTypeVote
-	} else if stake.IsSSRtx(tx) {
-		return TransactionTypeRevocation
 	} else {
 		return TransactionTypeRegular
 	}
@@ -837,19 +765,6 @@ func (c *ConfirmationNotificationsClient) Watch(txHashes []*chainhash.Hash, stop
 			case errors.Is(errors.NotExist, err):
 				confs = -1
 			default:
-				// Remove tx hash from watching list if tx block has been mined
-				// and then invalidated by next block
-				if tipHeight > height && height > 0 {
-					txDetails, err := w.TxStore.TxDetails(txmgrNs, h)
-					if err != nil {
-						return err
-					}
-					_, invalidated := w.TxStore.BlockInMainChain(dbtx, &txDetails.Block.Hash)
-					if invalidated {
-						confs = -1
-						break
-					}
-				}
 				confs = confirms(height, tipHeight)
 			case err != nil:
 				return err
@@ -931,19 +846,6 @@ func (c *ConfirmationNotificationsClient) process(tipHeight int32) {
 			case errors.Is(errors.NotExist, err):
 				confs = -1
 			default:
-				// Remove tx hash from watching list if tx block has been mined
-				// and then invalidated by next block
-				if tipHeight > height && height > 0 {
-					txDetails, err := w.TxStore.TxDetails(txmgrNs, &txHash)
-					if err != nil {
-						return err
-					}
-					_, invalidated := w.TxStore.BlockInMainChain(dbtx, &txDetails.Block.Hash)
-					if invalidated {
-						confs = -1
-						break
-					}
-				}
 				confs = confirms(height, tipHeight)
 			case err != nil:
 				return err

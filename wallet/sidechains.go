@@ -259,7 +259,7 @@ func (w *Wallet) EvaluateBestChain(f *SidechainForest) ([]*BlockNode, error) {
 		for _, t := range f.trees {
 			// Ignore orphan trees
 			fork := &t.root.Header.PrevBlock
-			inMainChain, _ := w.TxStore.BlockInMainChain(dbtx, fork)
+			inMainChain := w.TxStore.BlockInMainChain(dbtx, fork)
 			if !inMainChain {
 				continue
 			}

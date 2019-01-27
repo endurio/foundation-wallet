@@ -194,22 +194,6 @@ func (w *Wallet) SetRelayFee(relayFee dcrutil.Amount) {
 	w.relayFeeMu.Unlock()
 }
 
-// TicketFeeIncrement is used to get the current feeIncrement for the wallet.
-func (w *Wallet) TicketFeeIncrement() dcrutil.Amount {
-	w.ticketFeeIncrementLock.Lock()
-	fee := w.ticketFeeIncrement
-	w.ticketFeeIncrementLock.Unlock()
-
-	return fee
-}
-
-// SetTicketFeeIncrement is used to set the current w.ticketFeeIncrement for the wallet.
-func (w *Wallet) SetTicketFeeIncrement(fee dcrutil.Amount) {
-	w.ticketFeeIncrementLock.Lock()
-	w.ticketFeeIncrement = fee
-	w.ticketFeeIncrementLock.Unlock()
-}
-
 // quitChan atomically reads the quit channel.
 func (w *Wallet) quitChan() <-chan struct{} {
 	w.quitMu.Lock()
@@ -254,16 +238,16 @@ func (w *Wallet) MainChainTip() (hash chainhash.Hash, height int32) {
 // BlockInMainChain returns whether hash is a block hash of any block in the
 // wallet's main chain.  If the block is in the main chain, invalidated reports
 // whether a child block in the main chain stake invalidates the queried block.
-func (w *Wallet) BlockInMainChain(hash *chainhash.Hash) (haveBlock, invalidated bool, err error) {
+func (w *Wallet) BlockInMainChain(hash *chainhash.Hash) (haveBlock bool, err error) {
 	const op errors.Op = "wallet.BlockInMainChain"
 	err = walletdb.View(w.db, func(dbtx walletdb.ReadTx) error {
-		haveBlock, invalidated = w.TxStore.BlockInMainChain(dbtx, hash)
+		haveBlock = w.TxStore.BlockInMainChain(dbtx, hash)
 		return nil
 	})
 	if err != nil {
-		return false, false, errors.E(op, err)
+		return false, errors.E(op, err)
 	}
-	return haveBlock, invalidated, nil
+	return haveBlock, nil
 }
 
 // BlockHeader returns the block header for a block by it's identifying hash, if
@@ -794,20 +778,6 @@ type (
 		minconf   int32
 		resp      chan createMultisigTxResponse
 	}
-	purchaseTicketRequest struct {
-		minBalance  dcrutil.Amount
-		spendLimit  dcrutil.Amount
-		minConf     int32
-		ticketAddr  dcrutil.Address
-		account     uint32
-		numTickets  int
-		poolAddress dcrutil.Address
-		poolFees    float64
-		expiry      int32
-		txFee       dcrutil.Amount
-		ticketFee   dcrutil.Amount
-		resp        chan purchaseTicketResponse
-	}
 
 	consolidateResponse struct {
 		txHash *chainhash.Hash
@@ -822,10 +792,6 @@ type (
 		address      dcrutil.Address
 		redeemScript []byte
 		err          error
-	}
-	purchaseTicketResponse struct {
-		data []*chainhash.Hash
-		err  error
 	}
 )
 
@@ -877,16 +843,6 @@ out:
 			heldUnlock.release()
 			txr.resp <- createMultisigTxResponse{tx, address, redeemScript, err}
 
-		case txr := <-w.purchaseTicketRequests:
-			heldUnlock, err := w.holdUnlock()
-			if err != nil {
-				txr.resp <- purchaseTicketResponse{nil, err}
-				continue
-			}
-			data, err := w.purchaseTickets("wallet.PurchaseTickets", txr)
-			heldUnlock.release()
-			txr.resp <- purchaseTicketResponse{data, err}
-
 		case <-quit:
 			break out
 		}
@@ -924,31 +880,6 @@ func (w *Wallet) CreateMultisigTx(account uint32, amount dcrutil.Amount, pubkeys
 	w.createMultisigTxRequests <- req
 	resp := <-req.resp
 	return resp.tx, resp.address, resp.redeemScript, resp.err
-}
-
-// PurchaseTickets receives a request from the RPC and ships it to txCreator
-// to purchase a new ticket. It returns a slice of the hashes of the purchased
-// tickets.
-func (w *Wallet) PurchaseTickets(minBalance, spendLimit dcrutil.Amount, minConf int32, ticketAddr dcrutil.Address, account uint32, numTickets int, poolAddress dcrutil.Address,
-	poolFees float64, expiry int32, txFee dcrutil.Amount, ticketFee dcrutil.Amount) ([]*chainhash.Hash, error) {
-
-	req := purchaseTicketRequest{
-		minBalance:  minBalance,
-		spendLimit:  spendLimit,
-		minConf:     minConf,
-		ticketAddr:  ticketAddr,
-		account:     account,
-		numTickets:  numTickets,
-		poolAddress: poolAddress,
-		poolFees:    poolFees,
-		expiry:      expiry,
-		txFee:       txFee,
-		ticketFee:   ticketFee,
-		resp:        make(chan purchaseTicketResponse),
-	}
-	w.purchaseTicketRequests <- req
-	resp := <-req.resp
-	return resp.data, resp.err
 }
 
 type (
@@ -1727,7 +1658,6 @@ outputs:
 			WalletConflicts: []string{},
 			Time:            received,
 			TimeReceived:    received,
-			TxType:          &txTypeStr,
 		}
 
 		// Add a received/generated/immature result if this is a credit.
@@ -2335,11 +2265,6 @@ func (w *Wallet) ListUnspent(minconf, maxconf int32, addresses map[string]struct
 		for i := range unspent {
 			output := unspent[i]
 
-			details, err := w.TxStore.TxDetails(txmgrNs, &output.Hash)
-			if err != nil {
-				return err
-			}
-
 			// Outputs with fewer confirmations than the minimum or more
 			// confs than the maximum are excluded.
 			confs := confirms(output.Height, tipHeight)
@@ -2431,10 +2356,8 @@ func (w *Wallet) ListUnspent(minconf, maxconf int32, addresses map[string]struct
 			result := &dcrjson.ListUnspentResult{
 				TxID:          output.OutPoint.Hash.String(),
 				Vout:          output.OutPoint.Index,
-				Tree:          output.OutPoint.Tree,
 				Account:       acctName,
 				ScriptPubKey:  hex.EncodeToString(output.PkScript),
-				TxType:        int(details.TxType),
 				Amount:        output.Amount.ToCoin(),
 				Confirmations: int64(confs),
 				Spendable:     spendable,

@@ -208,8 +208,6 @@ func (w *Wallet) AcceptMempoolTx(tx *wire.MsgTx) error {
 	const op errors.Op = "wallet.AcceptMempoolTx"
 	var watchOutPoints []wire.OutPoint
 	err := walletdb.Update(w.db, func(dbtx walletdb.ReadWriteTx) error {
-		txmgrNs := dbtx.ReadBucket(wtxmgrNamespaceKey)
-
 		rec, err := udb.NewTxRecordFromMsgTx(tx, time.Now())
 		if err != nil {
 			return err
@@ -254,11 +252,6 @@ func (w *Wallet) processTransactionRecord(dbtx walletdb.ReadWriteTx, rec *udb.Tx
 
 	addrmgrNs := dbtx.ReadWriteBucket(waddrmgrNamespaceKey)
 	txmgrNs := dbtx.ReadWriteBucket(wtxmgrNamespaceKey)
-
-	height := int32(-1)
-	if header != nil {
-		height = int32(header.Height)
-	}
 
 	// At the moment all notified transactions are assumed to actually be
 	// relevant.  This assumption will not hold true when SPV support is

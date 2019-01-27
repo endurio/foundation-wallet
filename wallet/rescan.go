@@ -13,8 +13,8 @@ import (
 	"github.com/endurio/ndrd/dcrutil"
 	"github.com/endurio/ndrd/wire"
 	"github.com/endurio/ndrw/errors"
-	"github.com/endurio/ndrw/wallet/walletdb"
 	"github.com/endurio/ndrw/wallet/udb"
+	"github.com/endurio/ndrw/wallet/walletdb"
 	"golang.org/x/crypto/ripemd160"
 )
 
@@ -351,7 +351,7 @@ func (w *Wallet) RescanProgressFromHeight(ctx context.Context, n NetworkBackend,
 
 func (w *Wallet) mainChainAncestor(dbtx walletdb.ReadTx, hash *chainhash.Hash) (*chainhash.Hash, error) {
 	for {
-		mainChain, _ := w.TxStore.BlockInMainChain(dbtx, hash)
+		mainChain := w.TxStore.BlockInMainChain(dbtx, hash)
 		if mainChain {
 			break
 		}
