@@ -12,15 +12,13 @@ import (
 
 	"github.com/endurio/ndrd/blockchain"
 	"github.com/endurio/ndrd/chaincfg/chainhash"
-	"github.com/endurio/ndrd/dcrjson"
 	"github.com/endurio/ndrd/dcrutil"
 	"github.com/endurio/ndrd/gcs"
 	"github.com/endurio/ndrd/txscript"
 	"github.com/endurio/ndrd/wire"
 	"github.com/endurio/ndrw/errors"
-	"github.com/endurio/ndrw/wallet/walletdb"
-	"github.com/endurio/ndrw/wallet/txrules"
 	"github.com/endurio/ndrw/wallet/udb"
+	"github.com/endurio/ndrw/wallet/walletdb"
 )
 
 func (w *Wallet) extendMainChain(op errors.Op, dbtx walletdb.ReadWriteTx, header *wire.BlockHeader, f *gcs.Filter, transactions []*wire.MsgTx) ([]wire.OutPoint, error) {
@@ -133,11 +131,6 @@ func (w *Wallet) ChainSwitch(forest *SidechainForest, chain []*BlockNode, releva
 		}
 
 		for _, n := range chain {
-			if voteVersion(w.chainParams) < n.Header.StakeVersion {
-				log.Warnf("Old vote version detected (v%v), please update your "+
-					"wallet to the latest version.", voteVersion(w.chainParams))
-			}
-
 			watch, err := w.extendMainChain(op, dbtx, n.Header, n.Filter, relevantTxs[*n.Hash])
 			if err != nil {
 				return err
@@ -177,7 +170,7 @@ func (w *Wallet) ChainSwitch(forest *SidechainForest, chain []*BlockNode, releva
 		// TODO: The stake difficulty passed here is not correct.  This must be
 		// the difficulty of the next block, not the tip block.
 		tip := chain[len(chain)-1]
-		err := w.TxStore.PruneUnmined(dbtx, tip.Header.SBits)
+		err := w.TxStore.PruneUnmined(dbtx)
 		if err != nil {
 			log.Errorf("Failed to prune unmined transactions when "+
 				"connecting block height %v: %v", tip.Header.Height, err)
@@ -208,85 +201,6 @@ func (w *Wallet) ChainSwitch(forest *SidechainForest, chain []*BlockNode, releva
 	return prevChain, nil
 }
 
-// evaluateStakePoolTicket evaluates a stake pool ticket to see if it's
-// acceptable to the stake pool. The ticket must pay out to the stake
-// pool cold wallet, and must have a sufficient fee.
-func (w *Wallet) evaluateStakePoolTicket(rec *udb.TxRecord, blockHeight int32, poolUser dcrutil.Address) bool {
-	const op errors.Op = "wallet.evaluateStakePoolTicket"
-
-	tx := rec.MsgTx
-
-	// Check the first commitment output (txOuts[1])
-	// and ensure that the address found there exists
-	// in the list of approved addresses. Also ensure
-	// that the fee exists and is of the amount
-	// requested by the pool.
-	commitmentOut := tx.TxOut[1]
-	commitAddr, err := stake.AddrFromSStxPkScrCommitment(
-		commitmentOut.PkScript, w.chainParams)
-	if err != nil {
-		log.Warnf("Cannot parse commitment address from ticket %v: %v",
-			&rec.Hash, err)
-		return false
-	}
-
-	// Extract the fee from the ticket.
-	in := dcrutil.Amount(0)
-	for i := range tx.TxOut {
-		if i%2 != 0 {
-			commitAmt, err := stake.AmountFromSStxPkScrCommitment(
-				tx.TxOut[i].PkScript)
-			if err != nil {
-				log.Warnf("Cannot parse commitment amount for output %i from ticket %v: %v",
-					i, &rec.Hash, err)
-				return false
-			}
-			in += commitAmt
-		}
-	}
-	out := dcrutil.Amount(0)
-	for i := range tx.TxOut {
-		out += dcrutil.Amount(tx.TxOut[i].Value)
-	}
-	fees := in - out
-
-	_, exists := w.stakePoolColdAddrs[commitAddr.EncodeAddress()]
-	if exists {
-		commitAmt, err := stake.AmountFromSStxPkScrCommitment(
-			commitmentOut.PkScript)
-		if err != nil {
-			log.Warnf("Cannot parse commitment amount from ticket %v: %v", &rec.Hash, err)
-			return false
-		}
-
-		// Calculate the fee required based on the current
-		// height and the required amount from the pool.
-		feeNeeded := txrules.StakePoolTicketFee(dcrutil.Amount(
-			tx.TxOut[0].Value), fees, blockHeight, w.PoolFees(),
-			w.ChainParams())
-		if commitAmt < feeNeeded {
-			log.Warnf("User %s submitted ticket %v which "+
-				"has less fees than are required to use this "+
-				"stake pool and is being skipped (required: %v"+
-				", found %v)", commitAddr.EncodeAddress(),
-				tx.TxHash(), feeNeeded, commitAmt)
-
-			// Reject the entire transaction if it didn't
-			// pay the pool server fees.
-			return false
-		}
-	} else {
-		log.Warnf("Unknown pool commitment address %s for ticket %v",
-			commitAddr.EncodeAddress(), tx.TxHash())
-		return false
-	}
-
-	log.Debugf("Accepted valid stake pool ticket %v committing %v in fees",
-		tx.TxHash(), tx.TxOut[0].Value)
-
-	return true
-}
-
 // AcceptMempoolTx adds a relevant unmined transaction to the wallet.
 // If a network backend is associated with the wallet, it is updated
 // with new addresses and unspent outpoints to watch.
@@ -299,18 +213,6 @@ func (w *Wallet) AcceptMempoolTx(tx *wire.MsgTx) error {
 		rec, err := udb.NewTxRecordFromMsgTx(tx, time.Now())
 		if err != nil {
 			return err
-		}
-
-		// Prevent orphan votes from entering the wallet's unmined transaction
-		// set.
-		if isVote(&rec.MsgTx) {
-			votedBlock, _ := stake.SSGenBlockVotedOn(&rec.MsgTx)
-			tipBlock, _ := w.TxStore.MainChainTip(txmgrNs)
-			if votedBlock != tipBlock {
-				log.Debugf("Rejected unmined orphan vote %v which votes on block %v",
-					&rec.Hash, &votedBlock)
-				return nil
-			}
 		}
 
 		watchOutPoints, err = w.processTransactionRecord(dbtx, rec, nil, nil)
@@ -351,7 +253,6 @@ func (w *Wallet) processTransactionRecord(dbtx walletdb.ReadWriteTx, rec *udb.Tx
 	const op errors.Op = "wallet.processTransactionRecord"
 
 	addrmgrNs := dbtx.ReadWriteBucket(waddrmgrNamespaceKey)
-	stakemgrNs := dbtx.ReadWriteBucket(wstakemgrNamespaceKey)
 	txmgrNs := dbtx.ReadWriteBucket(wtxmgrNamespaceKey)
 
 	height := int32(-1)
@@ -375,140 +276,6 @@ func (w *Wallet) processTransactionRecord(dbtx walletdb.ReadWriteTx, rec *udb.Tx
 	}
 	if err != nil {
 		return nil, errors.E(op, err)
-	}
-
-	// Handle incoming SStx; store them in the stake manager if we own
-	// the OP_SSTX tagged out, except if we're operating as a stake pool
-	// server. In that case, additionally consider the first commitment
-	// output as well.
-	if stake.IsSStx(&rec.MsgTx) {
-		// Errors don't matter here.  If addrs is nil, the range below
-		// does nothing.
-		txOut := rec.MsgTx.TxOut[0]
-		_, addrs, _, _ := txscript.ExtractPkScriptAddrs(txOut.Version,
-			txOut.PkScript, w.chainParams)
-		insert := false
-		for _, addr := range addrs {
-			if !w.Manager.ExistsHash160(addrmgrNs, addr.Hash160()[:]) {
-				continue
-			}
-			// We own the voting output pubkey or script and we're
-			// not operating as a stake pool, so simply insert this
-			// ticket now.
-			if !w.stakePoolEnabled {
-				insert = true
-				break
-			}
-
-			// We are operating as a stake pool. The below
-			// function will ONLY add the ticket into the
-			// stake pool if it has been found within a
-			// block.
-			if header == nil {
-				break
-			}
-
-			if w.evaluateStakePoolTicket(rec, height, addr) {
-				// Be sure to insert this into the user's stake
-				// pool entry into the stake manager.
-				poolTicket := &udb.PoolTicket{
-					Ticket:       rec.Hash,
-					HeightTicket: uint32(height),
-					Status:       udb.TSImmatureOrLive,
-				}
-				err := w.StakeMgr.UpdateStakePoolUserTickets(
-					stakemgrNs, addr, poolTicket)
-				if err != nil {
-					log.Warnf("Failed to insert stake pool "+
-						"user ticket: %v", err)
-				}
-				log.Debugf("Inserted stake pool ticket %v for user %v "+
-					"into the stake store database", &rec.Hash, addr)
-
-				insert = true
-				break
-			}
-
-			// At this point the ticket must be invalid, so insert it into the
-			// list of invalid user tickets.
-			err := w.StakeMgr.UpdateStakePoolUserInvalTickets(
-				stakemgrNs, addr, &rec.Hash)
-			if err != nil {
-				log.Warnf("Failed to update pool user %v with "+
-					"invalid ticket %v", addr.EncodeAddress(),
-					rec.Hash)
-			}
-		}
-
-		if insert {
-			err := w.StakeMgr.InsertSStx(stakemgrNs, dcrutil.NewTx(&rec.MsgTx))
-			if err != nil {
-				log.Errorf("Failed to insert SStx %v"+
-					"into the stake store.", &rec.Hash)
-			}
-		}
-	}
-
-	// Handle incoming mined votes (only in stakepool mode)
-	if w.stakePoolEnabled && isVote(&rec.MsgTx) && header != nil {
-		ticketHash := &rec.MsgTx.TxIn[1].PreviousOutPoint.Hash
-		txInHeight := rec.MsgTx.TxIn[1].BlockHeight
-		poolTicket := &udb.PoolTicket{
-			Ticket:       *ticketHash,
-			HeightTicket: txInHeight,
-			Status:       udb.TSVoted,
-			SpentBy:      rec.Hash,
-			HeightSpent:  uint32(height),
-		}
-
-		poolUser, err := w.StakeMgr.SStxAddress(stakemgrNs, ticketHash)
-		if err != nil {
-			log.Warnf("Failed to fetch stake pool user for "+
-				"ticket %v (voted ticket): %v", ticketHash, err)
-		} else {
-			err = w.StakeMgr.UpdateStakePoolUserTickets(
-				stakemgrNs, poolUser, poolTicket)
-			if err != nil {
-				log.Warnf("Failed to update stake pool ticket for "+
-					"stake pool user %s after voting",
-					poolUser.EncodeAddress())
-			} else {
-				log.Debugf("Updated voted stake pool ticket %v "+
-					"for user %v into the stake store database ("+
-					"vote hash: %v)", ticketHash, poolUser, &rec.Hash)
-			}
-		}
-	}
-
-	// Handle incoming mined revocations (only in stakepool mode)
-	if w.stakePoolEnabled && isRevocation(&rec.MsgTx) && header != nil {
-		txInHash := &rec.MsgTx.TxIn[0].PreviousOutPoint.Hash
-		txInHeight := rec.MsgTx.TxIn[0].BlockHeight
-		poolTicket := &udb.PoolTicket{
-			Ticket:       *txInHash,
-			HeightTicket: txInHeight,
-			Status:       udb.TSMissed,
-			SpentBy:      rec.Hash,
-			HeightSpent:  uint32(height),
-		}
-
-		poolUser, err := w.StakeMgr.SStxAddress(stakemgrNs, txInHash)
-		if err != nil {
-			log.Warnf("failed to fetch stake pool user for "+
-				"ticket %v (missed ticket)", txInHash)
-		} else {
-			err = w.StakeMgr.UpdateStakePoolUserTickets(
-				stakemgrNs, poolUser, poolTicket)
-			if err != nil {
-				log.Warnf("failed to update stake pool ticket for "+
-					"stake pool user %s after revoking",
-					poolUser.EncodeAddress())
-			} else {
-				log.Debugf("Updated missed stake pool ticket %v "+
-					"for user %v into the stake store database ("+
-					"revocation hash: %v)", txInHash, poolUser, &rec.Hash)
-			}
-		}
 	}
 
 	// Handle input scripts that contain P2PKs that we care about.
@@ -613,24 +380,8 @@ func (w *Wallet) processTransactionRecord(dbtx walletdb.ReadWriteTx, rec *udb.Tx
 			// Non-standard outputs are skipped.
 			continue
 		}
-		isStakeType := class == txscript.StakeSubmissionTy ||
-			class == txscript.StakeSubChangeTy ||
-			class == txscript.StakeGenTy ||
-			class == txscript.StakeRevocationTy
-		if isStakeType {
-			class, err = txscript.GetStakeOutSubclass(output.PkScript)
-			if err != nil {
-				err = errors.E(op, errors.E(errors.Op("txscript.GetStakeOutSubclass"), err))
-				log.Error(err)
-				continue
-			}
-		}
 
-		var tree int8
-		if isStakeType {
-			tree = 1
-		}
-		outpoint := wire.OutPoint{Hash: rec.Hash, Tree: tree}
+		outpoint := wire.OutPoint{Hash: rec.Hash}
 		for _, addr := range addrs {
 			ma, err := w.Manager.Address(addrmgrNs, addr)
 			// Missing addresses are skipped.  Other errors should
@@ -733,289 +484,4 @@ func (w *Wallet) processTransactionRecord(dbtx walletdb.ReadWriteTx, rec *udb.Tx
 	}
 
 	return watchOutPoints, nil
-}
-
-// selectOwnedTickets returns a slice of tickets hashes from the tickets
-// argument that are owned by the wallet.
-//
-// Because votes must be created for tickets tracked by both the transaction
-// manager and the stake manager, this function checks both.
-func selectOwnedTickets(w *Wallet, dbtx walletdb.ReadTx, tickets []*chainhash.Hash) []*chainhash.Hash {
-	var owned []*chainhash.Hash
-	for _, ticketHash := range tickets {
-		if w.TxStore.OwnTicket(dbtx, ticketHash) || w.StakeMgr.OwnTicket(ticketHash) {
-			owned = append(owned, ticketHash)
-		}
-	}
-	return owned
-}
-
-// VoteOnOwnedTickets creates and publishes vote transactions for all owned
-// tickets in the winningTicketHashes slice if wallet voting is enabled.  The
-// vote is only valid when voting on the block described by the passed block
-// hash and height.  When a network backend is associated with the wallet,
-// relevant commitment outputs are loaded as watched data.
-func (w *Wallet) VoteOnOwnedTickets(winningTicketHashes []*chainhash.Hash, blockHash *chainhash.Hash, blockHeight int32) error {
-	const op errors.Op = "wallet.VoteOnOwnedTickets"
-
-	if !w.votingEnabled || blockHeight < int32(w.chainParams.StakeValidationHeight)-1 {
-		return nil
-	}
-
-	n, err := w.NetworkBackend()
-	if err != nil {
-		return errors.E(op, err)
-	}
-
-	// TODO The behavior of this is not quite right if tons of blocks
-	// are coming in quickly, because the transaction store will end up
-	// out of sync with the voting channel here. This should probably
-	// be fixed somehow, but this should be stable for networks that
-	// are voting at normal block speeds.
-
-	var ticketHashes []*chainhash.Hash
-	var votes []*wire.MsgTx
-	voteBits := w.VoteBits()
-	err = walletdb.View(w.db, func(dbtx walletdb.ReadTx) error {
-		txmgrNs := dbtx.ReadBucket(wtxmgrNamespaceKey)
-
-		// Only consider tickets owned by this wallet.
-		ticketHashes = selectOwnedTickets(w, dbtx, winningTicketHashes)
-		if len(ticketHashes) == 0 {
-			return nil
-		}
-
-		votes = make([]*wire.MsgTx, len(ticketHashes))
-
-		addrmgrNs := dbtx.ReadBucket(waddrmgrNamespaceKey)
-		for i, ticketHash := range ticketHashes {
-			ticketPurchase, err := w.TxStore.Tx(txmgrNs, ticketHash)
-			if err != nil && errors.Is(errors.NotExist, err) {
-				ticketPurchase, err = w.StakeMgr.TicketPurchase(dbtx, ticketHash)
-			}
-			if err != nil {
-				log.Errorf("Failed to read ticket purchase transaction for "+
-					"owned winning ticket %v: %v", ticketHash, err)
-				continue
-			}
-
-			// Don't create votes when this wallet doesn't have voting
-			// authority.
-			owned, err := w.hasVotingAuthority(addrmgrNs, ticketPurchase)
-			if err != nil {
-				return err
-			}
-			if !owned {
-				continue
-			}
-
-			vote, err := createUnsignedVote(ticketHash, ticketPurchase,
-				blockHeight, blockHash, voteBits, w.subsidyCache, w.chainParams)
-			if err != nil {
-				log.Errorf("Failed to create vote transaction for ticket "+
-					"hash %v: %v", ticketHash, err)
-				continue
-			}
-			err = w.signVote(addrmgrNs, ticketPurchase, vote)
-			if err != nil {
-				log.Errorf("Failed to sign vote for ticket hash %v: %v",
-					ticketHash, err)
-				continue
-			}
-			votes[i] = vote
-		}
-		return nil
-	})
-	if err != nil {
-		log.Errorf("View failed: %v", errors.E(op, err))
-	}
-
-	// Remove nil votes without preserving order.
-	for i := 0; i < len(votes); {
-		if votes[i] == nil {
-			votes[i], votes[len(votes)-1] = votes[len(votes)-1], votes[i]
-			votes = votes[:len(votes)-1]
-			continue
-		}
-		i++
-	}
-
-	voteRecords := make([]*udb.TxRecord, 0, len(votes))
-	for i := range votes {
-		rec, err := udb.NewTxRecordFromMsgTx(votes[i], time.Now())
-		if err != nil {
-			log.Errorf("Failed to create transaction record for vote %v: %v",
-				ticketHashes[i], err)
-			continue
-		}
-		voteRecords = append(voteRecords, rec)
-	}
-	var watchOutPoints []wire.OutPoint
-	err = walletdb.Update(w.db, func(dbtx walletdb.ReadWriteTx) error {
-		for i := range voteRecords {
-			watch, err := w.processTransactionRecord(dbtx, voteRecords[i], nil, nil)
-			if err != nil {
-				return err
-			}
-			watchOutPoints = append(watchOutPoints, watch...)
-		}
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-
-	// Publish before logging and handling any publishing errors to slightly
-	// reduce latency.
-	err = n.PublishTransactions(context.TODO(), votes...)
-	for i := range voteRecords {
-		log.Infof("Voting on block %v (height %v) using ticket %v "+
-			"(vote hash: %v bits: %v)", blockHash, blockHeight,
-			ticketHashes[i], &voteRecords[i].Hash, voteBits.Bits)
-	}
-	if err != nil {
-		// Unwrap to access the underlying RPC error code.
-		for {
-			if e, ok := err.(*errors.Error); ok && e.Err != nil {
-				err = e.Err
-			} else {
-				break
-			}
-		}
-		rpcErr, ok := err.(*dcrjson.RPCError)
-		if !ok || rpcErr.Code != dcrjson.ErrRPCDuplicateTx {
-			log.Errorf("Failed to send one or more votes: %v", err)
-		}
-	}
-
-	if len(watchOutPoints) > 0 {
-		err := n.LoadTxFilter(context.TODO(), false, nil, watchOutPoints)
-		if err != nil {
-			log.Errorf("Failed to watch outpoints: %v", err)
-		}
-	}
-
-	return nil
-}
-
-// RevokeOwnedTickets revokes any owned tickets specified in the
-// missedTicketHashes slice.  When a network backend is associated
-// with the wallet, relevant commitment outputs are loaded as watched
-// data.
-func (w *Wallet) RevokeOwnedTickets(missedTicketHashes []*chainhash.Hash) error {
-	const op errors.Op = "wallet.RevokeOwnedTickets"
-
-	n, err := w.NetworkBackend()
-	if err != nil {
-		return errors.E(op, err)
-	}
-
-	var ticketHashes []*chainhash.Hash
-	var revocations []*wire.MsgTx
-	relayFee := w.RelayFee()
-	err = walletdb.View(w.db, func(dbtx walletdb.ReadTx) error {
-		txmgrNs := dbtx.ReadBucket(wtxmgrNamespaceKey)
-
-		// Only consider tickets owned by this wallet.
-		ticketHashes = selectOwnedTickets(w, dbtx, missedTicketHashes)
-		if len(ticketHashes) == 0 {
-			return nil
-		}
-
-		revocations = make([]*wire.MsgTx, len(ticketHashes))
-
-		addrmgrNs := dbtx.ReadBucket(waddrmgrNamespaceKey)
-		for i, ticketHash := range ticketHashes {
-			ticketPurchase, err := w.TxStore.Tx(txmgrNs, ticketHash)
-			if err != nil && errors.Is(errors.NotExist, err) {
-				ticketPurchase, err = w.StakeMgr.TicketPurchase(dbtx, ticketHash)
-			}
-			if err != nil {
-				log.Errorf("Failed to read ticket purchase transaction for "+
-					"missed or expired ticket %v: %v", ticketHash, err)
-				continue
-			}
-
-			// Don't create revocations when this wallet doesn't have voting
-			// authority.
-			owned, err := w.hasVotingAuthority(addrmgrNs, ticketPurchase)
-			if err != nil {
-				return err
-			}
-			if !owned {
-				continue
-			}
-
-			revocation, err := createUnsignedRevocation(ticketHash, ticketPurchase,
-				relayFee)
-			if err != nil {
-				log.Errorf("Failed to create revocation transaction for ticket "+
-					"hash %v: %v", ticketHash, err)
-				continue
-			}
-			err = w.signRevocation(addrmgrNs, ticketPurchase, revocation)
-			if err != nil {
-				log.Errorf("Failed to sign revocation for ticket hash %v: %v",
-					ticketHash, err)
-				continue
-			}
-			err = w.checkHighFees(dcrutil.Amount(ticketPurchase.TxOut[0].Value), revocation)
-			if err != nil {
-				log.Errorf("Revocation pays exceedingly high fees")
-				continue
-			}
-			revocations[i] = revocation
-		}
-		return nil
-	})
-	if err != nil {
-		log.Errorf("View failed: %v", errors.E(op, err))
-	}
-
-	// Remove nil revocations without preserving order.
-	for i := 0; i < len(revocations); {
-		if revocations[i] == nil {
-			revocations[i], revocations[len(revocations)-1] = revocations[len(revocations)-1], revocations[i]
-			revocations = revocations[:len(revocations)-1]
-			continue
-		}
-		i++
-	}
-
-	for i, revocation := range revocations {
-		txRec, err := udb.NewTxRecordFromMsgTx(revocation, time.Now())
-		if err != nil {
-			log.Errorf("Failed to create transaction record for revocation %v: %v",
-				ticketHashes[i], err)
-			continue
-		}
-		revocationHash := &txRec.Hash
-		var watchOutPoints []wire.OutPoint
-		err = walletdb.Update(w.db, func(dbtx walletdb.ReadWriteTx) error {
-			var err error
-			watchOutPoints, err = w.processTransactionRecord(dbtx, txRec, nil, nil)
-			return err
-		})
-		if err != nil {
-			log.Errorf("Failed to record revocation %v for ticket hash %v: %v",
-				revocationHash, ticketHashes[i], err)
-			continue
-		}
-		err = n.PublishTransactions(context.TODO(), revocation)
-		if err != nil {
-			log.Errorf("Failed to send revocation %v for ticket hash %v: %v",
-				revocationHash, ticketHashes[i], err)
-			continue
-		}
-		log.Infof("Revoked ticket %v with revocation %v", ticketHashes[i],
-			revocationHash)
-		if len(watchOutPoints) > 0 {
-			err := n.LoadTxFilter(context.TODO(), false, nil, watchOutPoints)
-			if err != nil {
-				log.Errorf("Failed to watch outpoints: %v", err)
-			}
-		}
-	}
-
-	return nil
 }

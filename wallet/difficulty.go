@@ -15,9 +15,7 @@ import (
 	"github.com/endurio/ndrd/blockchain"
 	"github.com/endurio/ndrd/chaincfg"
 	"github.com/endurio/ndrd/chaincfg/chainhash"
-	"github.com/endurio/ndrd/dcrutil"
 	"github.com/endurio/ndrd/wire"
-	"github.com/endurio/ndrw/deployments"
 	"github.com/endurio/ndrw/errors"
 	"github.com/endurio/ndrw/wallet/walletdb"
 )
@@ -268,103 +266,6 @@ func estimateSupply(params *chaincfg.Params, height int64) int64 {
 	return supply
 }
 
-// sumPurchasedTickets returns the sum of the number of tickets purchased in the
-// most recent specified number of blocks from the point of view of the passed
-// header.
-func (w *Wallet) sumPurchasedTickets(dbtx walletdb.ReadTx, startHeader *wire.BlockHeader, chain []*BlockNode, numToSum int64) (int64, error) {
-	var numPurchased int64
-	for h, numTraversed := startHeader, int64(0); h != nil && numTraversed < numToSum; numTraversed++ {
-		numPurchased += int64(h.FreshStake)
-		if h.PrevBlock == (chainhash.Hash{}) {
-			break
-		}
-		if len(chain) > 0 && int32(h.Height)-int32(chain[0].Header.Height) > 0 {
-			h = chain[h.Height-chain[0].Header.Height-1].Header
-			continue
-		}
-		var err error
-		h, err = w.TxStore.GetBlockHeader(dbtx, &h.PrevBlock)
-		if err != nil {
-			return 0, err
-		}
-	}
-
-	return numPurchased, nil
-}
-
-// calcNextStakeDiffV2 calculates the next stake difficulty for the given set
-// of parameters using the algorithm defined in DCP0001.
-//
-// This function contains the heart of the algorithm and thus is separated for
-// use in both the actual stake difficulty calculation as well as estimation.
-//
-// The caller must perform all of the necessary chain traversal in order to
-// get the current difficulty, previous retarget interval's pool size plus
-// its immature tickets, as well as the current pool size plus immature tickets.
-func calcNextStakeDiffV2(params *chaincfg.Params, nextHeight, curDiff, prevPoolSizeAll, curPoolSizeAll int64) int64 {
-	// Shorter version of various parameter for convenience.
-	votesPerBlock := int64(params.TicketsPerBlock)
-	ticketPoolSize := int64(params.TicketPoolSize)
-	ticketMaturity := int64(params.TicketMaturity)
-
-	// Calculate the difficulty by multiplying the old stake difficulty
-	// with two ratios that represent a force to counteract the relative
-	// change in the pool size (Fc) and a restorative force to push the pool
-	// size  towards the target value (Fr).
-	//
-	// Per DCP0001, the generalized equation is:
-	//
-	//   nextDiff = min(max(curDiff * Fc * Fr, Slb), Sub)
-	//
-	// The detailed form expands to:
-	//
-	//                        curPoolSizeAll      curPoolSizeAll
-	//   nextDiff = curDiff * ---------------  * -----------------
-	//                        prevPoolSizeAll    targetPoolSizeAll
-	//
-	//   Slb = w.chainParams.MinimumStakeDiff
-	//
-	//               estimatedTotalSupply
-	//   Sub = -------------------------------
-	//          targetPoolSize / votesPerBlock
-	//
-	// In order to avoid the need to perform floating point math which could
-	// be problematic across languages due to uncertainty in floating point
-	// math libs, this is further simplified to integer math as follows:
-	//
-	//                   curDiff * curPoolSizeAll^2
-	//   nextDiff = -----------------------------------
-	//              prevPoolSizeAll * targetPoolSizeAll
-	//
-	// Further, the Sub parameter must calculate the denomitor first using
-	// integer math.
-	targetPoolSizeAll := votesPerBlock * (ticketPoolSize + ticketMaturity)
-	curPoolSizeAllBig := big.NewInt(curPoolSizeAll)
-	nextDiffBig := big.NewInt(curDiff)
-	nextDiffBig.Mul(nextDiffBig, curPoolSizeAllBig)
-	nextDiffBig.Mul(nextDiffBig, curPoolSizeAllBig)
-	nextDiffBig.Div(nextDiffBig, big.NewInt(prevPoolSizeAll))
-	nextDiffBig.Div(nextDiffBig, big.NewInt(targetPoolSizeAll))
-
-	// Limit the new stake difficulty between the minimum allowed stake
-	// difficulty and a maximum value that is relative to the total supply.
-	//
-	// NOTE: This is intentionally using integer math to prevent any
-	// potential issues due to uncertainty in floating point math libs.  The
-	// ticketPoolSize parameter already contains the result of
-	// (targetPoolSize / votesPerBlock).
-	nextDiff := nextDiffBig.Int64()
-	estimatedSupply := estimateSupply(params, nextHeight)
-	maximumStakeDiff := estimatedSupply / ticketPoolSize
-	if nextDiff > maximumStakeDiff {
-		nextDiff = maximumStakeDiff
-	}
-	if nextDiff < params.MinimumStakeDiff {
-		nextDiff = params.MinimumStakeDiff
-	}
-	return nextDiff
-}
-
 func (w *Wallet) ancestorHeaderAtHeight(dbtx walletdb.ReadTx, h *wire.BlockHeader, chain []*BlockNode, height int32) (*wire.BlockHeader, error) {
 	switch {
 	case height == int32(h.Height):
@@ -387,118 +288,6 @@ func (w *Wallet) ancestorHeaderAtHeight(dbtx walletdb.ReadTx, h *wire.BlockHeade
 	return w.TxStore.GetBlockHeader(dbtx, &hash)
 }
 
-// nextRequiredDCP0001PoSDifficulty calculates the required stake difficulty for
-// the block after the passed previous block node based on the algorithm defined
-// in DCP0001.
-func (w *Wallet) nextRequiredDCP0001PoSDifficulty(dbtx walletdb.ReadTx, curHeader *wire.BlockHeader, chain []*BlockNode) (dcrutil.Amount, error) {
-	// Stake difficulty before any tickets could possibly be purchased is
-	// the minimum value.
-	nextHeight := int64(0)
-	if curHeader != nil {
-		nextHeight = int64(curHeader.Height) + 1
-	}
-	stakeDiffStartHeight := int64(w.chainParams.CoinbaseMaturity) + 1
-	if nextHeight < stakeDiffStartHeight {
-		return dcrutil.Amount(w.chainParams.MinimumStakeDiff), nil
-	}
-
-	// Return the previous block's difficulty requirements if the next block
-	// is not at a difficulty retarget interval.
-	intervalSize := w.chainParams.StakeDiffWindowSize
-	curDiff := curHeader.SBits
-	if nextHeight%intervalSize != 0 {
-		return dcrutil.Amount(curDiff), nil
-	}
-
-	// Get the pool size and number of tickets that were immature at the
-	// previous retarget interval.
-	//
-	// NOTE: Since the stake difficulty must be calculated based on existing
-	// blocks, it is always calculated for the block after a given block, so
-	// the information for the previous retarget interval must be retrieved
-	// relative to the block just before it to coincide with how it was
-	// originally calculated.
-	var prevPoolSize int64
-	prevRetargetHeight := nextHeight - intervalSize - 1
-	prevRetargetHeader, err := w.ancestorHeaderAtHeight(dbtx, curHeader, chain, int32(prevRetargetHeight))
-	if err != nil {
-		return 0, err
-	}
-	if prevRetargetHeader != nil {
-		prevPoolSize = int64(prevRetargetHeader.PoolSize)
-	}
-	ticketMaturity := int64(w.chainParams.TicketMaturity)
-	prevImmatureTickets, err := w.sumPurchasedTickets(dbtx, prevRetargetHeader, chain, ticketMaturity)
-	if err != nil {
-		return 0, err
-	}
-
-	// Return the existing ticket price for the first few intervals to avoid
-	// division by zero and encourage initial pool population.
-	prevPoolSizeAll := prevPoolSize + prevImmatureTickets
-	if prevPoolSizeAll == 0 {
-		return dcrutil.Amount(curDiff), nil
-	}
-
-	// Count the number of currently immature tickets.
-	immatureTickets, err := w.sumPurchasedTickets(dbtx, curHeader, chain, ticketMaturity)
-	if err != nil {
-		return 0, err
-	}
-
-	// Calculate and return the final next required difficulty.
-	curPoolSizeAll := int64(curHeader.PoolSize) + immatureTickets
-	sdiff := calcNextStakeDiffV2(w.chainParams, nextHeight, curDiff, prevPoolSizeAll, curPoolSizeAll)
-	return dcrutil.Amount(sdiff), nil
-}
-
-// NextStakeDifficulty returns the ticket price for the next block after the
-// current main chain tip block.  This function only suceeds when DCP0001 is
-// known to be active.  As a fallback, the StakeDifficulty method of
-// wallet.NetworkBackend may be used to query the next ticket price from a
-// trusted full node.
-func (w *Wallet) NextStakeDifficulty() (dcrutil.Amount, error) {
-	const op errors.Op = "wallet.NextStakeDifficulty"
-	var sdiff dcrutil.Amount
-	err := walletdb.View(w.db, func(dbtx walletdb.ReadTx) error {
-		ns := dbtx.ReadBucket(wtxmgrNamespaceKey)
-		tipHash, tipHeight := w.TxStore.MainChainTip(ns)
-		if !deployments.DCP0001.Active(tipHeight, w.chainParams) {
-			return errors.E(errors.Deployment, "DCP0001 is not known to be active")
-		}
-		tipHeader, err := w.TxStore.GetBlockHeader(dbtx, &tipHash)
-		if err != nil {
-			return err
-		}
-		sdiff, err = w.nextRequiredDCP0001PoSDifficulty(dbtx, tipHeader, nil)
-		return err
-	})
-	if err != nil {
-		return 0, errors.E(op, err)
-	}
-	return sdiff, nil
-}
-
-// NextStakeDifficultyAfterHeader returns the ticket price for the child of h.
-// All headers of ancestor blocks of h must be recorded by the wallet.  This
-// function only suceeds when DCP0001 is known to be active.
-func (w *Wallet) NextStakeDifficultyAfterHeader(h *wire.BlockHeader) (dcrutil.Amount, error) {
-	const op errors.Op = "wallet.NextStakeDifficultyAfterHeader"
-	if !deployments.DCP0001.Active(int32(h.Height), w.chainParams) {
-		return 0, errors.E(op, errors.Deployment, "DCP0001 is not known to be active")
-	}
-	var sdiff dcrutil.Amount
-	err := walletdb.View(w.db, func(dbtx walletdb.ReadTx) error {
-		var err error
-		sdiff, err = w.nextRequiredDCP0001PoSDifficulty(dbtx, h, nil)
-		return err
-	})
-	if err != nil {
-		return 0, errors.E(op, err)
-	}
-	return sdiff, nil
-}
-
 // ValidateHeaderChainDifficulties validates the PoW and PoS difficulties of all
 // blocks in chain[idx:].  The parent of chain[0] must be recorded as wallet
 // main chain block.  If a consensus violation is caught, a subslice of chain
@@ -516,7 +305,7 @@ func (w *Wallet) ValidateHeaderChainDifficulties(chain []*BlockNode, idx int) ([
 func (w *Wallet) validateHeaderChainDifficulties(dbtx walletdb.ReadTx, chain []*BlockNode, idx int) ([]*BlockNode, error) {
 	const op errors.Op = "wallet.validateHeaderChainDifficulties"
 
-	inMainChain, _ := w.TxStore.BlockInMainChain(dbtx, &chain[0].Header.PrevBlock)
+	inMainChain := w.TxStore.BlockInMainChain(dbtx, &chain[0].Header.PrevBlock)
 	if !inMainChain {
 		return nil, errors.E(op, errors.Bug, "parent of chain[0] is not in main chain")
 	}
@@ -552,19 +341,6 @@ func (w *Wallet) validateHeaderChainDifficulties(dbtx walletdb.ReadTx, chain []*
 		err = blockchain.CheckProofOfWork(h, w.chainParams.PowLimit)
 		if err != nil {
 			return chain[idx:], errors.E(op, errors.Consensus, err)
-		}
-
-		// Validate ticket price
-		if deployments.DCP0001.Active(int32(h.Height), w.chainParams) {
-			sdiff, err := w.nextRequiredDCP0001PoSDifficulty(dbtx, parent, chain)
-			if err != nil {
-				return nil, errors.E(op, err)
-			}
-			if dcrutil.Amount(h.SBits) != sdiff {
-				err := errors.Errorf("%v has invalid PoS difficulty, got %v, want %v",
-					&hash, dcrutil.Amount(h.SBits), sdiff)
-				return chain[idx:], errors.E(op, errors.Consensus, err)
-			}
 		}
 
 		parent = h

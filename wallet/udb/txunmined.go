@@ -230,7 +230,7 @@ func (s *Store) unminedTxHashes(ns walletdb.ReadBucket) ([]*chainhash.Hash, erro
 //   * Ticket purchases with a different ticket price than the passed stake
 //     difficulty
 //   * Votes that do not vote on the tip block
-func (s *Store) PruneUnmined(dbtx walletdb.ReadWriteTx, stakeDiff int64) error {
+func (s *Store) PruneUnmined(dbtx walletdb.ReadWriteTx) error {
 	ns := dbtx.ReadWriteBucket(wtxmgrBucketKey)
 
 	_, tipHeight := s.MainChainTip(ns)
