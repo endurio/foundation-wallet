@@ -204,7 +204,7 @@ func readCanonicalOutPoint(k []byte, op *wire.OutPoint) error {
 //   [0:32]  Hash (32 bytes)
 //   [32:40] Unix time (8 bytes)
 //   [40:44] Number of transaction hashes (4 bytes)
-//   [47:]   For each transaction hash:
+//   [44:]   For each transaction hash:
 //             Hash (32 bytes)
 
 func keyBlockRecord(height int32) []byte {
@@ -214,7 +214,7 @@ func keyBlockRecord(height int32) []byte {
 }
 
 func valueBlockRecordEmptyFromHeader(blockHash []byte, header []byte) []byte {
-	v := make([]byte, 47)
+	v := make([]byte, 44)
 	copy(v, blockHash[:])
 	byteOrder.PutUint64(v[32:40], uint64(extractBlockHeaderUnixTime(header[:])))
 	byteOrder.PutUint32(v[40:44], 0)
@@ -224,7 +224,7 @@ func valueBlockRecordEmptyFromHeader(blockHash []byte, header []byte) []byte {
 // appendRawBlockRecord returns a new block record value with a transaction
 // hash appended to the end and an incremented number of transactions.
 func appendRawBlockRecord(v []byte, txHash *chainhash.Hash) ([]byte, error) {
-	if len(v) < 47 {
+	if len(v) < 44 {
 		return nil, errors.E(errors.IO, errors.Errorf("block record len %d", len(v)))
 	}
 	newv := append(v[:len(v):len(v)], txHash[:]...)
@@ -244,7 +244,7 @@ func putRawBlockRecord(ns walletdb.ReadWriteBucket, k, v []byte) error {
 func fetchBlockTime(ns walletdb.ReadBucket, height int32) (time.Time, error) {
 	k := keyBlockRecord(height)
 	v := ns.NestedReadBucket(bucketBlocks).Get(k)
-	if len(v) < 47 {
+	if len(v) < 44 {
 		return time.Time{}, errors.E(errors.IO, errors.Errorf("block record len %d", len(v)))
 	}
 	return time.Unix(int64(byteOrder.Uint64(v[32:40])), 0), nil
@@ -269,12 +269,12 @@ func readRawBlockRecord(k, v []byte, block *blockRecord) error {
 	if len(k) < 4 {
 		return errors.E(errors.IO, errors.Errorf("block key len %d", len(k)))
 	}
-	if len(v) < 47 {
+	if len(v) < 44 {
 		return errors.E(errors.IO, errors.Errorf("block record len %d", len(k)))
 	}
 
 	numTransactions := int(byteOrder.Uint32(v[40:44]))
-	expectedLen := 47 + chainhash.HashSize*numTransactions
+	expectedLen := 44 + chainhash.HashSize*numTransactions
 	if len(v) < expectedLen {
 		return errors.E(errors.IO, errors.Errorf("%d tx block record len %d",
 			numTransactions, len(v)))
@@ -284,7 +284,7 @@ func readRawBlockRecord(k, v []byte, block *blockRecord) error {
 	copy(block.Hash[:], v)
 	block.Time = time.Unix(int64(byteOrder.Uint64(v[32:40])), 0)
 	block.transactions = make([]chainhash.Hash, numTransactions)
-	off := 47
+	off := 44
 	for i := range block.transactions {
 		copy(block.transactions[i][:], v[off:])
 		off += chainhash.HashSize
