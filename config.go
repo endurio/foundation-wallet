@@ -49,7 +49,7 @@ const (
 )
 
 var (
-	dcrdDefaultCAFile  = filepath.Join(dcrutil.AppDataDir("ndrd", false), "rpc.cert")
+	ndrdDefaultCAFile  = filepath.Join(dcrutil.AppDataDir("ndrd", false), "rpc.cert")
 	defaultAppDataDir  = dcrutil.AppDataDir("ndrw", false)
 	defaultConfigFile  = filepath.Join(defaultAppDataDir, defaultConfigFilename)
 	defaultRPCKeyFile  = filepath.Join(defaultAppDataDir, "rpc.key")
@@ -88,8 +88,8 @@ type config struct {
 	RPCConnect       string                  `short:"c" long:"rpcconnect" description:"Hostname/IP and port of ndrd RPC server to connect to"`
 	CAFile           *cfgutil.ExplicitString `long:"cafile" description:"File containing root certificates to authenticate a TLS connections with ndrd"`
 	DisableClientTLS bool                    `long:"noclienttls" description:"Disable TLS for the RPC client -- NOTE: This is only allowed if the RPC client is connecting to localhost"`
-	DcrdUsername     string                  `long:"dcrdusername" description:"Username for ndrd authentication"`
-	DcrdPassword     string                  `long:"dcrdpassword" default-mask:"-" description:"Password for ndrd authentication"`
+	DcrdUsername     string                  `long:"ndrdusername" description:"Username for ndrd authentication"`
+	DcrdPassword     string                  `long:"ndrdpassword" default-mask:"-" description:"Password for ndrd authentication"`
 	Proxy            string                  `long:"proxy" description:"Connect via SOCKS5 proxy (eg. 127.0.0.1:9050)"`
 	ProxyUser        string                  `long:"proxyuser" description:"Username for proxy server"`
 	ProxyPass        string                  `long:"proxypass" default-mask:"-" description:"Password for proxy server"`
@@ -117,8 +117,8 @@ type config struct {
 	NoLegacyRPC            bool                    `long:"nolegacyrpc" description:"Disable the legacy JSON-RPC server"`
 	LegacyRPCMaxClients    int64                   `long:"rpcmaxclients" description:"Max number of legacy JSON-RPC clients for standard connections"`
 	LegacyRPCMaxWebsockets int64                   `long:"rpcmaxwebsockets" description:"Max number of legacy JSON-RPC websocket connections"`
-	Username               string                  `short:"u" long:"username" description:"Username for legacy JSON-RPC and ndrd authentication (if dcrdusername is unset)"`
-	Password               string                  `short:"P" long:"password" default-mask:"-" description:"Password for legacy JSON-RPC and ndrd authentication (if dcrdpassword is unset)"`
+	Username               string                  `short:"u" long:"username" description:"Username for legacy JSON-RPC and ndrd authentication (if ndrdusername is unset)"`
+	Password               string                  `short:"P" long:"password" default-mask:"-" description:"Password for legacy JSON-RPC and ndrd authentication (if ndrdpassword is unset)"`
 
 	// IPC options
 	PipeTx            *uint `long:"pipetx" description:"File descriptor or handle of write end pipe to enable child -> parent process communication"`
@@ -593,14 +593,14 @@ func loadConfig(ctx context.Context) (*config, []string, error) {
 			}
 			if !certExists {
 				if _, ok := localhostListeners[RPCHost]; ok {
-					dcrdCertExists, err := cfgutil.FileExists(
-						dcrdDefaultCAFile)
+					ndrdCertExists, err := cfgutil.FileExists(
+						ndrdDefaultCAFile)
 					if err != nil {
 						fmt.Fprintln(os.Stderr, err)
 						return loadConfigError(err)
 					}
-					if dcrdCertExists {
-						cfg.CAFile.Value = dcrdDefaultCAFile
+					if ndrdCertExists {
+						cfg.CAFile.Value = ndrdDefaultCAFile
 					}
 				}
 			}
