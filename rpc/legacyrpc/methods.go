@@ -6,10 +6,8 @@
 package legacyrpc
 
 import (
-	"bytes"
 	"context"
 	"encoding/base64"
-	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"math/big"
@@ -33,7 +31,6 @@ import (
 	"github.com/endurio/ndrw/p2p"
 	ver "github.com/endurio/ndrw/version"
 	"github.com/endurio/ndrw/wallet"
-	"github.com/endurio/ndrw/wallet/txrules"
 	"github.com/endurio/ndrw/wallet/udb"
 )
 
@@ -63,11 +60,9 @@ var handlers = map[string]handler{
 	"accountaddressindex":     {fn: accountAddressIndex},
 	"accountsyncaddressindex": {fn: accountSyncAddressIndex},
 	"addmultisigaddress":      {fn: addMultiSigAddress},
-	"addticket":               {fn: addTicket},
 	"consolidate":             {fn: consolidate},
 	"createmultisig":          {fn: createMultiSig},
 	"dumpprivkey":             {fn: dumpPrivKey},
-	"generatevote":            {fn: generateVote},
 	"getaccount":              {fn: getAccount},
 	"getaccountaddress":       {fn: getAccountAddress},
 	"getaddressesbyaccount":   {fn: getAddressesByAccount},
@@ -81,16 +76,11 @@ var handlers = map[string]handler{
 	"getrawchangeaddress":     {fn: getRawChangeAddress},
 	"getreceivedbyaccount":    {fn: getReceivedByAccount},
 	"getreceivedbyaddress":    {fn: getReceivedByAddress},
-	"getstakeinfo":            {fn: getStakeInfo},
-	"getticketfee":            {fn: getTicketFee},
-	"gettickets":              {fn: getTickets},
 	"gettransaction":          {fn: getTransaction},
-	"getvotechoices":          {fn: getVoteChoices},
 	"getwalletfee":            {fn: getWalletFee},
 	"help":                    {fn: help},
 	"importprivkey":           {fn: importPrivKey},
 	"importscript":            {fn: importScript},
-	"keypoolrefill":           {fn: keypoolRefill},
 	"listaccounts":            {fn: listAccounts},
 	"listlockunspent":         {fn: listLockUnspent},
 	"listreceivedbyaccount":   {fn: listReceivedByAccount},
@@ -100,26 +90,18 @@ var handlers = map[string]handler{
 	"listtransactions":        {fn: listTransactions},
 	"listunspent":             {fn: listUnspent},
 	"lockunspent":             {fn: lockUnspent},
-	"purchaseticket":          {fn: purchaseTicket},
 	"rescanwallet":            {fn: rescanWallet},
-	"revoketickets":           {fn: revokeTickets},
 	"sendfrom":                {fn: sendFrom},
 	"sendmany":                {fn: sendMany},
 	"sendtoaddress":           {fn: sendToAddress},
 	"sendtomultisig":          {fn: sendToMultiSig},
-	"setticketfee":            {fn: setTicketFee},
 	"settxfee":                {fn: setTxFee},
-	"setvotechoice":           {fn: setVoteChoice},
 	"signmessage":             {fn: signMessage},
 	"signrawtransaction":      {fn: signRawTransaction},
 	"signrawtransactions":     {fn: signRawTransactions},
-	"startautobuyer":          {fn: startAutoBuyer},
-	"stopautobuyer":           {fn: stopAutoBuyer},
 	"sweepaccount":            {fn: sweepAccount},
 	"redeemmultisigout":       {fn: redeemMultiSigOut},
 	"redeemmultisigouts":      {fn: redeemMultiSigOuts},
-	"stakepooluserinfo":       {fn: stakePoolUserInfo},
-	"ticketsforaddress":       {fn: ticketsForAddress},
 	"validateaddress":         {fn: validateAddress},
 	"verifymessage":           {fn: verifyMessage},
 	"version":                 {fn: version},
@@ -394,24 +376,6 @@ func addMultiSigAddress(s *Server, icmd interface{}) (interface{}, error) {
 	return p2shAddr.EncodeAddress(), nil
 }
 
-// addTicket adds a ticket to the stake manager manually.
-func addTicket(s *Server, icmd interface{}) (interface{}, error) {
-	cmd := icmd.(*dcrjson.AddTicketCmd)
-	w, ok := s.walletLoader.LoadedWallet()
-	if !ok {
-		return nil, errUnloadedWallet
-	}
-
-	mtx := new(wire.MsgTx)
-	err := mtx.Deserialize(hex.NewDecoder(strings.NewReader(cmd.TicketHex)))
-	if err != nil {
-		return nil, rpcError(dcrjson.ErrRPCDeserialization, err)
-	}
-
-	err = w.AddTicket(mtx)
-	return nil, err
-}
-
 // consolidate handles a consolidate request by returning attempting to compress
 // as many inputs as given and then returning the txHash and error.
 func consolidate(s *Server, icmd interface{}) (interface{}, error) {
@@ -505,53 +469,6 @@ func dumpPrivKey(s *Server, icmd interface{}) (interface{}, error) {
 	return key, nil
 }
 
-// generateVote handles a generatevote request by constructing a signed
-// vote and returning it.
-func generateVote(s *Server, icmd interface{}) (interface{}, error) {
-	cmd := icmd.(*dcrjson.GenerateVoteCmd)
-	w, ok := s.walletLoader.LoadedWallet()
-	if !ok {
-		return nil, errUnloadedWallet
-	}
-
-	blockHash, err := chainhash.NewHashFromStr(cmd.BlockHash)
-	if err != nil {
-		return nil, rpcError(dcrjson.ErrRPCDecodeHexString, err)
-	}
-
-	ticketHash, err := chainhash.NewHashFromStr(cmd.TicketHash)
-	if err != nil {
-		return nil, rpcError(dcrjson.ErrRPCDecodeHexString, err)
-	}
-
-	var voteBitsExt []byte
-	voteBitsExt, err = hex.DecodeString(cmd.VoteBitsExt)
-	if err != nil {
-		return nil, rpcError(dcrjson.ErrRPCDecodeHexString, err)
-	}
-	voteBits := stake.VoteBits{
-		Bits:         cmd.VoteBits,
-		ExtendedBits: voteBitsExt,
-	}
-
-	ssgentx, err := w.GenerateVoteTx(blockHash, int32(cmd.Height), ticketHash,
-		voteBits)
-	if err != nil {
-		return nil, err
-	}
-
-	var b strings.Builder
-	b.Grow(2 * ssgentx.SerializeSize())
-	err = ssgentx.Serialize(hex.NewEncoder(&b))
-	if err != nil {
-		return nil, err
-	}
-	resp := &dcrjson.GenerateVoteResult{
-		Hex: b.String(),
-	}
-	return resp, nil
-}
-
 // getAddressesByAccount handles a getaddressesbyaccount request by returning
 // all addresses for an account, or an error if the requested account does
 // not exist.
@@ -634,11 +551,8 @@ func getBalance(s *Server, icmd interface{}) (interface{}, error) {
 
 		var (
 			totImmatureCoinbase dcrutil.Amount
-			totImmatureStakegen dcrutil.Amount
-			totLocked           dcrutil.Amount
 			totSpendable        dcrutil.Amount
 			totUnconfirmed      dcrutil.Amount
-			totVotingAuthority  dcrutil.Amount
 			cumTot              dcrutil.Amount
 		)
 
@@ -656,22 +570,16 @@ func getBalance(s *Server, icmd interface{}) (interface{}, error) {
 			}
 
 			totImmatureCoinbase += bal.ImmatureCoinbaseRewards
-			totImmatureStakegen += bal.ImmatureStakeGeneration
-			totLocked += bal.LockedByTickets
 			totSpendable += bal.Spendable
 			totUnconfirmed += bal.Unconfirmed
-			totVotingAuthority += bal.VotingAuthority
 			cumTot += bal.Total
 
 			json := dcrjson.GetAccountBalanceResult{
 				AccountName:             accountName,
 				ImmatureCoinbaseRewards: bal.ImmatureCoinbaseRewards.ToCoin(),
-				ImmatureStakeGeneration: bal.ImmatureStakeGeneration.ToCoin(),
-				LockedByTickets:         bal.LockedByTickets.ToCoin(),
 				Spendable:               bal.Spendable.ToCoin(),
 				Total:                   bal.Total.ToCoin(),
 				Unconfirmed:             bal.Unconfirmed.ToCoin(),
-				VotingAuthority:         bal.VotingAuthority.ToCoin(),
 			}
 
 			var balIdx uint32
@@ -684,11 +592,8 @@ func getBalance(s *Server, icmd interface{}) (interface{}, error) {
 		}
 
 		result.TotalImmatureCoinbaseRewards = totImmatureCoinbase.ToCoin()
-		result.TotalImmatureStakeGeneration = totImmatureStakegen.ToCoin()
-		result.TotalLockedByTickets = totLocked.ToCoin()
 		result.TotalSpendable = totSpendable.ToCoin()
 		result.TotalUnconfirmed = totUnconfirmed.ToCoin()
-		result.TotalVotingAuthority = totVotingAuthority.ToCoin()
 		result.CumulativeTotal = cumTot.ToCoin()
 	} else {
 		account, err := w.AccountNumber(accountName)
@@ -710,12 +615,9 @@ func getBalance(s *Server, icmd interface{}) (interface{}, error) {
 		json := dcrjson.GetAccountBalanceResult{
 			AccountName:             accountName,
 			ImmatureCoinbaseRewards: bal.ImmatureCoinbaseRewards.ToCoin(),
-			ImmatureStakeGeneration: bal.ImmatureStakeGeneration.ToCoin(),
-			LockedByTickets:         bal.LockedByTickets.ToCoin(),
 			Spendable:               bal.Spendable.ToCoin(),
 			Total:                   bal.Total.ToCoin(),
 			Unconfirmed:             bal.Unconfirmed.ToCoin(),
-			VotingAuthority:         bal.VotingAuthority.ToCoin(),
 		}
 		result.Balances = append(result.Balances, json)
 	}
@@ -1143,7 +1045,6 @@ func getMultisigOutInfo(s *Server, icmd interface{}) (interface{}, error) {
 	op := &wire.OutPoint{
 		Hash:  *hash,
 		Index: cmd.Index,
-		Tree:  wire.TxTreeRegular,
 	}
 
 	p2shOutput, err := w.FetchP2SHMultiSigOutput(op)
@@ -1346,103 +1247,6 @@ func getMasterPubkey(s *Server, icmd interface{}) (interface{}, error) {
 	return masterPubKey.String(), nil
 }
 
-// getStakeInfo gets a large amounts of information about the stake environment
-// and a number of statistics about local staking in the wallet.
-func getStakeInfo(s *Server, icmd interface{}) (interface{}, error) {
-	w, ok := s.walletLoader.LoadedWallet()
-	if !ok {
-		return nil, errUnloadedWallet
-	}
-
-	var chainClient *rpcclient.Client
-	if n, ok := s.walletLoader.NetworkBackend(); ok {
-		client, err := chain.RPCClientFromBackend(n)
-		if err == nil {
-			chainClient = client
-		}
-	}
-	var sinfo *wallet.StakeInfoData
-	var err error
-	if chainClient != nil {
-		sinfo, err = w.StakeInfoPrecise(chainClient)
-	} else {
-		sinfo, err = w.StakeInfo()
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	var proportionLive, proportionMissed float64
-	if sinfo.PoolSize > 0 {
-		proportionLive = float64(sinfo.Live) / float64(sinfo.PoolSize)
-	}
-	if sinfo.Missed > 0 {
-		proportionMissed = float64(sinfo.Missed) / (float64(sinfo.Voted + sinfo.Missed))
-	}
-
-	resp := &dcrjson.GetStakeInfoResult{
-		BlockHeight:  sinfo.BlockHeight,
-		Difficulty:   sinfo.Sdiff.ToCoin(),
-		TotalSubsidy: sinfo.TotalSubsidy.ToCoin(),
-
-		OwnMempoolTix:  sinfo.OwnMempoolTix,
-		Immature:       sinfo.Immature,
-		Unspent:        sinfo.Unspent,
-		Voted:          sinfo.Voted,
-		Revoked:        sinfo.Revoked,
-		UnspentExpired: sinfo.UnspentExpired,
-
-		PoolSize:         sinfo.PoolSize,
-		AllMempoolTix:    sinfo.AllMempoolTix,
-		Live:             sinfo.Live,
-		ProportionLive:   proportionLive,
-		Missed:           sinfo.Missed,
-		ProportionMissed: proportionMissed,
-		Expired:          sinfo.Expired,
-	}
-
-	return resp, nil
-}
-
-// getTicketFee gets the currently set price per kb for tickets
-func getTicketFee(s *Server, icmd interface{}) (interface{}, error) {
-	w, ok := s.walletLoader.LoadedWallet()
-	if !ok {
-		return nil, errUnloadedWallet
-	}
-
-	return w.TicketFeeIncrement().ToCoin(), nil
-}
-
-// getTickets handles a gettickets request by returning the hashes of the tickets
-// currently owned by wallet, encoded as strings.
-func getTickets(s *Server, icmd interface{}) (interface{}, error) {
-	cmd := icmd.(*dcrjson.GetTicketsCmd)
-	w, ok := s.walletLoader.LoadedWallet()
-	if !ok {
-		return nil, errUnloadedWallet
-	}
-
-	n, _ := s.walletLoader.NetworkBackend()
-	chainClient, err := chain.RPCClientFromBackend(n)
-	if err != nil {
-		return nil, errRPCClientNotConnected
-	}
-
-	ticketHashes, err := w.LiveTicketHashes(chainClient, cmd.IncludeImmature)
-	if err != nil {
-		return nil, err
-	}
-
-	// Compose a slice of strings to return.
-	ticketHashStrs := make([]string, 0, len(ticketHashes))
-	for i := range ticketHashes {
-		ticketHashStrs = append(ticketHashStrs, ticketHashes[i].String())
-	}
-
-	return &dcrjson.GetTicketsResult{Hashes: ticketHashStrs}, nil
-}
-
 // getTransaction handles a gettransaction request by returning details about
 // a single transaction saved by wallet.
 func getTransaction(s *Server, icmd interface{}) (interface{}, error) {
@@ -1534,43 +1338,6 @@ func getTransaction(s *Server, icmd interface{}) (interface{}, error) {
 	}
 
 	return ret, nil
-}
-
-// getVoteChoices handles a getvotechoices request by returning configured vote
-// preferences for each agenda of the latest supported stake version.
-func getVoteChoices(s *Server, icmd interface{}) (interface{}, error) {
-	w, ok := s.walletLoader.LoadedWallet()
-	if !ok {
-		return nil, errUnloadedWallet
-	}
-
-	version, agendas := wallet.CurrentAgendas(w.ChainParams())
-	resp := &dcrjson.GetVoteChoicesResult{
-		Version: version,
-		Choices: make([]dcrjson.VoteChoice, len(agendas)),
-	}
-
-	choices, _, err := w.AgendaChoices()
-	if err != nil {
-		return nil, err
-	}
-
-	for i := range choices {
-		resp.Choices[i] = dcrjson.VoteChoice{
-			AgendaID:          choices[i].AgendaID,
-			AgendaDescription: agendas[i].Vote.Description,
-			ChoiceID:          choices[i].ChoiceID,
-			ChoiceDescription: "", // Set below
-		}
-		for j := range agendas[i].Vote.Choices {
-			if choices[i].ChoiceID == agendas[i].Vote.Choices[j].Id {
-				resp.Choices[i].ChoiceDescription = agendas[i].Vote.Choices[j].Description
-				break
-			}
-		}
-	}
-
-	return resp, nil
 }
 
 // getWalletFee returns the currently set tx fee for the requested wallet
@@ -2047,116 +1814,6 @@ func lockUnspent(s *Server, icmd interface{}) (interface{}, error) {
 	return true, nil
 }
 
-// purchaseTicket indicates to the wallet that a ticket should be purchased
-// using all currently available funds. If the ticket could not be purchased
-// because there are not enough eligible funds, an error will be returned.
-func purchaseTicket(s *Server, icmd interface{}) (interface{}, error) {
-	// Enforce valid and positive spend limit.
-	cmd := icmd.(*dcrjson.PurchaseTicketCmd)
-	w, ok := s.walletLoader.LoadedWallet()
-	if !ok {
-		return nil, errUnloadedWallet
-	}
-
-	spendLimit, err := dcrutil.NewAmount(cmd.SpendLimit)
-	if err != nil {
-		return nil, rpcError(dcrjson.ErrRPCInvalidParameter, err)
-	}
-	if spendLimit < 0 {
-		return nil, rpcErrorf(dcrjson.ErrRPCInvalidParameter, "negative spend limit")
-	}
-
-	account, err := w.AccountNumber(cmd.FromAccount)
-	if err != nil {
-		if errors.Is(errors.NotExist, err) {
-			return nil, errAccountNotFound
-		}
-		return nil, err
-	}
-
-	// Override the minimum number of required confirmations if specified
-	// and enforce it is positive.
-	minConf := int32(1)
-	if cmd.MinConf != nil {
-		minConf = int32(*cmd.MinConf)
-		if minConf < 0 {
-			return nil, rpcErrorf(dcrjson.ErrRPCInvalidParameter, "negative minconf")
-		}
-	}
-
-	// Set ticket address if specified.
-	var ticketAddr dcrutil.Address
-	if cmd.TicketAddress != nil {
-		if *cmd.TicketAddress != "" {
-			addr, err := decodeAddress(*cmd.TicketAddress, w.ChainParams())
-			if err != nil {
-				return nil, err
-			}
-			ticketAddr = addr
-		}
-	}
-
-	numTickets := 1
-	if cmd.NumTickets != nil {
-		if *cmd.NumTickets > 1 {
-			numTickets = *cmd.NumTickets
-		}
-	}
-
-	// Set pool address if specified.
-	var poolAddr dcrutil.Address
-	var poolFee float64
-	if cmd.PoolAddress != nil {
-		if *cmd.PoolAddress != "" {
-			addr, err := decodeAddress(*cmd.PoolAddress, w.ChainParams())
-			if err != nil {
-				return nil, err
-			}
-			poolAddr = addr
-
-			// Attempt to get the amount to send to
-			// the pool after.
-			if cmd.PoolFees == nil {
-				return nil, rpcErrorf(dcrjson.ErrRPCInvalidParameter, "pool address set without pool fee")
-			}
-			poolFee = *cmd.PoolFees
-			if !txrules.ValidPoolFeeRate(poolFee) {
-				return nil, rpcErrorf(dcrjson.ErrRPCInvalidParameter, "pool fee percentage %v", poolFee)
-			}
-		}
-	}
-
-	// Set the expiry if specified.
-	expiry := int32(0)
-	if cmd.Expiry != nil {
-		expiry = int32(*cmd.Expiry)
-	}
-
-	ticketFee := w.TicketFeeIncrement()
-
-	// Set the ticket fee if specified.
-	if cmd.TicketFee != nil {
-		ticketFee, err = dcrutil.NewAmount(*cmd.TicketFee)
-		if err != nil {
-			return nil, rpcError(dcrjson.ErrRPCInvalidParameter, err)
-		}
-	}
-
-	hashes, err := w.PurchaseTickets(0, spendLimit, minConf, ticketAddr,
-		account, numTickets, poolAddr, poolFee, expiry, w.RelayFee(),
-		ticketFee)
-	if err != nil {
-		return nil, err
-	}
-
-	hashStrs := make([]string, len(hashes))
-	for i := range hashes {
-		hashStrs[i] = hashes[i].String()
-	}
-
-	return hashStrs, err
-}
-
 // makeOutputs creates a slice of transaction outputs from a pair of address
 // strings to amounts.  This is used to create the outputs to include in newly
 // created transactions from a JSON object describing the output destinations
@@ -2244,7 +1901,6 @@ func redeemMultiSigOut(s *Server, icmd interface{}) (interface{}, error) {
 	op := wire.OutPoint{
 		Hash:  *hash,
 		Index: cmd.Index,
-		Tree:  cmd.Tree,
 	}
 	p2shOutput, err := w.FetchP2SHMultiSigOutput(&op)
 	if err != nil {
@@ -2279,7 +1935,6 @@ func redeemMultiSigOut(s *Server, icmd interface{}) (interface{}, error) {
 	rti := dcrjson.RawTxInput{
 		Txid:         cmd.Hash,
 		Vout:         cmd.Index,
-		Tree:         cmd.Tree,
 		ScriptPubKey: outpointScriptStr,
 		RedeemScript: "",
 	}
@@ -2350,7 +2005,6 @@ func redeemMultiSigOuts(s *Server, icmd interface{}) (interface{}, error) {
 		rmsoRequest := &dcrjson.RedeemMultiSigOutCmd{
 			Hash:    mso.OutPoint.Hash.String(),
 			Index:   mso.OutPoint.Index,
-			Tree:    mso.OutPoint.Tree,
 			Address: cmd.ToAddress,
 		}
 		redeemResult, err := redeemMultiSigOut(s, rmsoRequest)
@@ -2382,112 +2036,6 @@ func rescanWallet(s *Server, icmd interface{}) (interface{}, error) {
 
 	err := w.RescanFromHeight(context.TODO(), n, int32(*cmd.BeginHeight))
 	return nil, err
-}
-
-// revokeTickets initiates the wallet to issue revocations for any missing
-// tickets that not yet been revoked.
-func revokeTickets(s *Server, icmd interface{}) (interface{}, error) {
-	w, ok := s.walletLoader.LoadedWallet()
-	if !ok {
-		return nil, errUnloadedWallet
-	}
-
-	// The wallet is not locally aware of when tickets are selected to vote and
-	// when they are missed.  RevokeTickets uses trusted RPCs to determine which
-	// tickets were missed.  RevokeExpiredTickets is only able to create
-	// revocations for tickets which have reached their expiry time even if they
-	// were missed prior to expiry, but is able to be used with other backends.
-	n, _ := s.walletLoader.NetworkBackend()
-	chainClient, err := chain.RPCClientFromBackend(n)
-	if err != nil {
-		err := w.RevokeExpiredTickets(context.TODO(), n)
-		return nil, err
-	}
-
-	err = w.RevokeTickets(chainClient)
-	return nil, err
-}
-
-// stakePoolUserInfo returns the ticket information for a given user from the
-// stake pool.
-func stakePoolUserInfo(s *Server, icmd interface{}) (interface{}, error) {
-	cmd := icmd.(*dcrjson.StakePoolUserInfoCmd)
-	w, ok := s.walletLoader.LoadedWallet()
-	if !ok {
-		return nil, errUnloadedWallet
-	}
-
-	userAddr, err := dcrutil.DecodeAddress(cmd.User)
-	if err != nil {
-		return nil, err
-	}
-	spui, err := w.StakePoolUserInfo(userAddr)
-	if err != nil {
-		return nil, err
-	}
-
-	resp := new(dcrjson.StakePoolUserInfoResult)
-	resp.Tickets = make([]dcrjson.PoolUserTicket, 0, len(spui.Tickets))
-	resp.InvalidTickets = make([]string, 0, len(spui.InvalidTickets))
-	for _, ticket := range spui.Tickets {
-		var ticketRes dcrjson.PoolUserTicket
-
-		status := ""
-		switch ticket.Status {
-		case udb.TSImmatureOrLive:
-			status = "live"
-		case udb.TSVoted:
-			status = "voted"
-		case udb.TSMissed:
-			status = "missed"
-			if ticket.HeightSpent-ticket.HeightTicket >= w.ChainParams().TicketExpiry {
-				status = "expired"
-			}
-		}
-		ticketRes.Status = status
-
-		ticketRes.Ticket = ticket.Ticket.String()
-		ticketRes.TicketHeight = ticket.HeightTicket
-		ticketRes.SpentBy = ticket.SpentBy.String()
-		ticketRes.SpentByHeight = ticket.HeightSpent
-
-		resp.Tickets = append(resp.Tickets, ticketRes)
-	}
-	for _, invalid := range spui.InvalidTickets {
-		invalidTicket := invalid.String()
-
-		resp.InvalidTickets = append(resp.InvalidTickets, invalidTicket)
-	}
-
-	return resp, nil
-}
-
-// ticketsForAddress retrieves all ticket hashes that have the passed voting
-// address. It will only return tickets that are in the mempool or blockchain,
-// and should not return pruned tickets.
-func ticketsForAddress(s *Server, icmd interface{}) (interface{}, error) {
-	cmd := icmd.(*dcrjson.TicketsForAddressCmd)
-	w, ok := s.walletLoader.LoadedWallet()
-	if !ok {
-		return nil, errUnloadedWallet
-	}
-
-	addr, err := dcrutil.DecodeAddress(cmd.Address)
-	if err != nil {
-		return nil, err
-	}
-
-	ticketHashes, err := w.TicketHashesForVotingAddress(addr)
-	if err != nil {
-		return nil, err
-	}
-
-	ticketHashStrs := make([]string, 0, len(ticketHashes))
-	for _, hash := range ticketHashes {
-		ticketHashStrs = append(ticketHashStrs, hash.String())
-	}
-
-	return dcrjson.TicketsForAddressResult{Tickets: ticketHashStrs}, nil
 }
 
 func isNilOrEmpty(s *string) bool {
@@ -2695,29 +2243,6 @@ func sendToMultiSig(s *Server, icmd interface{}) (interface{}, error) {
 	return result, nil
 }
 
-// setTicketFee sets the transaction fee per kilobyte added to tickets.
-func setTicketFee(s *Server, icmd interface{}) (interface{}, error) {
-	cmd := icmd.(*dcrjson.SetTicketFeeCmd)
-	w, ok := s.walletLoader.LoadedWallet()
-	if !ok {
-		return nil, errUnloadedWallet
-	}
-
-	// Check that amount is not negative.
-	if cmd.Fee < 0 {
-		return nil, rpcErrorf(dcrjson.ErrRPCInvalidParameter, "negative fee")
-	}
-
-	incr, err := dcrutil.NewAmount(cmd.Fee)
-	if err != nil {
-		return nil, rpcError(dcrjson.ErrRPCInvalidParameter, err)
-	}
-	w.SetTicketFeeIncrement(incr)
-
-	// A boolean true result is returned upon success.
-	return true, nil
-}
-
 // setTxFee sets the transaction fee per kilobyte added to transactions.
 func setTxFee(s *Server, icmd interface{}) (interface{}, error) {
 	cmd := icmd.(*dcrjson.SetTxFeeCmd)
@@ -2739,22 +2264,6 @@ func setTxFee(s *Server, icmd interface{}) (interface{}, error) {
 
 	// A boolean true result is returned upon success.
 	return true, nil
-}
-
-// setVoteChoice handles a setvotechoice request by modifying the preferred
-// choice for a voting agenda.
-func setVoteChoice(s *Server, icmd interface{}) (interface{}, error) {
-	cmd := icmd.(*dcrjson.SetVoteChoiceCmd)
-	w, ok := s.walletLoader.LoadedWallet()
-	if !ok {
-		return nil, errUnloadedWallet
-	}
-
-	_, err := w.SetAgendaChoices(wallet.AgendaChoice{
-		AgendaID: cmd.AgendaID,
-		ChoiceID: cmd.ChoiceID,
-	})
-	return nil, err
 }
 
 // signMessage signs the given message with the private key for the given
@@ -2867,7 +2376,6 @@ func signRawTransaction(s *Server, icmd interface{}) (interface{}, error) {
 		}
 		inputs[wire.OutPoint{
 			Hash:  *inputSha,
-			Tree:  rti.Tree,
 			Index: rti.Vout,
 		}] = script
 	}
@@ -3364,23 +2872,11 @@ func walletInfo(s *Server, icmd interface{}) (interface{}, error) {
 
 	unlocked := !(w.Locked())
 	fi := w.RelayFee()
-	tfi := w.TicketFeeIncrement()
-	tp := s.walletLoader.PurchaseManager() != nil
-	voteBits := w.VoteBits()
-	var voteVersion uint32
-	_ = binary.Read(bytes.NewBuffer(voteBits.ExtendedBits[0:4]), binary.LittleEndian, &voteVersion)
-	voting := w.VotingEnabled()
 
 	return &dcrjson.WalletInfoResult{
-		DaemonConnected:  connected,
-		Unlocked:         unlocked,
-		TxFee:            fi.ToCoin(),
-		TicketFee:        tfi.ToCoin(),
-		TicketPurchasing: tp,
-		VoteBits:         voteBits.Bits,
-		VoteBitsExtended: hex.EncodeToString(voteBits.ExtendedBits),
-		VoteVersion:      voteVersion,
-		Voting:           voting,
+		DaemonConnected: connected,
+		Unlocked:        unlocked,
+		TxFee:           fi.ToCoin(),
 	}, nil
 }
 
