@@ -77,16 +77,6 @@ const (
 	//   - OP_EQUAL
 	P2SHPkScriptSize = 1 + 1 + 20 + 1
 
-	// TicketCommitmentScriptSize is the size of a ticket purchase commitment
-	// script. It is calculated as:
-	//
-	//   - OP_RETURN
-	//   - OP_DATA_30
-	//   - 20 bytes P2SH/P2PKH
-	//   - 8 byte amount
-	//   - 2 byte fee range limits
-	TicketCommitmentScriptSize = 1 + 1 + 20 + 8 + 2
-
 	// P2PKHOutputSize is the serialize size of a transaction output with a
 	// P2PKH output script.  It is calculated as:
 	//

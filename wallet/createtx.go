@@ -28,10 +28,6 @@ import (
 // Constants and simple functions
 
 const (
-	// defaultTicketFeeLimits is the default byte string for the default
-	// fee limits imposed on a ticket.
-	defaultTicketFeeLimits = 0x5800
-
 	// maxStandardTxSize is the maximum size allowed for transactions that
 	// are considered standard and will therefore be relayed and considered
 	// for mining.

@@ -1535,48 +1535,6 @@ func marshalTransactionDetailsSlice(v []wallet.TransactionSummary) []*pb.Transac
 	return txs
 }
 
-func marshalTicketDetails(ticket *wallet.TicketSummary) *pb.GetTicketsResponse_TicketDetails {
-	var ticketStatus = pb.GetTicketsResponse_TicketDetails_LIVE
-	switch ticket.Status {
-	case wallet.TicketStatusExpired:
-		ticketStatus = pb.GetTicketsResponse_TicketDetails_EXPIRED
-	case wallet.TicketStatusImmature:
-		ticketStatus = pb.GetTicketsResponse_TicketDetails_IMMATURE
-	case wallet.TicketStatusVoted:
-		ticketStatus = pb.GetTicketsResponse_TicketDetails_VOTED
-	case wallet.TicketStatusRevoked:
-		ticketStatus = pb.GetTicketsResponse_TicketDetails_REVOKED
-	case wallet.TicketStatusUnmined:
-		ticketStatus = pb.GetTicketsResponse_TicketDetails_UNMINED
-	case wallet.TicketStatusMissed:
-		ticketStatus = pb.GetTicketsResponse_TicketDetails_MISSED
-	case wallet.TicketStatusUnknown:
-		ticketStatus = pb.GetTicketsResponse_TicketDetails_UNKNOWN
-	}
-	spender := &pb.TransactionDetails{}
-	if ticket.Spender != nil {
-		spender = marshalTransactionDetails(ticket.Spender)
-	}
-	return &pb.GetTicketsResponse_TicketDetails{
-		Ticket:       marshalTransactionDetails(ticket.Ticket),
-		Spender:      spender,
-		TicketStatus: ticketStatus,
-	}
-}
-
-func marshalGetTicketBlockDetails(v *wire.BlockHeader) *pb.GetTicketsResponse_BlockDetails {
-	if v == nil || v.Height < 0 {
-		return nil
-	}
-
-	blockHash := v.BlockHash()
-	return &pb.GetTicketsResponse_BlockDetails{
-		Hash:      blockHash[:],
-		Height:    int32(v.Height),
-		Timestamp: v.Timestamp.Unix(),
-	}
-}
-
 func marshalBlock(v *wallet.Block) *pb.BlockDetails {
 	txs := marshalTransactionDetailsSlice(v.Transactions)
 

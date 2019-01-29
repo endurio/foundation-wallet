@@ -1609,43 +1609,6 @@ func readRawUnminedInputSpenderHash(v []byte, hash *chainhash.Hash) {
 	copy(hash[:], v[:32])
 }
 
-// Ticket purchase metadata is recorded in the tickets bucket.  The bucket key
-// is the ticket purchase transaction hash.  The value is serialized as such:
-//
-//   [0:4]		Block height ticket was picked (-1 if not picked)
-
-type ticketRecord struct {
-	pickedHeight int32
-}
-
-func valueTicketRecord(pickedHeight int32) []byte {
-	v := make([]byte, 4)
-	byteOrder.PutUint32(v, uint32(pickedHeight))
-	return v
-}
-
-func putRawTicketRecord(ns walletdb.ReadWriteBucket, k, v []byte) error {
-	err := ns.NestedReadWriteBucket(bucketTickets).Put(k, v)
-	if err != nil {
-		return errors.E(errors.IO, err)
-	}
-	return nil
-}
-
-func putTicketRecord(ns walletdb.ReadWriteBucket, ticketHash *chainhash.Hash, pickedHeight int32) error {
-	k := ticketHash[:]
-	v := valueTicketRecord(pickedHeight)
-	return putRawTicketRecord(ns, k, v)
-}
-
-func existsRawTicketRecord(ns walletdb.ReadBucket, k []byte) (v []byte) {
-	return ns.NestedReadBucket(bucketTickets).Get(k)
-}
-
-func extractRawTicketPickedHeight(v []byte) int32 {
-	return int32(byteOrder.Uint32(v))
-}
-
 // Tx scripts are stored as the raw serialized script. The key in the database
 // for the TxScript itself is the hash160 of the script.
 func keyTxScript(script []byte) []byte {

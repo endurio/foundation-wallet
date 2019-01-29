@@ -48,15 +48,6 @@ var helpDescsEnUS = map[string]string{
 	"dumpprivkey-address":   "The address to return a private key for",
 	"dumpprivkey--result0":  "The WIF-encoded private key",
 
-	// GenerateVote help.
-	"generatevote--synopsis":   "Returns the vote transaction encoded as a hexadecimal string",
-	"generatevote-blockhash":   "Block hash for the ticket",
-	"generatevote-height":      "Block height for the ticket",
-	"generatevote-tickethash":  "The hash of the ticket",
-	"generatevote-votebits":    "The voteBits to set for the ticket",
-	"generatevote-votebitsext": "The extended voteBits to set for the ticket",
-	"generatevoteresult-hex":   "The hex encoded transaction",
-
 	// GetAccountCmd help.
 	"getaccount--synopsis": "DEPRECATED -- Lookup the account name that some wallet address belongs to.",
 	"getaccount-address":   "The address to query the account for",
@@ -191,8 +182,6 @@ var helpDescsEnUS = map[string]string{
 	"gettransactionresult-timereceived":    "The earliest Unix time this transaction was known to exist",
 	"gettransactionresult-details":         "Additional details for each recorded wallet credit and debit",
 	"gettransactionresult-hex":             "The transaction encoded as a hexadecimal string",
-	"gettransactionresult-type":            "The type of transaction (regular, ticket, vote, or revocation)",
-	"gettransactionresult-ticketstatus":    "Status of ticket (if transaction is a ticket)",
 
 	// GetTransactionDetailsResult help.
 	"gettransactiondetailsresult-account":           "DEPRECATED -- Unset",
@@ -559,26 +548,9 @@ var helpDescsEnUS = map[string]string{
 
 	// TODO Alphabetize
 
-	// AddTicketCmd help.
-	"addticket--synopsis": "Add a ticket to the wallet for vote and revocation creation.  Added tickets are auxiliary to transaction history and do not appear in getstakeinfo stats.",
-	"addticket-tickethex": "Hex-encoded serialized transaction",
-
 	// GetWalletFeeCmd help.
 	"getwalletfee--synopsis": "Get currently set transaction fee for the wallet",
 	"getwalletfee--result0":  "Current tx fee (in DCR)",
-
-	// StakePoolUserInfoCmd help.
-	"stakepooluserinfo--synopsis": "Get user info for stakepool",
-	"stakepooluserinfo-user":      "The id of the user to be looked up",
-
-	"stakepooluserinforesult-invalid": "A list of invalid tickets that the user has added",
-	"stakepooluserinforesult-tickets": "A list of valid tickets that the user has added",
-
-	"pooluserticket-spentbyheight": "The height in which the ticket was spent",
-	"pooluserticket-spentby":       "The vote in which the ticket was spent",
-	"pooluserticket-ticketheight":  "The height in which the ticket was added",
-	"pooluserticket-ticket":        "The hash of the added ticket",
-	"pooluserticket-status":        "The current status of the added ticket",
 
 	// ListScriptsCmd help.
 	"listscripts--synopsis": "List all scripts that have been added to wallet",
@@ -588,13 +560,4 @@ var helpDescsEnUS = map[string]string{
 	"scriptinfo-redeemscript": "The redeem script",
 	"scriptinfo-address":      "The script address",
 	"scriptinfo-hash160":      "The script hash",
-
-	// SetBalanceToMaintainCmd help.
-	"setbalancetomaintain--synopsis": "Modify the balance for wallet to maintain for automatic ticket purchasing",
-	"setbalancetomaintain-balance":   "The new balance for wallet to maintain for automatic ticket purchasing",
-	"setbalancetomaintain--result0":  "Should return nothing",
-
-	// GetBalanceToMaintainCmd help.
-	"getbalancetomaintain--synopsis": "Get the current balance to maintain",
-	"getbalancetomaintain--result0":  "The current balancetomaintain",
 }

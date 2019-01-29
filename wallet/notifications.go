@@ -374,35 +374,6 @@ type Block struct {
 	Transactions []TransactionSummary
 }
 
-// TicketSummary contains the properties to describe a ticket's current status
-type TicketSummary struct {
-	Ticket  *TransactionSummary
-	Spender *TransactionSummary
-	Status  TicketStatus
-}
-
-// TicketStatus describes the current status a ticket can be observed to be.
-type TicketStatus int8
-
-const (
-	// TicketStatusUnknown any ticket that its status was unable to be determined.
-	TicketStatusUnknown TicketStatus = iota
-	// TicketStatusUnmined any not yet mined ticket.
-	TicketStatusUnmined
-	// TicketStatusImmature any so to be live ticket.
-	TicketStatusImmature
-	// TicketStatusLive any currently live ticket.
-	TicketStatusLive
-	// TicketStatusVoted any ticket that was seen to have voted.
-	TicketStatusVoted
-	// TicketStatusRevoked any ticket that has been previously revoked.
-	TicketStatusRevoked
-	// TicketStatusMissed any ticket that has yet to be revoked, and was missed.
-	TicketStatusMissed
-	// TicketStatusExpired any ticket that has yet to be revoked, and was expired.
-	TicketStatusExpired
-)
-
 // TransactionSummary contains a transaction relevant to the wallet and marks
 // which inputs and outputs were relevant.
 type TransactionSummary struct {
