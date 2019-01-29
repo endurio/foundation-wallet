@@ -26,7 +26,7 @@ import (
 )
 
 // uaName is the LocalPeer useragent name.
-const uaName = "dcrwallet"
+const uaName = "ndrw"
 
 // uaVersion is the LocalPeer useragent version.
 var uaVersion = version.String()

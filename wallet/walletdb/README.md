@@ -1,7 +1,7 @@
 walletdb
 ========
 
-Package walletdb provides a namespaced database interface for dcrwallet.
+Package walletdb provides a namespaced database interface for ndrw.
 
 A wallet essentially consists of a multitude of stored data such as private
 and public keys, key derivation bits, pay-to-script-hash scripts, and various

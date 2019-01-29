@@ -1,20 +1,20 @@
-dcrwallet
+ndrw
 =========
 
-dcrwallet is a daemon handling Decred wallet functionality.  All interaction
+ndrw is a daemon handling Decred wallet functionality.  All interaction
 with the wallet is performed over RPC.
 
 Public and private keys are derived using the hierarchical
 deterministic format described by
 [BIP0032](https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki).
 Unencrypted private keys are not supported and are never written to
-disk.  dcrwallet uses the
+disk.  ndrw uses the
 `m/44'/<coin type>'/<account>'/<branch>/<address index>`
 HD path for all derived addresses, as described by
 [BIP0044](https://github.com/bitcoin/bips/blob/master/bip-0044.mediawiki).
 
 Due to the sensitive nature of public data in a BIP0032 wallet,
-dcrwallet provides the option of encrypting not just private keys, but
+ndrw provides the option of encrypting not just private keys, but
 public data as well.  This is intended to thwart privacy risks where a
 wallet file is compromised without exposing all current and future
 addresses (public keys) managed by the wallet. While access to this
@@ -23,7 +23,7 @@ does mean they could track all transactions involving your addresses
 and therefore know your exact balance.  In a future release, public data
 encryption will extend to transactions as well.
 
-dcrwallet provides two modes of operation to connect to the Decred
+ndrw provides two modes of operation to connect to the Decred
 network.  The first (and default) is to communicate with a single
 trusted `ndrd` instance using JSON-RPC.  The second is a
 privacy-preserving Simplified Payment Verification (SPV) mode (enabled
@@ -59,7 +59,7 @@ Wallet clients interact with the wallet using one of two RPC servers:
 
   2. A gRPC server
 
-     The gRPC server uses a new API built for dcrwallet, but the API is not
+     The gRPC server uses a new API built for ndrw, but the API is not
      stabilized.  This server is enabled by default and may be disabled with
      the config option `--nogrpc`.  If you don't mind applications breaking
      due to API changes, don't want to deal with issues of the legacy API, or
@@ -100,7 +100,7 @@ root directory.  Some notes:
 
 * Replace `go` with `vgo` when using Go 1.10.
 
-* The `dcrwallet` executable will be installed to `$GOPATH/bin`.  `GOPATH`
+* The `ndrw` executable will be installed to `$GOPATH/bin`.  `GOPATH`
   defaults to `$HOME/go` (or `%USERPROFILE%\go` on Windows) if unset.
 
 ## Docker
@@ -123,7 +123,7 @@ To run the tests locally without docker:
 
 ## Getting Started
 
-The following instructions detail how to get started with dcrwallet connecting
+The following instructions detail how to get started with ndrw connecting
 to a localhost ndrd.  Commands should be run in `cmd.exe` or PowerShell on
 Windows, or any terminal emulator on *nix.
 
@@ -136,33 +136,33 @@ ndrd -u rpcuser -P rpcpass
 - Run the following command to create a wallet:
 
 ```
-dcrwallet -u rpcuser -P rpcpass --create
+ndrw -u rpcuser -P rpcpass --create
 ```
 
-- Run the following command to start dcrwallet:
+- Run the following command to start ndrw:
 
 ```
-dcrwallet -u rpcuser -P rpcpass
+ndrw -u rpcuser -P rpcpass
 ```
 
 If everything appears to be working, it is recommended at this point to
-copy the sample ndrd and dcrwallet configurations and update with your
+copy the sample ndrd and ndrw configurations and update with your
 RPC username and password.
 
 PowerShell (Installed from source):
 ```
 PS> cp $env:GOPATH\src\github.com\endurio\ndrd\sample-ndrd.conf $env:LOCALAPPDATA\Dcrd\ndrd.conf
-PS> cp $env:GOPATH\src\github.com\endurio\dcrwallet\sample-dcrwallet.conf $env:LOCALAPPDATA\Dcrwallet\dcrwallet.conf
+PS> cp $env:GOPATH\src\github.com\endurio\ndrw\sample-ndrw.conf $env:LOCALAPPDATA\Dcrwallet\ndrw.conf
 PS> $editor $env:LOCALAPPDATA\Dcrd\ndrd.conf
-PS> $editor $env:LOCALAPPDATA\Dcrwallet\dcrwallet.conf
+PS> $editor $env:LOCALAPPDATA\Dcrwallet\ndrw.conf
 ```
 
 Linux/BSD/POSIX (Installed from source):
 ```bash
 $ cp $GOPATH/src/github.com/endurio/ndrd/sample-ndrd.conf ~/.ndrd/ndrd.conf
-$ cp $GOPATH/src/github.com/endurio/ndrw/sample-dcrwallet.conf ~/.dcrwallet/dcrwallet.conf
+$ cp $GOPATH/src/github.com/endurio/ndrw/sample-ndrw.conf ~/.ndrw/ndrw.conf
 $ $EDITOR ~/.ndrd/ndrd.conf
-$ $EDITOR ~/.dcrwallet/dcrwallet.conf
+$ $EDITOR ~/.ndrw/ndrw.conf
 ```
 
 ## Issue Tracker
@@ -172,4 +172,4 @@ is used for this project.
 
 ## License
 
-dcrwallet is licensed under the liberal ISC License.
+ndrw is licensed under the liberal ISC License.

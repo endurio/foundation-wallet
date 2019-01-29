@@ -6,7 +6,7 @@
 package wallet
 
 // This code was copied from ndrd/blockchain/difficulty.go and modified for
-// dcrwallet's header storage.
+// ndrw's header storage.
 
 import (
 	"math/big"

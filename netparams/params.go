@@ -16,7 +16,7 @@ type Params struct {
 	GRPCServerPort    string
 }
 
-// MainNetParams contains parameters specific running dcrwallet and
+// MainNetParams contains parameters specific running ndrw and
 // ndrd on the main network (wire.MainNet).
 var MainNetParams = Params{
 	Params:            &chaincfg.MainNetParams,
@@ -25,7 +25,7 @@ var MainNetParams = Params{
 	GRPCServerPort:    "9111",
 }
 
-// TestNet3Params contains parameters specific running dcrwallet and
+// TestNet3Params contains parameters specific running ndrw and
 // ndrd on the test network (version 3) (wire.TestNet3).
 var TestNet3Params = Params{
 	Params:            &chaincfg.TestNet3Params,

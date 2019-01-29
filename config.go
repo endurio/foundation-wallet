@@ -29,10 +29,10 @@ import (
 
 const (
 	defaultCAFilename       = "ndrd.cert"
-	defaultConfigFilename   = "dcrwallet.conf"
+	defaultConfigFilename   = "ndrw.conf"
 	defaultLogLevel         = "info"
 	defaultLogDirname       = "logs"
-	defaultLogFilename      = "dcrwallet.log"
+	defaultLogFilename      = "ndrw.log"
 	defaultRPCMaxClients    = 10
 	defaultRPCMaxWebsockets = 25
 	defaultReuseAddresses   = false
@@ -50,7 +50,7 @@ const (
 
 var (
 	dcrdDefaultCAFile  = filepath.Join(dcrutil.AppDataDir("ndrd", false), "rpc.cert")
-	defaultAppDataDir  = dcrutil.AppDataDir("dcrwallet", false)
+	defaultAppDataDir  = dcrutil.AppDataDir("ndrw", false)
 	defaultConfigFile  = filepath.Join(defaultAppDataDir, defaultConfigFilename)
 	defaultRPCKeyFile  = filepath.Join(defaultAppDataDir, "rpc.key")
 	defaultRPCCertFile = filepath.Join(defaultAppDataDir, "rpc.cert")
@@ -266,7 +266,7 @@ func parseAndSetDebugLevels(debugLevel string) error {
 //      3) Load configuration file overwriting defaults with any specified options
 //      4) Parse CLI options and overwrite/add any specified options
 //
-// The above results in dcrwallet functioning properly without any config
+// The above results in ndrw functioning properly without any config
 // settings while still allowing the user to override settings with config files
 // and command line options.  Command line options always take precedence.
 // The bool returned indicates whether or not the wallet was recreated from a

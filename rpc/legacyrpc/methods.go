@@ -129,7 +129,7 @@ var handlers = map[string]handler{
 	"importwallet":         {fn: unimplemented, noHelp: true},
 	"listaddressgroupings": {fn: unimplemented, noHelp: true},
 
-	// Reference methods which can't be implemented by dcrwallet due to
+	// Reference methods which can't be implemented by ndrw due to
 	// design decision differences
 	"dumpwallet":    {fn: unsupported, noHelp: true},
 	"encryptwallet": {fn: unsupported, noHelp: true},
@@ -147,11 +147,11 @@ func unimplemented(*Server, interface{}) (interface{}, error) {
 }
 
 // unsupported handles a standard bitcoind RPC request which is
-// unsupported by dcrwallet due to design differences.
+// unsupported by ndrw due to design differences.
 func unsupported(*Server, interface{}) (interface{}, error) {
 	return nil, &dcrjson.RPCError{
 		Code:    -1,
-		Message: "Request unsupported by dcrwallet",
+		Message: "Request unsupported by ndrw",
 	}
 }
 
@@ -967,7 +967,7 @@ func importScript(s *Server, icmd interface{}) (interface{}, error) {
 	return nil, nil
 }
 
-// keypoolRefill handles the keypoolrefill command.  dcrwallet generates
+// keypoolRefill handles the keypoolrefill command.  ndrw generates
 // deterministic addresses rather than using a keypool, so this method does
 // nothing.
 func keypoolRefill(s *Server, icmd interface{}) (interface{}, error) {
