@@ -203,9 +203,7 @@ func readCanonicalOutPoint(k []byte, op *wire.OutPoint) error {
 //
 //   [0:32]  Hash (32 bytes)
 //   [32:40] Unix time (8 bytes)
-//   [40:42] VoteBits (2 bytes/uint16)
-//   [42:43] Whether regular transactions are stake invalidated (1 byte, 0==false)
-//   [43:47] Number of transaction hashes (4 bytes)
+//   [40:44] Number of transaction hashes (4 bytes)
 //   [47:]   For each transaction hash:
 //             Hash (32 bytes)
 
@@ -219,8 +217,7 @@ func valueBlockRecordEmptyFromHeader(blockHash []byte, header []byte) []byte {
 	v := make([]byte, 47)
 	copy(v, blockHash[:])
 	byteOrder.PutUint64(v[32:40], uint64(extractBlockHeaderUnixTime(header[:])))
-	byteOrder.PutUint16(v[40:42], extractBlockHeaderVoteBits(header[:]))
-	byteOrder.PutUint32(v[43:47], 0)
+	byteOrder.PutUint32(v[40:44], 0)
 	return v
 }
 
@@ -231,8 +228,8 @@ func appendRawBlockRecord(v []byte, txHash *chainhash.Hash) ([]byte, error) {
 		return nil, errors.E(errors.IO, errors.Errorf("block record len %d", len(v)))
 	}
 	newv := append(v[:len(v):len(v)], txHash[:]...)
-	n := byteOrder.Uint32(newv[43:47])
-	byteOrder.PutUint32(newv[43:47], n+1)
+	n := byteOrder.Uint32(newv[40:44])
+	byteOrder.PutUint32(newv[40:44], n+1)
 	return newv, nil
 }
 
@@ -276,7 +273,7 @@ func readRawBlockRecord(k, v []byte, block *blockRecord) error {
 		return errors.E(errors.IO, errors.Errorf("block record len %d", len(k)))
 	}
 
-	numTransactions := int(byteOrder.Uint32(v[43:47]))
+	numTransactions := int(byteOrder.Uint32(v[40:44]))
 	expectedLen := 47 + chainhash.HashSize*numTransactions
 	if len(v) < expectedLen {
 		return errors.E(errors.IO, errors.Errorf("%d tx block record len %d",
@@ -286,7 +283,6 @@ func readRawBlockRecord(k, v []byte, block *blockRecord) error {
 	block.Height = int32(byteOrder.Uint32(k))
 	copy(block.Hash[:], v)
 	block.Time = time.Unix(int64(byteOrder.Uint64(v[32:40])), 0)
-	block.VoteBits = byteOrder.Uint16(v[40:42])
 	block.transactions = make([]chainhash.Hash, numTransactions)
 	off := 47
 	for i := range block.transactions {
@@ -2021,29 +2017,6 @@ func upgradeToVersion3(ns walletdb.ReadWriteBucket, chainParams *chaincfg.Params
 	_, err = ns.CreateBucket(bucketHeaders)
 	if err != nil {
 		return errors.E(errors.IO, err)
-	}
-
-	// For all block records, add the byte for marking stake invalidation.  The
-	// function passed to ForEach may not modify the bucket, so record all
-	// values and write the updates outside the ForEach.
-	type kvpair struct{ k, v []byte }
-	var blockRecsToUpgrade []kvpair
-	blockRecordsBucket := ns.NestedReadWriteBucket(bucketBlocks)
-	err = blockRecordsBucket.ForEach(func(k, v []byte) error {
-		blockRecsToUpgrade = append(blockRecsToUpgrade, kvpair{k, v})
-		return nil
-	})
-	if err != nil {
-		return errors.E(errors.IO, err)
-	}
-	for _, kvp := range blockRecsToUpgrade {
-		v := make([]byte, len(kvp.v)+1)
-		copy(v, kvp.v[:42])
-		copy(v[43:], kvp.v[42:])
-		err = blockRecordsBucket.Put(kvp.k, v)
-		if err != nil {
-			return errors.E(errors.IO, err)
-		}
 	}
 
 	// Insert the genesis block header.

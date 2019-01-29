@@ -40,8 +40,7 @@ type Block struct {
 // includes the block time from the block header.
 type BlockMeta struct {
 	Block
-	Time     time.Time
-	VoteBits uint16
+	Time time.Time
 }
 
 // blockRecord is an in-memory representation of the block record saved in the
@@ -49,7 +48,6 @@ type BlockMeta struct {
 type blockRecord struct {
 	Block
 	Time         time.Time
-	VoteBits     uint16
 	transactions []chainhash.Hash
 }
 
@@ -448,11 +446,6 @@ func ExtractBlockHeaderParentHash(header []byte) []byte {
 	return extractBlockHeaderParentHash(header)
 }
 
-func extractBlockHeaderVoteBits(header []byte) uint16 {
-	const voteBitsOffset = 100
-	return binary.LittleEndian.Uint16(header[voteBitsOffset:])
-}
-
 func extractBlockHeaderHeight(header []byte) int32 {
 	const heightOffset = 128
 	return int32(binary.LittleEndian.Uint32(header[heightOffset:]))
@@ -486,8 +479,7 @@ func blockMetaFromHeader(blockHash *chainhash.Hash, header []byte) BlockMeta {
 			Hash:   *blockHash,
 			Height: extractBlockHeaderHeight(header),
 		},
-		Time:     time.Unix(int64(extractBlockHeaderUnixTime(header)), 0),
-		VoteBits: extractBlockHeaderVoteBits(header),
+		Time: time.Unix(int64(extractBlockHeaderUnixTime(header)), 0),
 	}
 }
 
@@ -577,8 +569,7 @@ func (s *Store) GetBlockMetaForHash(ns walletdb.ReadBucket, blockHash *chainhash
 			Hash:   *blockHash,
 			Height: extractBlockHeaderHeight(header),
 		},
-		Time:     time.Unix(int64(extractBlockHeaderUnixTime(header)), 0),
-		VoteBits: extractBlockHeaderVoteBits(header),
+		Time: time.Unix(int64(extractBlockHeaderUnixTime(header)), 0),
 	}, nil
 }
 
@@ -1067,9 +1058,7 @@ func (s *Store) AddMultisigOut(ns walletdb.ReadWriteBucket, rec *TxRecord, block
 
 	// Dummy block for created transactions.
 	if block == nil {
-		block = &BlockMeta{Block{*empty, 0},
-			rec.Received,
-			0}
+		block = &BlockMeta{Block{*empty, 0}, rec.Received}
 	}
 
 	// Otherwise create a full record and insert it.
