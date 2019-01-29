@@ -729,15 +729,6 @@ and unspendable immature coinbase balances.
 - `int64 immature_reward`: The total value of all immature coinbase outputs,
   counted in Atoms.
 
-- `int64 immature_stake_generation`: The total value of all immature stakebase outputs,
-  or any revocations, counted in Atoms.
-
-- `int64 locked_by_tickets`: The total value of all tickets that are currently locked,
-  and awaiting vote.
-
-- `int64 voting_authority`: The total value of all tickets that the account has voting
-  authority over.  
-
 - `int64 unconfirmed`: The total value of all unconfirmed transactions with
    with reference to the minimum number of confirmations for a transaction
    (minconf). If minconf is 0 unconfirmed will be 0, otherwise unconfirmed
