@@ -271,14 +271,3 @@ FilterLoop:
 
 	return nil
 }
-
-// StakeDifficulty implements the StakeDifficulty method of the
-// wallet.NetworkBackend interface.
-//
-// This implementation of the method will always error as the stake difficulty
-// is not queryable over wire protocol, and when the next stake difficulty is
-// available in a header commitment, the wallet will be able to determine this
-// itself without requiring the NetworkBackend.
-func (s *Syncer) StakeDifficulty(ctx context.Context) (dcrutil.Amount, error) {
-	return 0, errors.E(errors.Invalid, "stake difficulty is not queryable over wire protocol")
-}

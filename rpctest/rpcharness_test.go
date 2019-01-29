@@ -1264,11 +1264,6 @@ func testListTransactions(r *Harness, t *testing.T) {
 		t.Fatal("Blockhash does not refer to valid block")
 	}
 
-	// "regular" not "stake" txtype
-	if *txList1[0].TxType != dcrjson.LTTTRegular {
-		t.Fatal(`txtype not "regular".`)
-	}
-
 	// ListUnspent only shows validated (confirmations>=1) coinbase tx, so the
 	// first result should have 2 confirmations.
 	if txList1[0].Confirmations != 1 {

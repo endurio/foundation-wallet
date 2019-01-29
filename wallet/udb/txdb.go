@@ -99,14 +99,6 @@ const (
 	// scriptTypeP2SH is the uint8 value representing a
 	// pay-to-script-hash script for a regular transaction.
 	scriptTypeP2SH
-
-	// scriptTypeSP2PKH is the uint8 value representing a
-	// pay-to-public-key-hash script for a stake transaction.
-	scriptTypeSP2PKH
-
-	// scriptTypeP2SH is the uint8 value representing a
-	// pay-to-script-hash script for a stake transaction.
-	scriptTypeSP2SH
 )
 
 const (
@@ -233,25 +225,6 @@ func valueBlockRecordEmptyFromHeader(blockHash []byte, header []byte) []byte {
 	byteOrder.PutUint16(v[40:42], extractBlockHeaderVoteBits(header[:]))
 	byteOrder.PutUint32(v[43:47], 0)
 	return v
-}
-
-// valueBlockRecordStakeValidated returns a copy of the block record value with
-// stake validated byte set to zero.
-func valueBlockRecordStakeValidated(v []byte) []byte {
-	newv := make([]byte, len(v))
-	copy(newv, v[:42])
-	copy(newv[43:], v[43:])
-	return newv
-}
-
-// valueBlockRecordStakeInvalidated returns a copy of the block record value
-// with stake validated byte set to one.
-func valueBlockRecordStakeInvalidated(v []byte) []byte {
-	newv := make([]byte, len(v))
-	copy(newv, v[:42])
-	newv[42] = 1
-	copy(newv[43:], v[43:])
-	return newv
 }
 
 // appendRawBlockRecord returns a new block record value with a transaction

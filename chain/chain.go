@@ -196,28 +196,6 @@ type (
 		newHash   *chainhash.Hash
 		newHeight int64
 	}
-
-	// winningTickets is a notification with the winning tickets (and the
-	// block they are in.
-	winningTickets struct {
-		blockHash   *chainhash.Hash
-		blockHeight int64
-		tickets     []*chainhash.Hash
-	}
-
-	// missedTickets is a notifcation for tickets that have been missed.
-	missedTickets struct {
-		blockHash   *chainhash.Hash
-		blockHeight int64
-		tickets     []*chainhash.Hash
-	}
-
-	// stakeDifficulty is a notification for the current stake difficulty.
-	stakeDifficulty struct {
-		blockHash   *chainhash.Hash
-		blockHeight int64
-		stakeDiff   int64
-	}
 )
 
 // notifications returns a channel of parsed notifications sent by the remote
@@ -280,62 +258,6 @@ func (c *RPCClient) onReorganization(oldHash *chainhash.Hash, oldHeight int32,
 		int64(oldHeight),
 		newHash,
 		int64(newHeight),
-	}:
-	case <-c.quit:
-	}
-}
-
-// onWinningTickets handles winning tickets notifications data and passes it
-// downstream to the notifications queue.
-func (c *RPCClient) onWinningTickets(hash *chainhash.Hash, height int64, tickets []*chainhash.Hash) {
-	select {
-	case c.enqueueVotingNotification <- winningTickets{
-		blockHash:   hash,
-		blockHeight: height,
-		tickets:     tickets,
-	}:
-	case <-c.quit:
-	}
-}
-
-// onSpentAndMissedTickets handles missed tickets notifications data and passes
-// it downstream to the notifications queue.
-func (c *RPCClient) onSpentAndMissedTickets(blockHash *chainhash.Hash, height int64, sdiff int64, tickets map[chainhash.Hash]bool) {
-	var missed []*chainhash.Hash
-
-	// Copy the missed ticket hashes to a slice.
-	for ticketHash, spent := range tickets {
-		if !spent {
-			ticketHash := ticketHash
-			missed = append(missed, &ticketHash)
-		}
-	}
-
-	if len(missed) == 0 {
-		return
-	}
-
-	select {
-	case c.enqueueNotification <- missedTickets{
-		blockHash:   blockHash,
-		blockHeight: height,
-		tickets:     missed,
-	}:
-	case <-c.quit:
-	}
-}
-
-// onStakeDifficulty handles stake difficulty notifications data and passes it
-// downstream to the notification queue.
-func (c *RPCClient) onStakeDifficulty(hash *chainhash.Hash,
-	height int64,
-	stakeDiff int64) {
-
-	select {
-	case c.enqueueNotification <- stakeDifficulty{
-		hash,
-		height,
-		stakeDiff,
 	}:
 	case <-c.quit:
 	}

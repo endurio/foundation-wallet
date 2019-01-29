@@ -81,20 +81,14 @@ var helpDescsEnUS = map[string]string{
 	"getbalanceresult-balances":                       "Balances for all accounts.",
 	"getaccountbalanceresult-accountname":             "Name of account.",
 	"getaccountbalanceresult-immaturecoinbaserewards": "Immature Coinbase reward coins.",
-	"getaccountbalanceresult-immaturestakegeneration": "Number of immature stake coins.",
-	"getaccountbalanceresult-lockedbytickets":         "Coins locked by tickets.",
 	"getaccountbalanceresult-spendable":               "Spendable number of coins.",
 	"getaccountbalanceresult-total":                   "Total amount of coins.",
 	"getaccountbalanceresult-unconfirmed":             "Unconfirmed number of coins.",
-	"getaccountbalanceresult-votingauthority":         "Coins for voting authority.",
 	"getbalanceresult-blockhash":                      "Block hash.",
 	"getbalanceresult-totalimmaturecoinbaserewards":   "Total number of immature coinbase reward coins.",
-	"getbalanceresult-totalimmaturestakegeneration":   "Total number of immature stake coins.",
-	"getbalanceresult-totallockedbytickets":           "Total number of coins locked by tickets.",
 	"getbalanceresult-totalspendable":                 "Total number of spendable number of coins.",
 	"getbalanceresult-cumulativetotal":                "Total number of coins.",
 	"getbalanceresult-totalunconfirmed":               "Total number of unconfirmed coins.",
-	"getbalanceresult-totalvotingauthority":           "Total number of coins for voting authority.",
 
 	// GetBestBlockHashCmd help.
 	"getbestblockhash--synopsis": "Returns the hash of the newest block in the best chain that wallet has finished syncing with.",
@@ -129,51 +123,6 @@ var helpDescsEnUS = map[string]string{
 	"getmultisigoutinforesult-m":            "m (in m-of-n)",
 	"getmultisigoutinforesult-redeemscript": "Hex of the redeeming script.",
 	"getmultisigoutinforesult-address":      "Script address.",
-
-	// GetStakeInfo help.
-	"getstakeinfo--synopsis": "Returns statistics about staking from the wallet.",
-
-	// GetStakeInfoResult help.
-	"getstakeinforesult-blockheight":      "Current block height for stake info.",
-	"getstakeinforesult-poolsize":         "Number of live tickets in the ticket pool.",
-	"getstakeinforesult-difficulty":       "Current stake difficulty.",
-	"getstakeinforesult-allmempooltix":    "Number of tickets currently in the mempool",
-	"getstakeinforesult-ownmempooltix":    "Number of tickets submitted by this wallet currently in mempool",
-	"getstakeinforesult-immature":         "Number of tickets from this wallet that are in the blockchain but which are not yet mature",
-	"getstakeinforesult-live":             "Number of mature, active tickets owned by this wallet",
-	"getstakeinforesult-proportionlive":   "(Live / PoolSize)",
-	"getstakeinforesult-voted":            "Number of votes cast by this wallet",
-	"getstakeinforesult-totalsubsidy":     "Total amount of coins earned by stake mining",
-	"getstakeinforesult-missed":           "Number of missed tickets (failure to vote, not including expired)",
-	"getstakeinforesult-proportionmissed": "(Missed / (Missed + Voted))",
-	"getstakeinforesult-revoked":          "Number of missed tickets that were missed and then revoked",
-	"getstakeinforesult-expired":          "Number of tickets that have expired",
-	"getstakeinforesult-unspent":          "Number of unspent tickets",
-	"getstakeinforesult-unspentexpired":   "Number of unspent tickets which are past expiry",
-
-	// GetTickets help.
-	"gettickets--synopsis":       "Returning the hashes of the tickets currently owned by wallet.",
-	"gettickets-includeimmature": "If true include immature tickets in the results.",
-
-	// GetVoteChoices help.
-	"getvotechoices--synopsis": "Retrieve the currently configured vote choices for the latest supported stake agendas",
-
-	// GetVoteChoicesResult help.
-	"getvotechoicesresult-version": "The latest stake version supported by the software and the version of the included agendas",
-	"getvotechoicesresult-choices": "The currently configured agenda vote choices, including abstaining votes",
-
-	// VoteChoice help.
-	"votechoice-agendaid":          "The ID for the agenda the choice concerns",
-	"votechoice-agendadescription": "A description of the agenda the choice concerns",
-	"votechoice-choiceid":          "The ID of the current choice for this agenda",
-	"votechoice-choicedescription": "A description of the current choice for this agenda",
-
-	// GetTicketMaxPrice help.
-	"getticketmaxprice--synopsis": "Returns the max price the wallet will pay for a ticket.",
-	"getticketmaxprice--result0":  "Max price wallet will spend on a ticket.",
-
-	// GetTicketsResult help.
-	"getticketsresult-hashes": "Hashes of the tickets owned by the wallet encoded as strings",
 
 	// InfoWalletResult help.
 	"infowalletresult-version":         "The version of the server",
@@ -345,7 +294,6 @@ var helpDescsEnUS = map[string]string{
 	"listtransactionsresult-involveswatchonly": "Unset",
 	"listtransactionsresult-comment":           "Unset",
 	"listtransactionsresult-otheraccount":      "Unset",
-	"listtransactionsresult-txtype":            "The type of tx (regular tx, stake tx)",
 
 	// ListTransactionsCmd help.
 	"listtransactions--synopsis":        "Returns a JSON array of objects containing verbose details for wallet transactions.",
@@ -427,24 +375,10 @@ var helpDescsEnUS = map[string]string{
 	"sendtomultisig-comment":     "Unused",
 	"sendtomultisig--result0":    "The transaction hash of the sent transaction",
 
-	// SetGenerate help
-	"setgenerate--synopsis":    "Enable or disable stake mining",
-	"setgenerate-generate":     "True to enable stake mining, false to disable.",
-	"setgenerate-genproclimit": "Not used for stake mining",
-
-	// SetTicketMaxPrice help.
-	"setticketmaxprice--synopsis": "Set the max price user is willing to pay for a ticket.",
-	"setticketmaxprice-max":       "The max price (in dcr).",
-
 	// SetTxFeeCmd help.
 	"settxfee--synopsis": "Modify the fee per kB of the serialized tx size used each time more fee is required for an authored transaction.",
 	"settxfee-amount":    "The new fee per kB of the serialized tx size valued in endurio",
 	"settxfee--result0":  "The boolean 'true'",
-
-	// SetVoteChoice help.
-	"setvotechoice--synopsis": "Sets choices for defined agendas in the latest stake version supported by this software",
-	"setvotechoice-agendaid":  "The ID for the agenda to modify",
-	"setvotechoice-choiceid":  "The ID for the choice to choose",
 
 	// SignMessageCmd help.
 	"signmessage--synopsis": "Signs a message using the private key of a payment address.",
@@ -464,22 +398,6 @@ var helpDescsEnUS = map[string]string{
 	"signrawtransactionresult-hex":      "The resulting transaction encoded as a hexadecimal string",
 	"signrawtransactionresult-complete": "Whether all input signatures have been created",
 	"signrawtransactionresult-errors":   "Script verification errors (if exists)",
-
-	// StartAutoBuyerCmd Help.
-	"startautobuyer--synopsis":         "Starts the wallet's ticket buyer.",
-	"startautobuyer-account":           "The account to use for purchasing tickets",
-	"startautobuyer-passphrase":        "The private passphrase of the wallet",
-	"startautobuyer-balancetomaintain": "The minimum amount of funds to never dip below when purchasing tickets",
-	"startautobuyer-maxfeeperkb":       "The maximum ticket fee amount per KB",
-	"startautobuyer-maxpricerelative":  "The scaling factor for setting the maximum ticket price, multiplied by the average price",
-	"startautobuyer-maxpriceabsolute":  "The maximum absolute ticket price",
-	"startautobuyer-votingaddress":     "The address to delegate voting rights to",
-	"startautobuyer-pooladdress":       "The stake pool address where ticket fees will go to",
-	"startautobuyer-poolfees":          "The absolute per ticket fee mandated by the stake pool as a percent",
-	"startautobuyer-maxperblock":       "The maximum tickets per block. Negative number indicates one ticket every n blocks",
-
-	// StopAutoBuyerCmd Help.
-	"stopautobuyer--synopsis": "Stops the wallet's ticket buyer.",
 
 	// SignRawTransactionError help.
 	"signrawtransactionerror-error":     "Verification or signing error related to the input",
@@ -670,35 +588,6 @@ var helpDescsEnUS = map[string]string{
 	"scriptinfo-redeemscript": "The redeem script",
 	"scriptinfo-address":      "The script address",
 	"scriptinfo-hash160":      "The script hash",
-
-	// TicketsForAddressCmd help.
-	"ticketsforaddress--synopsis": "Request all the tickets for an address.",
-	"ticketsforaddress-address":   "Address to look for.",
-	"ticketsforaddress--result0":  "Tickets owned by the specified address.",
-
-	// PurchaseTicketCmd help.
-	"purchaseticket--synopsis":          "Purchase ticket using available funds.",
-	"purchaseticket--result0":           "Hash of the resulting ticket",
-	"purchaseticket-spendlimit":         "Limit on the amount to spend on ticket",
-	"purchaseticket-fromaccount":        "The account to use for purchase (default=\"default\")",
-	"purchaseticket-minconf":            "Minimum number of block confirmations required",
-	"purchaseticket-ticketaddress":      "Override the ticket address to which voting rights are given",
-	"purchaseticket-numtickets":         "The number of tickets to purchase",
-	"purchaseticket-pooladdress":        "The address to pay stake pool fees to",
-	"purchaseticket-poolfees":           "The amount of fees to pay to the stake pool",
-	"purchaseticket-expiry":             "Height at which the purchase tickets expire",
-	"purchaseticket-nosplittransaction": "Use ticket purchase change outputs instead of a split transaction",
-	"purchaseticket-comment":            "Unused",
-	"purchaseticket-ticketfee":          "The transaction fee rate (DCR/kB) to use (overrides fees set by the wallet config or settxfee RPC)",
-
-	// SetTicketFeeCmd help.
-	"setticketfee--synopsis": "Modify the fee per kB of the serialized tx size used each time more fee is required for an authored stake transaction.",
-	"setticketfee-fee":       "The new fee per kB of the serialized tx size valued in endurio",
-	"setticketfee--result0":  "The boolean 'true'",
-
-	// GetTicketFeeCmd help.
-	"getticketfee--synopsis": "Get the current fee per kB of the serialized tx size used for an authored stake transaction.",
-	"getticketfee--result0":  "The current fee",
 
 	// SetBalanceToMaintainCmd help.
 	"setbalancetomaintain--synopsis": "Modify the balance for wallet to maintain for automatic ticket purchasing",
