@@ -244,7 +244,6 @@ func run(ctx context.Context) error {
 		// Start wallet and voting gRPC services after a wallet is loaded.
 		loader.RunAfterLoad(func(w *wallet.Wallet) {
 			rpcserver.StartWalletService(gRPCServer, w)
-			rpcserver.StartVotingService(gRPCServer, w)
 		})
 		defer func() {
 			log.Warn("Stopping gRPC server...")
@@ -264,10 +263,6 @@ func run(ctx context.Context) error {
 			log.Info("JSON-RPC server shutdown")
 		}()
 	}
-
-	// Stop the v1 ticket buyer (if running) on shutdown.  This returns an error
-	// that can be ignored when the ticket buyer was never started.
-	defer loader.StopTicketPurchase()
 
 	// When not running with --noinitialload, it is the main package's
 	// responsibility to synchronize the wallet with the network through SPV or
@@ -435,7 +430,6 @@ func rpcClientConnectLoop(ctx context.Context, passphrase []byte, jsonRPCServer 
 		// occurs.
 		w.SetNetworkBackend(nil)
 		loader.SetNetworkBackend(nil)
-		loader.StopTicketPurchase()
 	}
 }
 

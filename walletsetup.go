@@ -46,13 +46,7 @@ func networkDir(dataDir string, chainParams *chaincfg.Params) string {
 // to do the initial sync.
 func createWallet(ctx context.Context, cfg *config) error {
 	dbDir := networkDir(cfg.AppDataDir.Value, activeNet.Params)
-	stakeOptions := &loader.StakeOptions{
-		VotingEnabled: cfg.EnableVoting,
-		AddressReuse:  cfg.ReuseAddresses,
-		VotingAddress: cfg.TBOpts.VotingAddress.Address,
-		TicketFee:     cfg.TicketFee.ToCoin(),
-	}
-	loader := loader.NewLoader(activeNet.Params, dbDir, stakeOptions,
+	loader := loader.NewLoader(activeNet.Params, dbDir,
 		cfg.GapLimit, cfg.AllowHighFees, cfg.RelayFee.ToCoin(), cfg.AccountGapLimit)
 
 	var privPass, pubPass, seed []byte

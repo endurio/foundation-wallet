@@ -296,12 +296,10 @@ func loadConfig(ctx context.Context) (*config, []string, error) {
 		GapLimit:               defaultGapLimit,
 		AllowHighFees:          defaultAllowHighFees,
 		RelayFee:               cfgutil.NewAmountFlag(txrules.DefaultRelayFeePerKb),
-		PoolAddress:            cfgutil.NewAddressFlag(nil),
 		AccountGapLimit:        defaultAccountGapLimit,
 
 		// TODO: DEPRECATED - remove.
 		DataDir:         cfgutil.NewExplicitString(defaultAppDataDir),
-		TicketAddress:   cfgutil.NewAddressFlag(nil),
 		AddrIdxScanLen:  defaultGapLimit,
 		RollbackTest:    defaultRollbackTest,
 		AutomaticRepair: defaultAutomaticRepair}
@@ -549,15 +547,6 @@ func loadConfig(ctx context.Context) (*config, []string, error) {
 		return loadConfigError(err)
 	}
 
-	if cfg.PoolFees != 0.0 {
-		if !txrules.ValidPoolFeeRate(cfg.PoolFees) {
-			err := errors.E(errors.Invalid, errors.Errorf("pool fee rate %v", cfg.PoolFees))
-			fmt.Fprintln(os.Stderr, err.Error())
-			fmt.Fprintln(os.Stderr, usageMessage)
-			return loadConfigError(err)
-		}
-	}
-
 	if cfg.RPCConnect == "" {
 		cfg.RPCConnect = net.JoinHostPort("localhost", activeNet.JSONRPCClientPort)
 	}
@@ -618,11 +607,6 @@ func loadConfig(ctx context.Context) (*config, []string, error) {
 		}
 	}
 
-	if cfg.SPV && cfg.EnableVoting {
-		err := errors.E("SPV voting is not possible: disable --spv or --enablevoting")
-		fmt.Fprintln(os.Stderr, err)
-		return loadConfigError(err)
-	}
 	if !cfg.SPV && len(cfg.SPVConnect) > 0 {
 		err := errors.E("--spvconnect requires --spv")
 		fmt.Fprintln(os.Stderr, err)
