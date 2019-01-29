@@ -32,19 +32,30 @@ const (
 	//
 	// See lastUsedAddressIndexUpgrade for the code that implements the upgrade
 	// path.
-	lastUsedAddressIndexVersion = initialVersion + 1
+	lastUsedAddressIndexVersion = 2
+
+	// votingPreferencesVersion is the third version of the database.  It
+	// removes all per-ticket vote bits, replacing them with vote preferences
+	// for choices on individual agendas from the current stake version.
+	votingPreferencesVersion = 3
 
 	// noEncryptedSeedVersion is the fourth version of the database.  It removes
 	// the encrypted seed that earlier versions may have saved in the database
 	// (or more commonly, encrypted zeros on mainnet wallets).
-	noEncryptedSeedVersion = lastUsedAddressIndexVersion + 1
+	noEncryptedSeedVersion = 4
 
 	// lastReturnedAddressVersion is the fifth version of the database.  It adds
 	// additional indexes to each BIP0044 account row that keep track of the
 	// index of the last returned child address in the internal and external
 	// account branches.  This is used to prevent returning identical addresses
 	// across application restarts.
-	lastReturnedAddressVersion = noEncryptedSeedVersion + 1
+	lastReturnedAddressVersion = 5
+
+	// ticketBucketVersion is the sixth version of the database.  It adds a
+	// bucket for recording the hashes of all tickets and provides additional
+	// APIs to check the status of tickets and whether they are spent by a vote
+	// or revocation.
+	ticketBucketVersion = 6
 
 	// slip0044CoinTypeVersion is the seventh version of the database.  It
 	// introduces the possibility of the BIP0044 coin type key being either the
@@ -53,20 +64,20 @@ const (
 	// required keys (the upgrade is done in a backwards-compatible way) but the
 	// database version is bumped to prevent older software from assuming that
 	// coin type 20 exists (the upgrade is not forwards-compatible).
-	slip0044CoinTypeVersion = lastReturnedAddressVersion + 1
+	slip0044CoinTypeVersion = 7
 
 	// hasExpiryVersion is the eight version of the database. It adds the
 	// hasExpiry field to the credit struct, adds fetchRawCreditHasExpiry
 	// helper func and extends sstxchange type utxo checks to only make sstchange
 	// with expiries set available to spend after coinbase maturity (16 blocks).
-	hasExpiryVersion = slip0044CoinTypeVersion + 1
+	hasExpiryVersion = 8
 
 	// hasExpiryFixedVersion is the ninth version of the database.  It corrects
 	// the previous upgrade by writing the has expiry bit to an unused bit flag
 	// rather than in the stake flags and fixes various UTXO selection issues
 	// caused by misinterpreting ticket outputs as spendable by regular
 	// transactions.
-	hasExpiryFixedVersion = hasExpiryVersion + 1
+	hasExpiryFixedVersion = 9
 
 	// cfVersion is the tenth version of the database.  It adds a bucket to
 	// store compact filters, which are required for Decred's SPV
@@ -74,7 +85,7 @@ const (
 	// main chain compact filters were saved.  This version does not begin to
 	// save compact filter headers, since the SPV implementation is expected to
 	// use header commitments in a later release for validation.
-	cfVersion = hasExpiryFixedVersion + 1
+	cfVersion = 10
 
 	// lastProcessedTxsBlockVersion is the eleventh version of the database.  It
 	// adds a txmgr namespace root key which records the final hash of all
@@ -84,7 +95,7 @@ const (
 	// rescan should occur.  During upgrade, the current tip block is recorded
 	// as this block to avoid an additional or extra long rescan from occuring
 	// from properly-synced wallets.
-	lastProcessedTxsBlockVersion = cfVersion + 1
+	lastProcessedTxsBlockVersion = 11
 
 	// DBVersion is the latest version of the database that is understood by the
 	// program.  Databases with recorded versions higher than this will fail to
@@ -97,8 +108,10 @@ const (
 // version zero so upgrades[0] is nil.
 var upgrades = [...]func(walletdb.ReadWriteTx, []byte, *chaincfg.Params) error{
 	lastUsedAddressIndexVersion - 1:  lastUsedAddressIndexUpgrade,
+	votingPreferencesVersion - 1:     votingPreferencesUpgrade,
 	noEncryptedSeedVersion - 1:       noEncryptedSeedUpgrade,
 	lastReturnedAddressVersion - 1:   lastReturnedAddressUpgrade,
+	ticketBucketVersion - 1:          ticketBucketUpgrade,
 	slip0044CoinTypeVersion - 1:      slip0044CoinTypeUpgrade,
 	hasExpiryVersion - 1:             hasExpiryUpgrade,
 	hasExpiryFixedVersion - 1:        hasExpiryFixedUpgrade,
@@ -376,6 +389,16 @@ func lastReturnedAddressUpgrade(tx walletdb.ReadWriteTx, publicPassphrase []byte
 	return unifiedDBMetadata{}.putVersion(metadataBucket, newVersion)
 }
 
+func ticketBucketUpgrade(tx walletdb.ReadWriteTx, publicPassphrase []byte, params *chaincfg.Params) error {
+	const oldVersion = 5
+	const newVersion = 6
+
+	metadataBucket := tx.ReadWriteBucket(unifiedDBMetadata{}.rootBucketKey())
+
+	// Write the new database version.
+	return unifiedDBMetadata{}.putVersion(metadataBucket, newVersion)
+}
+
 func slip0044CoinTypeUpgrade(tx walletdb.ReadWriteTx, publicPassphrase []byte, params *chaincfg.Params) error {
 	const oldVersion = 6
 	const newVersion = 7
@@ -570,6 +593,13 @@ func hasExpiryFixedUpgrade(tx walletdb.ReadWriteTx, publicPassphrase []byte, par
 
 			vCpy[8] &^= 1 << 4 // Clear bad hasExpiry/OP_SSTXCHANGE flag
 			vCpy[8] |= 1 << 6  // Set correct hasExpiry flag
+			// Reset OP_SSTXCHANGE flag if this is a ticket purchase
+			// OP_SSTXCHANGE output.
+			_, err := fetchRawUnminedCreditIndex(k)
+			if err != nil {
+				unminedCursor.Close()
+				return err
+			}
 
 			unminedCreditsKV[string(k)] = vCpy
 		}
