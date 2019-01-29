@@ -2481,7 +2481,6 @@ func (s *Store) balanceFullScan(ns, addrmgrNs walletdb.ReadBucket, minConf int32
 type Balances struct {
 	Account                 uint32
 	ImmatureCoinbaseRewards dcrutil.Amount
-	LockedByTickets         dcrutil.Amount
 	Spendable               dcrutil.Amount
 	Total                   dcrutil.Amount
 	Unconfirmed             dcrutil.Amount
