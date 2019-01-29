@@ -447,7 +447,7 @@ func ExtractBlockHeaderParentHash(header []byte) []byte {
 }
 
 func extractBlockHeaderHeight(header []byte) int32 {
-	const heightOffset = 128
+	const heightOffset = 76
 	return int32(binary.LittleEndian.Uint32(header[heightOffset:]))
 }
 
@@ -460,7 +460,7 @@ func ExtractBlockHeaderHeight(header []byte) int32 {
 }
 
 func extractBlockHeaderUnixTime(header []byte) uint32 {
-	const timestampOffset = 136
+	const timestampOffset = 72
 	return binary.LittleEndian.Uint32(header[timestampOffset:])
 }
 
