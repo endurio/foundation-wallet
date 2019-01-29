@@ -563,17 +563,6 @@ func (s *RPCSyncer) startupSync(ctx context.Context) error {
 		log.Warnf("Could not publish one or more unmined transactions: %v", err)
 	}
 
-	_, err = s.rpcClient.RawRequest("rebroadcastwinners", nil)
-	if err != nil {
-		const op errors.Op = "ndrd.jsonrpc.rebroadcastwinners"
-		return errors.E(op, err)
-	}
-	_, err = s.rpcClient.RawRequest("rebroadcastmissed", nil)
-	if err != nil {
-		const op errors.Op = "ndrd.jsonrpc.rebroadcastmissed"
-		return errors.E(op, err)
-	}
-
 	log.Infof("Blockchain sync completed, wallet ready for general usage.")
 
 	return nil
