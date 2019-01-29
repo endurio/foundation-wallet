@@ -120,22 +120,19 @@ var _ [32]byte = chainhash.Hash{}
 
 // Bucket names
 var (
-	bucketBlocks                  = []byte("b")
-	bucketHeaders                 = []byte("h")
-	bucketTxRecords               = []byte("t")
-	bucketCredits                 = []byte("c")
-	bucketUnspent                 = []byte("u")
-	bucketDebits                  = []byte("d")
-	bucketUnmined                 = []byte("m")
-	bucketUnminedCredits          = []byte("mc")
-	bucketUnminedInputs           = []byte("mi")
-	bucketTickets                 = []byte("tix")
-	bucketScripts                 = []byte("sc")
-	bucketMultisig                = []byte("ms")
-	bucketMultisigUsp             = []byte("mu")
-	bucketStakeInvalidatedCredits = []byte("ic")
-	bucketStakeInvalidatedDebits  = []byte("id")
-	bucketCFilters                = []byte("cf")
+	bucketBlocks         = []byte("b")
+	bucketHeaders        = []byte("h")
+	bucketTxRecords      = []byte("t")
+	bucketCredits        = []byte("c")
+	bucketUnspent        = []byte("u")
+	bucketDebits         = []byte("d")
+	bucketUnmined        = []byte("m")
+	bucketUnminedCredits = []byte("mc")
+	bucketUnminedInputs  = []byte("mi")
+	bucketScripts        = []byte("sc")
+	bucketMultisig       = []byte("ms")
+	bucketMultisigUsp    = []byte("mu")
+	bucketCFilters       = []byte("cf")
 )
 
 // Root (namespace) bucket keys
@@ -302,10 +299,6 @@ func readRawBlockRecord(k, v []byte, block *blockRecord) error {
 
 func extractRawBlockRecordHash(v []byte) []byte {
 	return v[:32]
-}
-
-func extractRawBlockRecordStakeInvalid(v []byte) bool {
-	return v[42] != 0
 }
 
 type blockIterator struct {
@@ -915,12 +908,6 @@ func existsRawCredit(ns walletdb.ReadBucket, k []byte) []byte {
 	return ns.NestedReadBucket(bucketCredits).Get(k)
 }
 
-func existsInvalidatedCredit(ns walletdb.ReadBucket, txHash *chainhash.Hash, index uint32, block *Block) (k, v []byte) {
-	k = keyCredit(txHash, index, block)
-	v = ns.NestedReadBucket(bucketStakeInvalidatedCredits).Get(k)
-	return
-}
-
 func deleteRawCredit(ns walletdb.ReadWriteBucket, k []byte) error {
 	err := ns.NestedReadWriteBucket(bucketCredits).Delete(k)
 	if err != nil {
@@ -1170,19 +1157,6 @@ func extractRawDebitUnspentValue(v []byte) []byte {
 func existsDebit(ns walletdb.ReadBucket, txHash *chainhash.Hash, index uint32, block *Block) (k, credKey []byte, err error) {
 	k = keyDebit(txHash, index, block)
 	v := ns.NestedReadBucket(bucketDebits).Get(k)
-	if v == nil {
-		return nil, nil, nil
-	}
-	if len(v) < 80 {
-		return nil, nil, errors.E(errors.IO, errors.Errorf("debit len %d", len(v)))
-	}
-	return k, v[8:80], nil
-}
-
-func existsInvalidatedDebit(ns walletdb.ReadBucket, txHash *chainhash.Hash, index uint32,
-	block *Block) (k, credKey []byte, err error) {
-	k = keyDebit(txHash, index, block)
-	v := ns.NestedReadBucket(bucketStakeInvalidatedDebits).Get(k)
 	if v == nil {
 		return nil, nil, nil
 	}
@@ -1941,15 +1915,6 @@ func createStore(ns walletdb.ReadWriteBucket, chainParams *chaincfg.Params) erro
 		return errors.E(errors.IO, err)
 	}
 
-	_, err = ns.CreateBucket(bucketStakeInvalidatedCredits)
-	if err != nil {
-		return errors.E(errors.IO, err)
-	}
-	_, err = ns.CreateBucket(bucketStakeInvalidatedDebits)
-	if err != nil {
-		return errors.E(errors.IO, err)
-	}
-
 	// Insert the genesis block header.
 	var serializedGenesisBlock RawBlockHeader
 	buf := bytes.NewBuffer(serializedGenesisBlock[:0])
@@ -2054,14 +2019,6 @@ func upgradeToVersion3(ns walletdb.ReadWriteBucket, chainParams *chaincfg.Params
 	}
 
 	_, err = ns.CreateBucket(bucketHeaders)
-	if err != nil {
-		return errors.E(errors.IO, err)
-	}
-	_, err = ns.CreateBucket(bucketStakeInvalidatedCredits)
-	if err != nil {
-		return errors.E(errors.IO, err)
-	}
-	_, err = ns.CreateBucket(bucketStakeInvalidatedDebits)
 	if err != nil {
 		return errors.E(errors.IO, err)
 	}
