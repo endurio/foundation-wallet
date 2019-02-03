@@ -9,10 +9,10 @@ require (
 	github.com/endurio/ndrd/chaincfg v1.2.1
 	github.com/endurio/ndrd/chaincfg/chainhash v1.0.1
 	github.com/endurio/ndrd/connmgr v1.0.2
-	github.com/endurio/ndrd/dcrec v0.0.0-20181212181811-1a370d38d671
-	github.com/endurio/ndrd/dcrjson v1.1.0
-	github.com/endurio/ndrd/dcrutil v1.2.0
 	github.com/endurio/ndrd/hdkeychain v1.1.1
+	github.com/endurio/ndrd/ndrec v0.0.0-20181212181811-1a370d38d671
+	github.com/endurio/ndrd/ndrjson v1.1.0
+	github.com/endurio/ndrd/ndrutil v1.2.0
 	github.com/endurio/ndrd/rpcclient v1.1.0
 	github.com/endurio/ndrd/txscript v1.0.2
 	github.com/endurio/ndrd/wire v1.2.0
@@ -43,15 +43,15 @@ replace (
 	github.com/endurio/ndrd/chaincfg/chainhash => ../ndrd/chaincfg/chainhash
 	github.com/endurio/ndrd/connmgr => ../ndrd/connmgr
 	github.com/endurio/ndrd/database => ../ndrd/database
-	github.com/endurio/ndrd/dcrec => ../ndrd/dcrec
-	github.com/endurio/ndrd/dcrec/edwards => ../ndrd/dcrec/edwards
-	github.com/endurio/ndrd/dcrec/secp256k1 => ../ndrd/dcrec/secp256k1
-	github.com/endurio/ndrd/dcrjson => ../ndrd/dcrjson
-	github.com/endurio/ndrd/dcrutil => ../ndrd/dcrutil
 	github.com/endurio/ndrd/gcs => ../ndrd/gcs
 	github.com/endurio/ndrd/hdkeychain => ../ndrd/hdkeychain
 	github.com/endurio/ndrd/mempool => ../ndrd/mempool
 	github.com/endurio/ndrd/mining => ../ndrd/mining
+	github.com/endurio/ndrd/ndrec => ../ndrd/ndrec
+	github.com/endurio/ndrd/ndrec/edwards => ../ndrd/ndrec/edwards
+	github.com/endurio/ndrd/ndrec/secp256k1 => ../ndrd/ndrec/secp256k1
+	github.com/endurio/ndrd/ndrjson => ../ndrd/ndrjson
+	github.com/endurio/ndrd/ndrutil => ../ndrd/ndrutil
 	github.com/endurio/ndrd/rpcclient => ../ndrd/rpcclient
 	github.com/endurio/ndrd/txscript => ../ndrd/txscript
 	github.com/endurio/ndrd/wire => ../ndrd/wire

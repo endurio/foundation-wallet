@@ -20,7 +20,7 @@ import (
 	"time"
 
 	"github.com/endurio/ndrd/chaincfg"
-	"github.com/endurio/ndrd/dcrjson"
+	"github.com/endurio/ndrd/ndrjson"
 	"github.com/endurio/ndrw/errors"
 	"github.com/endurio/ndrw/loader"
 	"github.com/gorilla/websocket"
@@ -237,7 +237,7 @@ func (s *Server) Stop() {
 // NOTE: These handlers do not handle special cases, such as the authenticate
 // method.  Each of these must be checked beforehand (the method is already
 // known) and handled accordingly.
-func (s *Server) handlerClosure(ctx context.Context, request *dcrjson.Request) lazyHandler {
+func (s *Server) handlerClosure(ctx context.Context, request *ndrjson.Request) lazyHandler {
 	log.Infof("RPC method %v invoked by %v", request.Method, remoteAddr(ctx))
 	return lazyApplyHandler(s, request)
 }
@@ -291,7 +291,7 @@ func throttled(threshold int64, h http.Handler) http.Handler {
 
 // idPointer returns a pointer to the passed ID, or nil if the interface is nil.
 // Interface pointers are usually a red flag of doing something incorrectly,
-// but this is only implemented here to work around an oddity with dcrjson,
+// but this is only implemented here to work around an oddity with ndrjson,
 // which uses empty interface pointers for response IDs.
 func idPointer(id interface{}) (p *interface{}) {
 	if id != nil {
@@ -303,12 +303,12 @@ func idPointer(id interface{}) (p *interface{}) {
 // invalidAuth checks whether a websocket request is a valid (parsable)
 // authenticate request and checks the supplied username and passphrase
 // against the server auth.
-func (s *Server) invalidAuth(req *dcrjson.Request) bool {
-	cmd, err := dcrjson.UnmarshalCmd(req)
+func (s *Server) invalidAuth(req *ndrjson.Request) bool {
+	cmd, err := ndrjson.UnmarshalCmd(req)
 	if err != nil {
 		return false
 	}
-	authCmd, ok := cmd.(*dcrjson.AuthenticateCmd)
+	authCmd, ok := cmd.(*ndrjson.AuthenticateCmd)
 	if !ok {
 		return false
 	}
@@ -349,7 +349,7 @@ out:
 				break out
 			}
 
-			var req dcrjson.Request
+			var req ndrjson.Request
 			err := json.Unmarshal(reqBytes, &req)
 			if err != nil {
 				log.Warnf("Failed unmarshal of JSON-RPC request object "+
@@ -359,7 +359,7 @@ out:
 					break out
 				}
 				resp := makeResponse(req.ID, nil,
-					dcrjson.ErrRPCInvalidRequest)
+					ndrjson.ErrRPCInvalidRequest)
 				mresp, err := json.Marshal(resp)
 				// We expect the marshal to succeed.  If it
 				// doesn't, it indicates some non-marshalable
@@ -429,7 +429,7 @@ out:
 				wsc.wg.Add(1)
 				go func() {
 					resp, jsonErr := f()
-					mresp, err := dcrjson.MarshalResponse(req.Jsonrpc, req.ID, resp, jsonErr)
+					mresp, err := ndrjson.MarshalResponse(req.Jsonrpc, req.ID, resp, jsonErr)
 					if err != nil {
 						log.Errorf("Unable to marshal response to client %s: %v",
 							remoteAddr(ctx), err)
@@ -529,10 +529,10 @@ func (s *Server) postClientRPC(w http.ResponseWriter, r *http.Request) {
 	// If unfound, the request is sent to the chain server for further
 	// processing.  While checking the methods, disallow authenticate
 	// requests, as they are invalid for HTTP POST clients.
-	var req dcrjson.Request
+	var req ndrjson.Request
 	err = json.Unmarshal(rpcRequest, &req)
 	if err != nil {
-		resp, err := dcrjson.MarshalResponse(req.Jsonrpc, req.ID, nil, dcrjson.ErrRPCInvalidRequest)
+		resp, err := ndrjson.MarshalResponse(req.Jsonrpc, req.ID, nil, ndrjson.ErrRPCInvalidRequest)
 		if err != nil {
 			log.Errorf("Unable to marshal response to client %s: %v",
 				r.RemoteAddr, err)
@@ -551,7 +551,7 @@ func (s *Server) postClientRPC(w http.ResponseWriter, r *http.Request) {
 	// Create the response and error from the request.  Two special cases
 	// are handled for the authenticate and stop request methods.
 	var res interface{}
-	var jsonErr *dcrjson.RPCError
+	var jsonErr *ndrjson.RPCError
 	var stop bool
 	switch req.Method {
 	case "authenticate":
@@ -568,7 +568,7 @@ func (s *Server) postClientRPC(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Marshal and send.
-	mresp, err := dcrjson.MarshalResponse(req.Jsonrpc, req.ID, res, jsonErr)
+	mresp, err := ndrjson.MarshalResponse(req.Jsonrpc, req.ID, res, jsonErr)
 	if err != nil {
 		log.Errorf("Unable to marshal response to client %s: %v",
 			r.RemoteAddr, err)

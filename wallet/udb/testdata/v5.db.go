@@ -23,11 +23,11 @@ import (
 	"github.com/endurio/ndrd/chaincfg"
 	"github.com/endurio/ndrd/chaincfg/chainec"
 	"github.com/endurio/ndrd/chaincfg/chainhash"
-	"github.com/endurio/ndrd/dcrec/secp256k1"
+	"github.com/endurio/ndrd/ndrec/secp256k1"
 	"github.com/endurio/ndrd/txscript"
 	"github.com/endurio/ndrd/wire"
-	"github.com/endurio/dcrutil"
-	"github.com/endurio/dcrutil/hdkeychain"
+	"github.com/endurio/ndrutil"
+	"github.com/endurio/ndrutil/hdkeychain"
 	"github.com/endurio/ndrw/wallet/internal/txsizes"
 	"github.com/endurio/ndrw/wallet/walletdb"
 	_ "github.com/endurio/ndrw/wallet/internal/bdb"
@@ -42,7 +42,7 @@ var (
 	pubPass  = []byte("public")
 	privPass = []byte("private")
 	privKey  = []byte{31: 1}
-	addr     dcrutil.Address
+	addr     ndrutil.Address
 )
 
 var chainParams = &chaincfg.TestNet2Params
@@ -99,7 +99,7 @@ func setup() error {
 		}
 
 		privKey, _ := secp256k1.PrivKeyFromBytes(secp256k1.S256(), privKey)
-		wif, err := dcrutil.NewWIF(privKey, chainParams, chainec.ECTypeSecp256k1)
+		wif, err := ndrutil.NewWIF(privKey, chainParams, chainec.ECTypeSecp256k1)
 		if err != nil {
 			return err
 		}
@@ -260,7 +260,7 @@ func compress() error {
 }
 
 func createUnsignedTicketPurchase(prevOut *wire.OutPoint,
-	inputAmount, ticketPrice dcrutil.Amount) (*wire.MsgTx, error) {
+	inputAmount, ticketPrice ndrutil.Amount) (*wire.MsgTx, error) {
 
 	tx := wire.NewMsgTx()
 	txIn := wire.NewTxIn(prevOut, nil)
@@ -281,7 +281,7 @@ func createUnsignedTicketPurchase(prevOut *wire.OutPoint,
 	}
 
 	pkScript, err = txscript.GenerateSStxAddrPush(addr,
-		dcrutil.Amount(amountsCommitted[0]), ticketFeeLimits)
+		ndrutil.Amount(amountsCommitted[0]), ticketFeeLimits)
 	if err != nil {
 		return nil, err
 	}
@@ -375,7 +375,7 @@ func createUnsignedVote(ticketHash *chainhash.Hash, ticketPurchase *wire.MsgTx,
 // revokes a missed or expired ticket.  Revocations must carry a relay fee and
 // this function can error if the revocation contains no suitable output to
 // decrease the estimated relay fee from.
-func createUnsignedRevocation(ticketHash *chainhash.Hash, ticketPurchase *wire.MsgTx, feePerKB dcrutil.Amount) (*wire.MsgTx, error) {
+func createUnsignedRevocation(ticketHash *chainhash.Hash, ticketPurchase *wire.MsgTx, feePerKB ndrutil.Amount) (*wire.MsgTx, error) {
 	// Parse the ticket purchase transaction to determine the required output
 	// destinations for vote rewards or revocations.
 	ticketPayKinds, ticketHash160s, ticketValues, _, _, _ :=
@@ -420,8 +420,8 @@ func createUnsignedRevocation(ticketHash *chainhash.Hash, ticketPurchase *wire.M
 	// code does not currently handle reducing the output values of multiple
 	// commitment outputs to accomodate for the fee.
 	for _, output := range revocation.TxOut {
-		if dcrutil.Amount(output.Value) > feeEstimate {
-			amount := dcrutil.Amount(output.Value) - feeEstimate
+		if ndrutil.Amount(output.Value) > feeEstimate {
+			amount := ndrutil.Amount(output.Value) - feeEstimate
 			if !txrules.IsDustAmount(amount, len(output.PkScript), feePerKB) {
 				output.Value = int64(amount)
 				return revocation, nil

@@ -6,7 +6,7 @@ package wallet
 
 import (
 	"github.com/endurio/ndrd/chaincfg/chainhash"
-	"github.com/endurio/ndrd/dcrutil"
+	"github.com/endurio/ndrd/ndrutil"
 	"github.com/endurio/ndrw/errors"
 	"github.com/endurio/ndrw/wallet/walletdb"
 	"github.com/endurio/ndrw/wallet/udb"
@@ -57,7 +57,7 @@ func (u unstableAPI) RangeTransactions(begin, end int32, f func([]udb.TxDetails)
 // UnspentMultisigCreditsForAddress calls
 // udb.Store.UnspentMultisigCreditsForAddress under a single database view
 // transaction.
-func (u unstableAPI) UnspentMultisigCreditsForAddress(p2shAddr *dcrutil.AddressScriptHash) ([]*udb.MultisigCredit, error) {
+func (u unstableAPI) UnspentMultisigCreditsForAddress(p2shAddr *ndrutil.AddressScriptHash) ([]*udb.MultisigCredit, error) {
 	const op errors.Op = "wallet.UnspentMultisigCreditsForAddress"
 	var multisigCredits []*udb.MultisigCredit
 	err := walletdb.View(u.w.db, func(tx walletdb.ReadTx) error {

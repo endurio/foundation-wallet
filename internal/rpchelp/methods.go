@@ -7,7 +7,7 @@
 
 package rpchelp
 
-import "github.com/endurio/ndrd/dcrjson"
+import "github.com/endurio/ndrd/ndrjson"
 
 // Common return types.
 var (
@@ -15,7 +15,7 @@ var (
 	returnsNumber      = []interface{}{(*float64)(nil)}
 	returnsString      = []interface{}{(*string)(nil)}
 	returnsStringArray = []interface{}{(*[]string)(nil)}
-	returnsLTRArray    = []interface{}{(*[]dcrjson.ListTransactionsResult)(nil)}
+	returnsLTRArray    = []interface{}{(*[]ndrjson.ListTransactionsResult)(nil)}
 )
 
 // Methods contains all methods and result types that help is generated for,
@@ -29,26 +29,26 @@ var Methods = []struct {
 	{"addmultisigaddress", returnsString},
 	{"addticket", nil},
 	{"consolidate", returnsString},
-	{"createmultisig", []interface{}{(*dcrjson.CreateMultiSigResult)(nil)}},
+	{"createmultisig", []interface{}{(*ndrjson.CreateMultiSigResult)(nil)}},
 	{"createnewaccount", nil},
 	{"dumpprivkey", returnsString},
 	{"exportwatchingwallet", returnsString},
 	{"getaccountaddress", returnsString},
 	{"getaccount", returnsString},
 	{"getaddressesbyaccount", returnsStringArray},
-	{"getbalance", []interface{}{(*dcrjson.GetBalanceResult)(nil)}},
+	{"getbalance", []interface{}{(*ndrjson.GetBalanceResult)(nil)}},
 	{"getbestblockhash", returnsString},
-	{"getbestblock", []interface{}{(*dcrjson.GetBestBlockResult)(nil)}},
+	{"getbestblock", []interface{}{(*ndrjson.GetBestBlockResult)(nil)}},
 	{"getblockcount", returnsNumber},
-	{"getinfo", []interface{}{(*dcrjson.InfoWalletResult)(nil)}},
+	{"getinfo", []interface{}{(*ndrjson.InfoWalletResult)(nil)}},
 	{"getmasterpubkey", []interface{}{(*string)(nil)}},
-	{"getmultisigoutinfo", []interface{}{(*dcrjson.GetMultisigOutInfoResult)(nil)}},
+	{"getmultisigoutinfo", []interface{}{(*ndrjson.GetMultisigOutInfoResult)(nil)}},
 	{"getnewaddress", returnsString},
 	{"getrawchangeaddress", returnsString},
 	{"getreceivedbyaccount", returnsNumber},
 	{"getreceivedbyaddress", returnsNumber},
 	{"getticketfee", returnsNumber},
-	{"gettransaction", []interface{}{(*dcrjson.GetTransactionResult)(nil)}},
+	{"gettransaction", []interface{}{(*ndrjson.GetTransactionResult)(nil)}},
 	{"getunconfirmedbalance", returnsNumber},
 	{"getwalletfee", returnsNumber},
 	{"help", append(returnsString, returnsString[0])},
@@ -58,16 +58,16 @@ var Methods = []struct {
 	{"listaccounts", []interface{}{(*map[string]float64)(nil)}},
 	{"listaddresstransactions", returnsLTRArray},
 	{"listalltransactions", returnsLTRArray},
-	{"listlockunspent", []interface{}{(*[]dcrjson.TransactionInput)(nil)}},
-	{"listreceivedbyaccount", []interface{}{(*[]dcrjson.ListReceivedByAccountResult)(nil)}},
-	{"listreceivedbyaddress", []interface{}{(*[]dcrjson.ListReceivedByAddressResult)(nil)}},
-	{"listscripts", []interface{}{(*dcrjson.ListScriptsResult)(nil)}},
-	{"listsinceblock", []interface{}{(*dcrjson.ListSinceBlockResult)(nil)}},
+	{"listlockunspent", []interface{}{(*[]ndrjson.TransactionInput)(nil)}},
+	{"listreceivedbyaccount", []interface{}{(*[]ndrjson.ListReceivedByAccountResult)(nil)}},
+	{"listreceivedbyaddress", []interface{}{(*[]ndrjson.ListReceivedByAddressResult)(nil)}},
+	{"listscripts", []interface{}{(*ndrjson.ListScriptsResult)(nil)}},
+	{"listsinceblock", []interface{}{(*ndrjson.ListSinceBlockResult)(nil)}},
 	{"listtransactions", returnsLTRArray},
-	{"listunspent", []interface{}{(*dcrjson.ListUnspentResult)(nil)}},
+	{"listunspent", []interface{}{(*ndrjson.ListUnspentResult)(nil)}},
 	{"lockunspent", returnsBool},
-	{"redeemmultisigout", []interface{}{(*dcrjson.RedeemMultiSigOutResult)(nil)}},
-	{"redeemmultisigouts", []interface{}{(*dcrjson.RedeemMultiSigOutResult)(nil)}},
+	{"redeemmultisigout", []interface{}{(*ndrjson.RedeemMultiSigOutResult)(nil)}},
+	{"redeemmultisigouts", []interface{}{(*ndrjson.RedeemMultiSigOutResult)(nil)}},
 	{"renameaccount", nil},
 	{"rescanwallet", nil},
 	{"sendfrom", returnsString},
@@ -76,13 +76,13 @@ var Methods = []struct {
 	{"sendtomultisig", returnsString},
 	{"settxfee", returnsBool},
 	{"signmessage", returnsString},
-	{"signrawtransaction", []interface{}{(*dcrjson.SignRawTransactionResult)(nil)}},
-	{"signrawtransactions", []interface{}{(*dcrjson.SignRawTransactionsResult)(nil)}},
-	{"sweepaccount", []interface{}{(*dcrjson.SweepAccountResult)(nil)}},
-	{"validateaddress", []interface{}{(*dcrjson.ValidateAddressWalletResult)(nil)}},
+	{"signrawtransaction", []interface{}{(*ndrjson.SignRawTransactionResult)(nil)}},
+	{"signrawtransactions", []interface{}{(*ndrjson.SignRawTransactionsResult)(nil)}},
+	{"sweepaccount", []interface{}{(*ndrjson.SweepAccountResult)(nil)}},
+	{"validateaddress", []interface{}{(*ndrjson.ValidateAddressWalletResult)(nil)}},
 	{"verifymessage", returnsBool},
-	{"version", []interface{}{(*map[string]dcrjson.VersionResult)(nil)}},
-	{"walletinfo", []interface{}{(*dcrjson.WalletInfoResult)(nil)}},
+	{"version", []interface{}{(*map[string]ndrjson.VersionResult)(nil)}},
+	{"walletinfo", []interface{}{(*ndrjson.WalletInfoResult)(nil)}},
 	{"walletislocked", returnsBool},
 	{"walletlock", nil},
 	{"walletpassphrasechange", nil},

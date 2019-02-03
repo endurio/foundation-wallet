@@ -28,8 +28,8 @@ import (
 
 	"github.com/endurio/ndrd/chaincfg"
 	"github.com/endurio/ndrd/chaincfg/chainhash"
-	"github.com/endurio/ndrd/dcrjson"
-	"github.com/endurio/ndrd/dcrutil"
+	"github.com/endurio/ndrd/ndrjson"
+	"github.com/endurio/ndrd/ndrutil"
 	"github.com/endurio/ndrd/wire"
 )
 
@@ -68,7 +68,7 @@ func (e extendedOutPoints) Swap(i, j int) {
 // convertJSONUnspentToOutPoints converts a JSON raw dump from listunspent to
 // a set of UTXOs.
 func convertJSONUnspentToOutPoints(
-	utxos []dcrjson.ListUnspentResult) []*extendedOutPoint {
+	utxos []ndrjson.ListUnspentResult) []*extendedOutPoint {
 	var eops []*extendedOutPoint
 	for _, utxo := range utxos {
 		if utxo.TxType == 1 && utxo.Vout == 0 {
@@ -89,7 +89,7 @@ func convertJSONUnspentToOutPoints(
 
 		eop := new(extendedOutPoint)
 		eop.op = op
-		amtCast, _ := dcrutil.NewAmount(utxo.Amount)
+		amtCast, _ := ndrutil.NewAmount(utxo.Amount)
 		eop.amt = int64(amtCast)
 		eop.pkScript = pks
 
@@ -106,7 +106,7 @@ func main() {
 		fmt.Println("error opening unspent file unspent.json", err.Error())
 	}
 
-	var utxos []dcrjson.ListUnspentResult
+	var utxos []ndrjson.ListUnspentResult
 
 	jsonParser := json.NewDecoder(unspentFile)
 	if err = jsonParser.Decode(&utxos); err != nil {
@@ -145,7 +145,7 @@ func main() {
 
 	maxTxSize = params.MaxTxSize
 
-	sendToAddress, err := dcrutil.DecodeAddress(cfg.SendToAddress)
+	sendToAddress, err := ndrutil.DecodeAddress(cfg.SendToAddress)
 	if err != nil {
 		fmt.Println("Failed to parse tx address: ", err.Error())
 	}

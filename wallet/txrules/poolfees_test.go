@@ -4,18 +4,18 @@ import (
 	"testing"
 
 	"github.com/endurio/ndrd/chaincfg"
-	"github.com/endurio/ndrd/dcrutil"
+	"github.com/endurio/ndrd/ndrutil"
 	. "github.com/endurio/ndrw/wallet/txrules"
 )
 
 func TestStakePoolTicketFee(t *testing.T) {
 	params := &chaincfg.MainNetParams
 	tests := []struct {
-		StakeDiff dcrutil.Amount
-		Fee       dcrutil.Amount
+		StakeDiff ndrutil.Amount
+		Fee       ndrutil.Amount
 		Height    int32
 		PoolFee   float64
-		Expected  dcrutil.Amount
+		Expected  ndrutil.Amount
 	}{
 		0: {10 * 1e8, 0.01 * 1e8, 25000, 1.00, 0.01500463 * 1e8},
 		1: {20 * 1e8, 0.01 * 1e8, 25000, 1.00, 0.01621221 * 1e8},

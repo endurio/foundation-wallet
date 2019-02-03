@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/endurio/ndrd/chaincfg"
-	"github.com/endurio/ndrd/dcrutil"
+	"github.com/endurio/ndrd/ndrutil"
 	"github.com/endurio/ndrd/hdkeychain"
 	"github.com/endurio/ndrw/errors"
 	"github.com/endurio/ndrw/wallet/walletdb"
@@ -38,7 +38,7 @@ func TestCoinTypes(t *testing.T) {
 	}
 }
 
-func deriveChildAddress(accountExtKey *hdkeychain.ExtendedKey, branch, child uint32, params *chaincfg.Params) (dcrutil.Address, error) {
+func deriveChildAddress(accountExtKey *hdkeychain.ExtendedKey, branch, child uint32, params *chaincfg.Params) (ndrutil.Address, error) {
 	branchKey, err := accountExtKey.Child(branch)
 	if err != nil {
 		return nil, err

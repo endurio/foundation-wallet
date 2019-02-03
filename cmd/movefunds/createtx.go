@@ -17,13 +17,13 @@
 package main
 
 import (
-	"github.com/endurio/ndrd/dcrutil"
+	"github.com/endurio/ndrd/ndrutil"
 	"github.com/endurio/ndrd/txscript"
 	"github.com/endurio/ndrd/wire"
 )
 
 // makeTx generates a transaction spending outputs to a single address.
-func makeTx(inputs []*extendedOutPoint, addr dcrutil.Address, txFee int64) (*wire.MsgTx, error) {
+func makeTx(inputs []*extendedOutPoint, addr ndrutil.Address, txFee int64) (*wire.MsgTx, error) {
 	mtx := wire.NewMsgTx()
 
 	allInAmts := int64(0)

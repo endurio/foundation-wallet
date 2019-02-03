@@ -12,7 +12,7 @@ import (
 
 	"github.com/endurio/ndrd/chaincfg"
 	//dcrrpcclient "github.com/endurio/ndrd/rpcclient"
-	//"github.com/endurio/ndrd/dcrutil"
+	//"github.com/endurio/ndrd/ndrutil"
 	//"github.com/endurio/ndrw/rpc/legacyrpc"
 	"github.com/endurio/ndrw/rpctest"
 )

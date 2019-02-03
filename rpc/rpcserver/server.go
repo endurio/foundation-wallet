@@ -33,9 +33,9 @@ import (
 	"github.com/endurio/ndrd/addrmgr"
 	"github.com/endurio/ndrd/chaincfg"
 	"github.com/endurio/ndrd/chaincfg/chainhash"
-	"github.com/endurio/ndrd/dcrec"
-	"github.com/endurio/ndrd/dcrutil"
 	"github.com/endurio/ndrd/hdkeychain"
+	"github.com/endurio/ndrd/ndrec"
+	"github.com/endurio/ndrd/ndrutil"
 	"github.com/endurio/ndrd/rpcclient"
 	"github.com/endurio/ndrd/txscript"
 	"github.com/endurio/ndrd/wire"
@@ -128,9 +128,9 @@ func errorCode(err error) codes.Code {
 
 // decodeAddress decodes an address and verifies it is intended for the active
 // network.  This should be used preferred to direct usage of
-// dcrutil.DecodeAddress, which does not perform the network check.
-func decodeAddress(a string, params *chaincfg.Params) (dcrutil.Address, error) {
-	addr, err := dcrutil.DecodeAddress(a)
+// ndrutil.DecodeAddress, which does not perform the network check.
+func decodeAddress(a string, params *chaincfg.Params) (ndrutil.Address, error) {
+	addr, err := ndrutil.DecodeAddress(a)
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid address %v: %v", a, err)
 	}
@@ -430,7 +430,7 @@ func (s *walletServer) NextAddress(ctx context.Context, req *pb.NextAddressReque
 	}
 
 	var (
-		addr dcrutil.Address
+		addr ndrutil.Address
 		err  error
 	)
 	switch req.Kind {
@@ -455,7 +455,7 @@ func (s *walletServer) NextAddress(ctx context.Context, req *pb.NextAddressReque
 	if err != nil {
 		return nil, translateError(err)
 	}
-	pubKeyAddr, err := dcrutil.NewAddressSecpPubKey(pubKey.Serialize(), s.wallet.ChainParams())
+	pubKeyAddr, err := ndrutil.NewAddressSecpPubKey(pubKey.Serialize(), s.wallet.ChainParams())
 	if err != nil {
 		return nil, translateError(err)
 	}
@@ -471,7 +471,7 @@ func (s *walletServer) ImportPrivateKey(ctx context.Context, req *pb.ImportPriva
 
 	defer zero.Bytes(req.Passphrase)
 
-	wif, err := dcrutil.DecodeWIF(req.PrivateKeyWif)
+	wif, err := ndrutil.DecodeWIF(req.PrivateKeyWif)
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument,
 			"Invalid WIF-encoded private key: %v", err)
@@ -584,7 +584,7 @@ func (s *walletServer) ImportScript(ctx context.Context,
 		go s.wallet.RescanFromHeight(context.Background(), n, req.ScanFrom)
 	}
 
-	p2sh, err := dcrutil.NewAddressScriptHash(req.Script, s.wallet.ChainParams())
+	p2sh, err := ndrutil.NewAddressScriptHash(req.Script, s.wallet.ChainParams())
 	if err != nil {
 		return nil, translateError(err)
 	}
@@ -629,7 +629,7 @@ func (src *scriptChangeSource) ScriptSize() int {
 }
 
 func makeScriptChangeSource(address string, version uint16) (*scriptChangeSource, error) {
-	destinationAddress, err := dcrutil.DecodeAddress(address)
+	destinationAddress, err := ndrutil.DecodeAddress(address)
 	if err != nil {
 		return nil, err
 	}
@@ -658,7 +658,7 @@ func (s *walletServer) SweepAccount(ctx context.Context, req *pb.SweepAccountReq
 
 	if req.FeePerKb > 0 {
 		var err error
-		feePerKb, err = dcrutil.NewAmount(req.FeePerKb)
+		feePerKb, err = ndrutil.NewAmount(req.FeePerKb)
 		if err != nil {
 			return nil, status.Errorf(codes.InvalidArgument, "%v", err)
 		}
@@ -739,7 +739,7 @@ func (s *walletServer) UnspentOutputs(req *pb.UnspentOutputsRequest, svr pb.Wall
 		Account:               req.Account,
 		RequiredConfirmations: req.RequiredConfirmations,
 	}
-	inputDetail, err := s.wallet.SelectInputs(dcrutil.Amount(req.TargetAmount), policy)
+	inputDetail, err := s.wallet.SelectInputs(ndrutil.Amount(req.TargetAmount), policy)
 	// Do not return errors to caller when there was insufficient spendable
 	// outputs available for the target amount.
 	if err != nil && !errors.Is(errors.InsufficientBalance, err) {
@@ -784,7 +784,7 @@ func (s *walletServer) FundTransaction(ctx context.Context, req *pb.FundTransact
 		Account:               req.Account,
 		RequiredConfirmations: req.RequiredConfirmations,
 	}
-	inputDetail, err := s.wallet.SelectInputs(dcrutil.Amount(req.TargetAmount), policy)
+	inputDetail, err := s.wallet.SelectInputs(ndrutil.Amount(req.TargetAmount), policy)
 	// Do not return errors to caller when there was insufficient spendable
 	// outputs available for the target amount.
 	if err != nil && !errors.Is(errors.InsufficientBalance, err) {
@@ -808,7 +808,7 @@ func (s *walletServer) FundTransaction(ctx context.Context, req *pb.FundTransact
 	}
 
 	var changeScript []byte
-	if req.IncludeChangeScript && inputDetail.Amount > dcrutil.Amount(req.TargetAmount) {
+	if req.IncludeChangeScript && inputDetail.Amount > ndrutil.Amount(req.TargetAmount) {
 		changeAddr, err := s.wallet.NewChangeAddress(req.Account)
 		if err != nil {
 			return nil, translateError(err)
@@ -916,7 +916,7 @@ func (s *walletServer) ConstructTransaction(ctx context.Context, req *pb.Constru
 
 	feePerKb := txrules.DefaultRelayFeePerKb
 	if req.FeePerKb != 0 {
-		feePerKb = dcrutil.Amount(req.FeePerKb)
+		feePerKb = ndrutil.Amount(req.FeePerKb)
 	}
 
 	var changeSource txauthor.ChangeSource
@@ -1322,9 +1322,9 @@ func (s *walletServer) signMessage(address, message string) ([]byte, error) {
 	// must be P2PK or P2PKH (P2SH is not allowed).
 	var sig []byte
 	switch a := addr.(type) {
-	case *dcrutil.AddressSecpPubKey:
-	case *dcrutil.AddressPubKeyHash:
-		if a.DSA(a.Net()) != dcrec.STEcdsaSecp256k1 {
+	case *ndrutil.AddressSecpPubKey:
+	case *ndrutil.AddressPubKeyHash:
+		if a.DSA(a.Net()) != ndrec.STEcdsaSecp256k1 {
 			goto WrongAddrKind
 		}
 	default:
@@ -1424,7 +1424,7 @@ func (s *walletServer) ValidateAddress(ctx context.Context, req *pb.ValidateAddr
 	switch ma := addrInfo.(type) {
 	case udb.ManagedPubKeyAddress:
 		result.PubKey = ma.PubKey().Serialize()
-		pubKeyAddr, err := dcrutil.NewAddressSecpPubKey(result.PubKey,
+		pubKeyAddr, err := ndrutil.NewAddressSecpPubKey(result.PubKey,
 			s.wallet.ChainParams())
 		if err != nil {
 			return nil, err
@@ -2387,7 +2387,7 @@ func (s *messageVerificationServer) VerifyMessage(ctx context.Context, req *pb.V
 
 	var valid bool
 
-	addr, err := dcrutil.DecodeAddress(req.Address)
+	addr, err := ndrutil.DecodeAddress(req.Address)
 	if err != nil {
 		return nil, translateError(err)
 	}
@@ -2395,9 +2395,9 @@ func (s *messageVerificationServer) VerifyMessage(ctx context.Context, req *pb.V
 	// Addresses must have an associated secp256k1 private key and therefore
 	// must be P2PK or P2PKH (P2SH is not allowed).
 	switch a := addr.(type) {
-	case *dcrutil.AddressSecpPubKey:
-	case *dcrutil.AddressPubKeyHash:
-		if a.DSA(a.Net()) != dcrec.STEcdsaSecp256k1 {
+	case *ndrutil.AddressSecpPubKey:
+	case *ndrutil.AddressPubKeyHash:
+		if a.DSA(a.Net()) != ndrec.STEcdsaSecp256k1 {
 			goto WrongAddrKind
 		}
 	default:
@@ -2455,11 +2455,11 @@ func marshalDecodedTxOutputs(mtx *wire.MsgTx, chainParams *chaincfg.Params) []*p
 		// the case of stake submission transactions, the odd outputs
 		// contain a commitment address, so detect that case
 		// accordingly.
-		var addrs []dcrutil.Address
+		var addrs []ndrutil.Address
 		var encodedAddrs []string
 		var scriptClass txscript.ScriptClass
 		var reqSigs int
-		var commitAmt *dcrutil.Amount
+		var commitAmt *ndrutil.Amount
 
 		// Ignore the error here since an error means the script
 		// couldn't parse and there is no additional information

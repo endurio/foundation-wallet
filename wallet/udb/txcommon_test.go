@@ -15,7 +15,7 @@ import (
 	"github.com/boltdb/bolt"
 	"github.com/endurio/ndrd/chaincfg"
 	"github.com/endurio/ndrd/chaincfg/chainhash"
-	"github.com/endurio/ndrd/dcrutil"
+	"github.com/endurio/ndrd/ndrutil"
 	"github.com/endurio/ndrd/gcs"
 	"github.com/endurio/ndrd/gcs/blockcf"
 	"github.com/endurio/ndrd/wire"
@@ -48,7 +48,7 @@ func setup() (db walletdb.DB, s *Store, teardown func(), err error) {
 	if err != nil {
 		return
 	}
-	acctLookup := func(walletdb.ReadBucket, dcrutil.Address) (uint32, error) { return 0, nil }
+	acctLookup := func(walletdb.ReadBucket, ndrutil.Address) (uint32, error) { return 0, nil }
 	s = &Store{chainParams: &chaincfg.TestNet3Params, acctLookupFunc: acctLookup}
 	return
 }

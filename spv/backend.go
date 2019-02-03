@@ -10,7 +10,7 @@ import (
 	"sync"
 
 	"github.com/endurio/ndrd/chaincfg/chainhash"
-	"github.com/endurio/ndrd/dcrutil"
+	"github.com/endurio/ndrd/ndrutil"
 	"github.com/endurio/ndrd/gcs"
 	"github.com/endurio/ndrd/gcs/blockcf"
 	"github.com/endurio/ndrd/txscript"
@@ -93,7 +93,7 @@ func (s *Syncer) String() string {
 
 // LoadTxFilter implements the LoadTxFilter method of the wallet.NetworkBackend
 // interface.
-func (s *Syncer) LoadTxFilter(ctx context.Context, reload bool, addrs []dcrutil.Address, outpoints []wire.OutPoint) error {
+func (s *Syncer) LoadTxFilter(ctx context.Context, reload bool, addrs []ndrutil.Address, outpoints []wire.OutPoint) error {
 	s.filterMu.Lock()
 	if reload || s.rescanFilter == nil {
 		s.rescanFilter = wallet.NewRescanFilter(nil, nil)

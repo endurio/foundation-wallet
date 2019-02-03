@@ -15,7 +15,7 @@ import (
 	"os"
 
 	"github.com/endurio/ndrd/chaincfg"
-	"github.com/endurio/dcrutil/hdkeychain"
+	"github.com/endurio/ndrutil/hdkeychain"
 	"github.com/endurio/ndrw/wallet/walletdb"
 	_ "github.com/endurio/ndrw/wallet/internal/bdb"
 	"github.com/endurio/ndrw/wallet/udb"

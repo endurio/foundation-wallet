@@ -214,7 +214,7 @@ func lastUsedAddressIndexUpgrade(tx walletdb.ReadWriteTx, publicPassphrase []byt
 				return err
 			}
 			// This can't error because the function always passes good input to
-			// dcrutil.NewAddressPubKeyHash.  Also, while it looks like a
+			// ndrutil.NewAddressPubKeyHash.  Also, while it looks like a
 			// mistake to hardcode the mainnet parameters here, it doesn't make
 			// any difference since only the pubkey hash is used.  (Why is there
 			// no exported method to just return the serialized public key?)

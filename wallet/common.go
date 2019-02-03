@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/endurio/ndrd/chaincfg/chainhash"
-	"github.com/endurio/ndrd/dcrutil"
+	"github.com/endurio/ndrd/ndrutil"
 	"github.com/endurio/ndrd/wire"
 )
 
@@ -78,10 +78,10 @@ type P2SHMultiSigOutput struct {
 	// fetching other Transactionoutput data together with the rest of the
 	// multisig info.
 	OutPoint        wire.OutPoint
-	OutputAmount    dcrutil.Amount
+	OutputAmount    ndrutil.Amount
 	ContainingBlock BlockIdentity
 
-	P2SHAddress  *dcrutil.AddressScriptHash
+	P2SHAddress  *ndrutil.AddressScriptHash
 	RedeemScript []byte
 	M, N         uint8           // M of N signatures required to redeem
 	Redeemer     *OutputRedeemer // nil unless spent

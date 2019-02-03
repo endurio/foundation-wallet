@@ -19,7 +19,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/endurio/ndrd/dcrjson"
+	"github.com/endurio/ndrd/ndrjson"
 	"github.com/endurio/ndrw/internal/rpchelp"
 )
 
@@ -55,7 +55,7 @@ func TestRPCMethodHelpGeneration(t *testing.T) {
 		for _, m := range rpchelp.Methods {
 			delete(svrMethods, m.Method)
 
-			helpText, err := dcrjson.GenerateHelp(m.Method, rpchelp.HelpDescs[i].Descs, m.ResultTypes...)
+			helpText, err := ndrjson.GenerateHelp(m.Method, rpchelp.HelpDescs[i].Descs, m.ResultTypes...)
 			if err != nil {
 				t.Errorf("Cannot generate '%s' help for method '%s': missing description for '%s'",
 					locale, m.Method, err)
@@ -92,7 +92,7 @@ func TestRPCMethodUsageGeneration(t *testing.T) {
 	for _, m := range rpchelp.Methods {
 		delete(svrMethods, m.Method)
 
-		usage, err := dcrjson.MethodUsageText(m.Method)
+		usage, err := ndrjson.MethodUsageText(m.Method)
 		if err != nil {
 			t.Errorf("Cannot generate single line usage for method '%s': %v",
 				m.Method, err)

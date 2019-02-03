@@ -9,9 +9,9 @@ import (
 	"encoding/hex"
 
 	"github.com/endurio/ndrd/chaincfg/chainec"
-	"github.com/endurio/ndrd/dcrec"
-	"github.com/endurio/ndrd/dcrutil"
 	"github.com/endurio/ndrd/hdkeychain"
+	"github.com/endurio/ndrd/ndrec"
+	"github.com/endurio/ndrd/ndrutil"
 )
 
 // ManagedAddress is an interface that provides acces to information regarding
@@ -22,8 +22,8 @@ type ManagedAddress interface {
 	// Account returns the account the address is associated with.
 	Account() uint32
 
-	// Address returns a dcrutil.Address for the backing address.
-	Address() dcrutil.Address
+	// Address returns a ndrutil.Address for the backing address.
+	Address() ndrutil.Address
 
 	// AddrHash returns the key or script hash related to the address
 	AddrHash() []byte
@@ -76,7 +76,7 @@ type ManagedScriptAddress interface {
 type managedAddress struct {
 	manager    *Manager
 	account    uint32
-	address    *dcrutil.AddressPubKeyHash
+	address    *ndrutil.AddressPubKeyHash
 	imported   bool
 	internal   bool
 	multisig   bool
@@ -95,11 +95,11 @@ func (a *managedAddress) Account() uint32 {
 	return a.account
 }
 
-// Address returns the dcrutil.Address which represents the managed address.
+// Address returns the ndrutil.Address which represents the managed address.
 // This will be a pay-to-pubkey-hash address.
 //
 // This is part of the ManagedAddress interface implementation.
-func (a *managedAddress) Address() dcrutil.Address {
+func (a *managedAddress) Address() ndrutil.Address {
 	return a.address
 }
 
@@ -178,12 +178,12 @@ func newManagedAddressWithoutPrivKey(m *Manager, account uint32, pubKey chainec.
 	// Create a pay-to-pubkey-hash address from the public key.
 	var pubKeyHash []byte
 	if compressed {
-		pubKeyHash = dcrutil.Hash160(pubKey.SerializeCompressed())
+		pubKeyHash = ndrutil.Hash160(pubKey.SerializeCompressed())
 	} else {
-		pubKeyHash = dcrutil.Hash160(pubKey.SerializeUncompressed())
+		pubKeyHash = ndrutil.Hash160(pubKey.SerializeUncompressed())
 	}
-	address, err := dcrutil.NewAddressPubKeyHash(pubKeyHash, m.chainParams,
-		dcrec.STEcdsaSecp256k1)
+	address, err := ndrutil.NewAddressPubKeyHash(pubKeyHash, m.chainParams,
+		ndrec.STEcdsaSecp256k1)
 	if err != nil {
 		return nil, err
 	}
@@ -217,7 +217,7 @@ func newManagedAddressFromExtKey(m *Manager, account uint32, key *hdkeychain.Ext
 type scriptAddress struct {
 	manager *Manager
 	account uint32
-	address *dcrutil.AddressScriptHash
+	address *ndrutil.AddressScriptHash
 }
 
 // Enforce scriptAddress satisfies the ManagedScriptAddress interface.
@@ -231,11 +231,11 @@ func (a *scriptAddress) Account() uint32 {
 	return a.account
 }
 
-// Address returns the dcrutil.Address which represents the managed address.
+// Address returns the ndrutil.Address which represents the managed address.
 // This will be a pay-to-script-hash address.
 //
 // This is part of the ManagedAddress interface implementation.
-func (a *scriptAddress) Address() dcrutil.Address {
+func (a *scriptAddress) Address() ndrutil.Address {
 	return a.address
 }
 
@@ -283,7 +283,7 @@ func (*scriptAddress) isScriptAddress() {}
 
 // newScriptAddress initializes and returns a new pay-to-script-hash address.
 func newScriptAddress(m *Manager, account uint32, scriptHash []byte) (*scriptAddress, error) {
-	address, err := dcrutil.NewAddressScriptHashFromHash(scriptHash,
+	address, err := ndrutil.NewAddressScriptHashFromHash(scriptHash,
 		m.chainParams)
 	if err != nil {
 		return nil, err

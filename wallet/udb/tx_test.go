@@ -18,7 +18,7 @@ import (
 
 	"github.com/endurio/ndrd/chaincfg"
 	"github.com/endurio/ndrd/chaincfg/chainhash"
-	"github.com/endurio/ndrd/dcrutil"
+	"github.com/endurio/ndrd/ndrutil"
 	"github.com/endurio/ndrd/wire"
 	_ "github.com/endurio/ndrw/wallet/drivers/bdb"
 	"github.com/endurio/ndrw/wallet/walletdb"
@@ -28,7 +28,7 @@ import (
 // a4cb6a9f0ebc428f2f46f4d33a1b076062bccc759b189fd419ab515a98198af9:1
 var (
 	TstRecvSerializedTx, _          = hex.DecodeString("010000000145d6449ec7d0438aefbc3c9736ad32313e97d0a2c0bf81bc0090f9bfee9410420000000000ffffffff02b46f76450c00000000001976a9144673d67fca24747a537da5147ddddc49325f463188ac4001eaa70400000000001976a914b387bf5af183188b71d85d0408a9aebd4a21804888ac000000000000000001ffffffffffffffff00000000ffffffff6a4730440220425b01cdb792d2c9ed757d30447e05eb89f043a172dd3a7c35facf9b02720c0e0220071e89b8cdec1f6ff9d5bc4f8c5f75cc3c46c6b19270f732e64f34bf4139d9bd0121037c119d1b667ce7c986bd7ed8bdef25914fca8a1671030a5d8ca9c7d96f39157d")
-	TstRecvTx, _                    = dcrutil.NewTxFromBytes(TstRecvSerializedTx)
+	TstRecvTx, _                    = ndrutil.NewTxFromBytes(TstRecvSerializedTx)
 	TstRecvTxSpendingTxBlockHash, _ = chainhash.NewHashFromStr("000000000000355502a7a77f2ef24ae10a625aa81444aec9caf250fabf826490")
 	TstRecvAmt                      = int64(19997000000)
 	TstRecvTxBlockDetails           = &BlockMeta{
@@ -40,7 +40,7 @@ var (
 	TstRecvTxOutConfirms = 14           // hardcoded number of confirmations given the above block height
 
 	TstSpendingSerializedTx, _ = hex.DecodeString("0100000001f98a19985a51ab19d49f189b75ccbc6260071b3ad3f4462f8f42bc0e9f6acba40100000000ffffffff03b7db9c350000000000001aba76a9142d39435107f5e5ef88fb4705574042fc035b539d88ac00000000000000000000206a1ea6d7fcfa36e50f964bdd5248bc416d3cf6a7c1d0f726e93500000000005849da00720400000000001abd76a9143535c52cad743f84beb97f715aac6d161404ca2c88ac0000000000000000014001eaa7040000008e290000010000006a473044022079e1067940497fb111a36abb8a29a85f5d3bc74a81a1252fcb6d376fd4e838a502203b14af35326d2fe46d34a51b759e88711da18744b379b2fa255df22bc7c1b1e4012103e98d6feb5bc5ffe362d727e7f83c08744f41e06406bbd65c11660351564bb384")
-	TstSpendingTx, _           = dcrutil.NewTxFromBytes(TstSpendingSerializedTx)
+	TstSpendingTx, _           = ndrutil.NewTxFromBytes(TstSpendingSerializedTx)
 	TstSpendingTxBlockHeight   = int32(10640)
 	TstSignedTxBlockHash, _    = chainhash.NewHashFromStr("000000000000156de3056ed122a76d79a4887e03d5b93c2d0bc1981565490e44")
 	TstSignedTxBlockDetails    = &BlockMeta{
@@ -86,7 +86,7 @@ func testStore() (*Store, func(), error) {
 	return s, teardown, err
 }
 
-func serializeTx(tx *dcrutil.Tx) []byte {
+func serializeTx(tx *ndrutil.Tx) []byte {
 	var buf bytes.Buffer
 	buf.Grow(tx.MsgTx().SerializeSize())
 	err := tx.MsgTx().Serialize(&buf)
@@ -100,7 +100,7 @@ func TestInsertsCreditsDebitsRollbacks(t *testing.T) {
 	t.Parallel()
 
 	// Create a double spend of the received blockchain transaction.
-	dupRecvTx, err := dcrutil.NewTxFromBytesLegacy(TstRecvSerializedTx)
+	dupRecvTx, err := ndrutil.NewTxFromBytesLegacy(TstRecvSerializedTx)
 	if err != nil {
 		t.Errorf("failed to deserialize test transaction: %v", err.Error())
 		return
@@ -113,14 +113,14 @@ func TestInsertsCreditsDebitsRollbacks(t *testing.T) {
 	TstDupRecvAmount := int64(1e8)
 	newDupMsgTx := dupRecvTx.MsgTx()
 	newDupMsgTx.TxOut[0].Value = TstDupRecvAmount
-	TstDoubleSpendTx := dcrutil.NewTx(newDupMsgTx)
+	TstDoubleSpendTx := ndrutil.NewTx(newDupMsgTx)
 	TstDoubleSpendSerializedTx := serializeTx(TstDoubleSpendTx)
 
 	// Create a "signed" (with invalid sigs) tx that spends output 0 of
 	// the double spend.
 	spendingTx := wire.NewMsgTx()
 	spendingTxIn := wire.NewTxIn(wire.NewOutPoint(TstDoubleSpendTx.Sha(), 0,
-		dcrutil.TxTreeRegular), TstDoubleSpendTx.MsgTx().TxOut[0].Value,
+		ndrutil.TxTreeRegular), TstDoubleSpendTx.MsgTx().TxOut[0].Value,
 		[]byte{0, 1, 2, 3, 4})
 	spendingTxIn.ValueIn =
 		spendingTx.AddTxIn(spendingTxIn)
@@ -128,7 +128,7 @@ func TestInsertsCreditsDebitsRollbacks(t *testing.T) {
 	spendingTxOut2 := wire.NewTxOut(9e7, []byte{10, 11, 12, 13, 14})
 	spendingTx.AddTxOut(spendingTxOut1)
 	spendingTx.AddTxOut(spendingTxOut2)
-	TstSpendingTx := dcrutil.NewTx(spendingTx)
+	TstSpendingTx := ndrutil.NewTx(spendingTx)
 	TstSpendingSerializedTx := serializeTx(TstSpendingTx)
 	var _ = TstSpendingTx
 	defaultAccount := uint32(0)
@@ -136,7 +136,7 @@ func TestInsertsCreditsDebitsRollbacks(t *testing.T) {
 	tests := []struct {
 		name     string
 		f        func(*Store) (*Store, error)
-		bal, unc dcrutil.Amount
+		bal, unc ndrutil.Amount
 		unspents map[wire.OutPoint]struct{}
 		unmined  map[chainhash.Hash]struct{}
 	}{
@@ -166,12 +166,12 @@ func TestInsertsCreditsDebitsRollbacks(t *testing.T) {
 				return s, err
 			},
 			bal: 0,
-			unc: dcrutil.Amount(TstRecvTx.MsgTx().TxOut[1].Value),
+			unc: ndrutil.Amount(TstRecvTx.MsgTx().TxOut[1].Value),
 			unspents: map[wire.OutPoint]struct{}{
 				{
 					Hash:  *TstRecvTx.Sha(),
 					Index: 1,
-					Tree:  dcrutil.TxTreeRegular,
+					Tree:  ndrutil.TxTreeRegular,
 				}: {},
 			},
 			unmined: map[chainhash.Hash]struct{}{
@@ -194,12 +194,12 @@ func TestInsertsCreditsDebitsRollbacks(t *testing.T) {
 				return s, err
 			},
 			bal: 0,
-			unc: dcrutil.Amount(TstRecvTx.MsgTx().TxOut[1].Value),
+			unc: ndrutil.Amount(TstRecvTx.MsgTx().TxOut[1].Value),
 			unspents: map[wire.OutPoint]struct{}{
 				{
 					Hash:  *TstRecvTx.Sha(),
 					Index: 1,
-					Tree:  dcrutil.TxTreeRegular,
+					Tree:  ndrutil.TxTreeRegular,
 				}: {},
 			},
 			unmined: map[chainhash.Hash]struct{}{
@@ -222,13 +222,13 @@ func TestInsertsCreditsDebitsRollbacks(t *testing.T) {
 					defaultAccount)
 				return s, err
 			},
-			bal: dcrutil.Amount(TstRecvTx.MsgTx().TxOut[1].Value),
+			bal: ndrutil.Amount(TstRecvTx.MsgTx().TxOut[1].Value),
 			unc: 0,
 			unspents: map[wire.OutPoint]struct{}{
 				{
 					Hash:  *TstRecvTx.Sha(),
 					Index: 1,
-					Tree:  dcrutil.TxTreeREgular,
+					Tree:  ndrutil.TxTreeREgular,
 				}: {},
 			},
 			unmined: map[chainhash.Hash]struct{}{},
@@ -249,13 +249,13 @@ func TestInsertsCreditsDebitsRollbacks(t *testing.T) {
 					defaultAccount)
 				return s, err
 			},
-			bal: dcrutil.Amount(TstRecvTx.MsgTx().TxOut[1].Value),
+			bal: ndrutil.Amount(TstRecvTx.MsgTx().TxOut[1].Value),
 			unc: 0,
 			unspents: map[wire.OutPoint]struct{}{
 				{
 					Hash:  *TstRecvTx.Sha(),
 					Index: 1,
-					Tree:  dcrutil.TxTreeRegular,
+					Tree:  ndrutil.TxTreeRegular,
 				}: {},
 			},
 			unmined: map[chainhash.Hash]struct{}{},
@@ -267,12 +267,12 @@ func TestInsertsCreditsDebitsRollbacks(t *testing.T) {
 				return s, err
 			},
 			bal: 0,
-			unc: dcrutil.Amount(TstRecvTx.MsgTx().TxOut[1].Value),
+			unc: ndrutil.Amount(TstRecvTx.MsgTx().TxOut[1].Value),
 			unspents: map[wire.OutPoint]struct{}{
 				{
 					Hash:  *TstRecvTx.Sha(),
 					Index: 1,
-					Tree:  dcrutil.TxTreeRegular,
+					Tree:  ndrutil.TxTreeRegular,
 				}: {},
 			},
 			unmined: map[chainhash.Hash]struct{}{
@@ -295,13 +295,13 @@ func TestInsertsCreditsDebitsRollbacks(t *testing.T) {
 					defaultAccount)
 				return s, err
 			},
-			bal: dcrutil.Amount(TstDoubleSpendTx.MsgTx().TxOut[1].Value),
+			bal: ndrutil.Amount(TstDoubleSpendTx.MsgTx().TxOut[1].Value),
 			unc: 0,
 			unspents: map[wire.OutPoint]struct{}{
 				{
 					Hash:  *TstDoubleSpendTx.Sha(),
 					Index: 0,
-					Tree:  dcrutil.TxTreeRegular,
+					Tree:  ndrutil.TxTreeRegular,
 				}: {},
 			},
 			unmined: map[chainhash.Hash]struct{}{},
@@ -356,12 +356,12 @@ func TestInsertsCreditsDebitsRollbacks(t *testing.T) {
 				return s, err
 			},
 			bal: 0,
-			unc: dcrutil.Amount(TstSpendingTx.MsgTx().TxOut[0].Value),
+			unc: ndrutil.Amount(TstSpendingTx.MsgTx().TxOut[0].Value),
 			unspents: map[wire.OutPoint]struct{}{
 				{
 					Hash:  *TstSpendingTx.Sha(),
 					Index: 0,
-					Tree:  dcrutil.TxTreeRegular,
+					Tree:  ndrutil.TxTreeRegular,
 				}: {},
 			},
 			unmined: map[chainhash.Hash]struct{}{
@@ -383,17 +383,17 @@ func TestInsertsCreditsDebitsRollbacks(t *testing.T) {
 				return s, err
 			},
 			bal: 0,
-			unc: dcrutil.Amount(TstSpendingTx.MsgTx().TxOut[0].Value + TstSpendingTx.MsgTx().TxOut[1].Value),
+			unc: ndrutil.Amount(TstSpendingTx.MsgTx().TxOut[0].Value + TstSpendingTx.MsgTx().TxOut[1].Value),
 			unspents: map[wire.OutPoint]struct{}{
 				{
 					Hash:  *TstSpendingTx.Sha(),
 					Index: 0,
-					Tree:  dcrutil.TxTreeRegular,
+					Tree:  ndrutil.TxTreeRegular,
 				}: {},
 				{
 					Hash:  *TstSpendingTx.Sha(),
 					Index: 1,
-					Tree:  dcrutil.TxTreeRegular,
+					Tree:  ndrutil.TxTreeRegular,
 				}: {},
 			},
 			unmined: map[chainhash.Hash]struct{}{
@@ -410,18 +410,18 @@ func TestInsertsCreditsDebitsRollbacks(t *testing.T) {
 				err = s.InsertTx(rec, TstSignedTxBlockDetails)
 				return s, err
 			},
-			bal: dcrutil.Amount(TstSpendingTx.MsgTx().TxOut[0].Value + TstSpendingTx.MsgTx().TxOut[1].Value),
+			bal: ndrutil.Amount(TstSpendingTx.MsgTx().TxOut[0].Value + TstSpendingTx.MsgTx().TxOut[1].Value),
 			unc: 0,
 			unspents: map[wire.OutPoint]struct{}{
 				{
 					Hash:  *TstSpendingTx.Sha(),
 					Index: 0,
-					Tree:  dcrutil.TxTreeRegular,
+					Tree:  ndrutil.TxTreeRegular,
 				}: {},
 				{
 					Hash:  *TstSpendingTx.Sha(),
 					Index: 1,
-					Tree:  dcrutil.TxTreeRegular,
+					Tree:  ndrutil.TxTreeRegular,
 				}: {},
 			},
 			unmined: map[chainhash.Hash]struct{}{},
@@ -432,18 +432,18 @@ func TestInsertsCreditsDebitsRollbacks(t *testing.T) {
 				err := s.Rollback(TstSignedTxBlockDetails.Height + 1)
 				return s, err
 			},
-			bal: dcrutil.Amount(TstSpendingTx.MsgTx().TxOut[0].Value + TstSpendingTx.MsgTx().TxOut[1].Value),
+			bal: ndrutil.Amount(TstSpendingTx.MsgTx().TxOut[0].Value + TstSpendingTx.MsgTx().TxOut[1].Value),
 			unc: 0,
 			unspents: map[wire.OutPoint]struct{}{
 				{
 					Hash:  *TstSpendingTx.Sha(),
 					Index: 0,
-					Tree:  dcrutil.TxTreeRegular,
+					Tree:  ndrutil.TxTreeRegular,
 				}: {},
 				{
 					Hash:  *TstSpendingTx.Sha(),
 					Index: 1,
-					Tree:  dcrutil.TxTreeRegular,
+					Tree:  ndrutil.TxTreeRegular,
 				}: {},
 			},
 			unmined: map[chainhash.Hash]struct{}{},
@@ -455,17 +455,17 @@ func TestInsertsCreditsDebitsRollbacks(t *testing.T) {
 				return s, err
 			},
 			bal: 0,
-			unc: dcrutil.Amount(TstSpendingTx.MsgTx().TxOut[0].Value + TstSpendingTx.MsgTx().TxOut[1].Value),
+			unc: ndrutil.Amount(TstSpendingTx.MsgTx().TxOut[0].Value + TstSpendingTx.MsgTx().TxOut[1].Value),
 			unspents: map[wire.OutPoint]struct{}{
 				{
 					Hash:  *TstSpendingTx.Sha(),
 					Index: 0,
-					Tree:  dcrutil.TxTreeRegular,
+					Tree:  ndrutil.TxTreeRegular,
 				}: {},
 				{
 					Hash:  *TstSpendingTx.Sha(),
 					Index: 1,
-					Tree:  dcrutil.TxTreeRegular,
+					Tree:  ndrutil.TxTreeRegular,
 				}: {},
 			},
 			unmined: map[chainhash.Hash]struct{}{
@@ -479,10 +479,10 @@ func TestInsertsCreditsDebitsRollbacks(t *testing.T) {
 				return s, err
 			},
 			bal: 0,
-			unc: dcrutil.Amount(TstSpendingTx.MsgTx().TxOut[0].Value + TstSpendingTx.MsgTx().TxOut[1].Value),
+			unc: ndrutil.Amount(TstSpendingTx.MsgTx().TxOut[0].Value + TstSpendingTx.MsgTx().TxOut[1].Value),
 			unspents: map[wire.OutPoint]struct{}{
-				*wire.NewOutPoint(TstSpendingTx.Sha(), 0, dcrutil.TxTreeRegular): {},
-				*wire.NewOutPoint(TstSpendingTx.Sha(), 1, dcrutil.TxTreeRegular): {},
+				*wire.NewOutPoint(TstSpendingTx.Sha(), 0, ndrutil.TxTreeRegular): {},
+				*wire.NewOutPoint(TstSpendingTx.Sha(), 1, ndrutil.TxTreeRegular): {},
 			},
 			unmined: map[chainhash.Hash]struct{}{
 				*TstDoubleSpendTx.Sha(): {},
@@ -504,10 +504,10 @@ func TestInsertsCreditsDebitsRollbacks(t *testing.T) {
 					defaultAccount)
 				return s, err
 			},
-			bal: dcrutil.Amount(TstRecvTx.MsgTx().TxOut[1].Value),
+			bal: ndrutil.Amount(TstRecvTx.MsgTx().TxOut[1].Value),
 			unc: 0,
 			unspents: map[wire.OutPoint]struct{}{
-				*wire.NewOutPoint(TstRecvTx.Sha(), 1, dcrutil.TxTreeRegular): {},
+				*wire.NewOutPoint(TstRecvTx.Sha(), 1, ndrutil.TxTreeRegular): {},
 			},
 			unmined: map[chainhash.Hash]struct{}{},
 		},
@@ -621,7 +621,7 @@ func TestFindingSpentCredits(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	expectedBal := dcrutil.Amount(TstSpendingTx.MsgTx().TxOut[0].Value)
+	expectedBal := ndrutil.Amount(TstSpendingTx.MsgTx().TxOut[0].Value)
 	if bal != expectedBal {
 		t.Fatalf("bad balance: %v != %v", bal, expectedBal)
 	}
@@ -629,7 +629,7 @@ func TestFindingSpentCredits(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	op := wire.NewOutPoint(TstSpendingTx.Sha(), 0, dcrutil.TxTreeStake)
+	op := wire.NewOutPoint(TstSpendingTx.Sha(), 0, ndrutil.TxTreeStake)
 	if unspents[0].OutPoint != *op {
 		t.Fatal("unspent outpoint doesn't match expected")
 	}
@@ -710,7 +710,7 @@ func TestCoinbases(t *testing.T) {
 	type balTest struct {
 		height  int32
 		minConf int32
-		bal     dcrutil.Amount
+		bal     ndrutil.Amount
 	}
 	balTests := []balTest{
 		// Next block it is still immature
@@ -1179,7 +1179,7 @@ func TestMoveMultipleToSameBlock(t *testing.T) {
 	balTests := []struct {
 		height  int32
 		minConf int32
-		bal     dcrutil.Amount
+		bal     ndrutil.Amount
 	}{
 		// Maturity height
 		{

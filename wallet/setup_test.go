@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/endurio/ndrd/chaincfg"
-	"github.com/endurio/ndrd/dcrutil"
+	"github.com/endurio/ndrd/ndrutil"
 	_ "github.com/endurio/ndrw/wallet/drivers/bdb"
 	"github.com/endurio/ndrw/wallet/walletdb"
 )
@@ -18,7 +18,7 @@ import (
 var basicWalletConfig = Config{
 	PubPassphrase: []byte(InsecurePubPassphrase),
 	GapLimit:      20,
-	RelayFee:      dcrutil.Amount(1e5).ToCoin(),
+	RelayFee:      ndrutil.Amount(1e5).ToCoin(),
 	Params:        &chaincfg.SimNetParams,
 }
 

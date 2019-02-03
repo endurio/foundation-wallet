@@ -12,7 +12,7 @@ import (
 
 	"github.com/endurio/ndrd/blockchain"
 	"github.com/endurio/ndrd/chaincfg/chainhash"
-	"github.com/endurio/ndrd/dcrutil"
+	"github.com/endurio/ndrd/ndrutil"
 	"github.com/endurio/ndrd/gcs"
 	"github.com/endurio/ndrd/txscript"
 	"github.com/endurio/ndrd/wire"
@@ -328,7 +328,7 @@ func (w *Wallet) processTransactionRecord(dbtx walletdb.ReadWriteTx, rec *udb.Tx
 					if n, err := w.NetworkBackend(); err == nil {
 						addr := mscriptaddr.Address()
 						err := n.LoadTxFilter(context.TODO(),
-							false, []dcrutil.Address{addr}, nil)
+							false, []ndrutil.Address{addr}, nil)
 						if err != nil {
 							return nil, errors.E(op, err)
 						}

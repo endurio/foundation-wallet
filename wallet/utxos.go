@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/endurio/ndrd/blockchain"
-	"github.com/endurio/ndrd/dcrutil"
+	"github.com/endurio/ndrd/ndrutil"
 	"github.com/endurio/ndrd/txscript"
 	"github.com/endurio/ndrd/wire"
 	"github.com/endurio/ndrw/errors"
@@ -101,7 +101,7 @@ func (w *Wallet) UnspentOutputs(policy OutputSelectionPolicy) ([]*TransactionOut
 
 // SelectInputs selects transaction inputs to redeem unspent outputs stored in
 // the wallet.  It returns an input detail summary.
-func (w *Wallet) SelectInputs(targetAmount dcrutil.Amount, policy OutputSelectionPolicy) (inputDetail *txauthor.InputDetail, err error) {
+func (w *Wallet) SelectInputs(targetAmount ndrutil.Amount, policy OutputSelectionPolicy) (inputDetail *txauthor.InputDetail, err error) {
 	const op errors.Op = "wallet.SelectInputs"
 	err = walletdb.View(w.db, func(tx walletdb.ReadTx) error {
 		addrmgrNs := tx.ReadBucket(waddrmgrNamespaceKey)
@@ -134,7 +134,7 @@ func (w *Wallet) SelectInputs(targetAmount dcrutil.Amount, policy OutputSelectio
 // using an outpoint.
 type OutputInfo struct {
 	Received     time.Time
-	Amount       dcrutil.Amount
+	Amount       ndrutil.Amount
 	FromCoinbase bool
 }
 
@@ -155,7 +155,7 @@ func (w *Wallet) OutputInfo(out *wire.OutPoint) (OutputInfo, error) {
 		}
 
 		info.Received = txDetails.Received
-		info.Amount = dcrutil.Amount(txDetails.TxRecord.MsgTx.TxOut[out.Index].Value)
+		info.Amount = ndrutil.Amount(txDetails.TxRecord.MsgTx.TxOut[out.Index].Value)
 		info.FromCoinbase = blockchain.IsCoinBaseTx(&txDetails.TxRecord.MsgTx)
 		return nil
 	})

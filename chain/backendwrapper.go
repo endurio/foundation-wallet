@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/endurio/ndrd/chaincfg/chainhash"
-	"github.com/endurio/ndrd/dcrutil"
+	"github.com/endurio/ndrd/ndrutil"
 	"github.com/endurio/ndrd/gcs"
 	"github.com/endurio/ndrd/rpcclient"
 	"github.com/endurio/ndrd/wire"
@@ -112,7 +112,7 @@ func (b *rpcBackend) String() string {
 	return b.rpcClient.String()
 }
 
-func (b *rpcBackend) LoadTxFilter(ctx context.Context, reload bool, addrs []dcrutil.Address, outpoints []wire.OutPoint) error {
+func (b *rpcBackend) LoadTxFilter(ctx context.Context, reload bool, addrs []ndrutil.Address, outpoints []wire.OutPoint) error {
 	const op errors.Op = "ndrd.jsonrpc.loadtxfilter"
 
 	err := b.rpcClient.LoadTxFilter(reload, addrs, outpoints)

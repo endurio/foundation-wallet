@@ -16,8 +16,8 @@ import (
 	"io"
 	"os"
 
-	"github.com/endurio/dcrutil"
-	"github.com/endurio/dcrutil/hdkeychain"
+	"github.com/endurio/ndrutil"
+	"github.com/endurio/ndrutil/hdkeychain"
 	"github.com/endurio/ndrd/chaincfg"
 	"github.com/endurio/ndrd/wire"
 	_ "github.com/endurio/ndrw/wallet/internal/bdb"
@@ -88,7 +88,7 @@ func setup() error {
 			Bits:         1,
 			ExtendedBits: []byte{0, 0, 0, 4},
 		}
-		return smgr.InsertSStx(ns, dcrutil.NewTx(&ticketPurchase), vb)
+		return smgr.InsertSStx(ns, ndrutil.NewTx(&ticketPurchase), vb)
 	})
 }
 

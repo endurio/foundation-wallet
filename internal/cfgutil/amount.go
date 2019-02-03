@@ -9,17 +9,17 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/endurio/ndrd/dcrutil"
+	"github.com/endurio/ndrd/ndrutil"
 )
 
-// AmountFlag embeds a dcrutil.Amount and implements the flags.Marshaler and
+// AmountFlag embeds a ndrutil.Amount and implements the flags.Marshaler and
 // Unmarshaler interfaces so it can be used as a config struct field.
 type AmountFlag struct {
-	dcrutil.Amount
+	ndrutil.Amount
 }
 
-// NewAmountFlag creates an AmountFlag with a default dcrutil.Amount.
-func NewAmountFlag(defaultValue dcrutil.Amount) *AmountFlag {
+// NewAmountFlag creates an AmountFlag with a default ndrutil.Amount.
+func NewAmountFlag(defaultValue ndrutil.Amount) *AmountFlag {
 	return &AmountFlag{defaultValue}
 }
 
@@ -35,7 +35,7 @@ func (a *AmountFlag) UnmarshalFlag(value string) error {
 	if err != nil {
 		return err
 	}
-	amount, err := dcrutil.NewAmount(valueF64)
+	amount, err := ndrutil.NewAmount(valueF64)
 	if err != nil {
 		return err
 	}

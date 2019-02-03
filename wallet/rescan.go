@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/endurio/ndrd/chaincfg/chainhash"
-	"github.com/endurio/ndrd/dcrutil"
+	"github.com/endurio/ndrd/ndrutil"
 	"github.com/endurio/ndrd/wire"
 	"github.com/endurio/ndrw/errors"
 	"github.com/endurio/ndrw/wallet/udb"
@@ -42,7 +42,7 @@ type RescanFilter struct {
 
 // NewRescanFilter creates and initializes a RescanFilter containing each passed
 // address and outpoint.
-func NewRescanFilter(addresses []dcrutil.Address, unspentOutPoints []*wire.OutPoint) *RescanFilter {
+func NewRescanFilter(addresses []ndrutil.Address, unspentOutPoints []*wire.OutPoint) *RescanFilter {
 	filter := &RescanFilter{
 		pubKeyHashes:        map[[ripemd160.Size]byte]struct{}{},
 		scriptHashes:        map[[ripemd160.Size]byte]struct{}{},
@@ -63,13 +63,13 @@ func NewRescanFilter(addresses []dcrutil.Address, unspentOutPoints []*wire.OutPo
 }
 
 // AddAddress adds an address to the filter if it does not already exist.
-func (f *RescanFilter) AddAddress(a dcrutil.Address) {
+func (f *RescanFilter) AddAddress(a ndrutil.Address) {
 	switch a := a.(type) {
-	case *dcrutil.AddressPubKeyHash:
+	case *ndrutil.AddressPubKeyHash:
 		f.pubKeyHashes[*a.Hash160()] = struct{}{}
-	case *dcrutil.AddressScriptHash:
+	case *ndrutil.AddressScriptHash:
 		f.scriptHashes[*a.Hash160()] = struct{}{}
-	case *dcrutil.AddressSecpPubKey:
+	case *ndrutil.AddressSecpPubKey:
 		serializedPubKey := a.ScriptAddress()
 		switch len(serializedPubKey) {
 		case 33: // compressed
@@ -87,13 +87,13 @@ func (f *RescanFilter) AddAddress(a dcrutil.Address) {
 }
 
 // ExistsAddress returns whether an address is contained in the filter.
-func (f *RescanFilter) ExistsAddress(a dcrutil.Address) (ok bool) {
+func (f *RescanFilter) ExistsAddress(a ndrutil.Address) (ok bool) {
 	switch a := a.(type) {
-	case *dcrutil.AddressPubKeyHash:
+	case *ndrutil.AddressPubKeyHash:
 		_, ok = f.pubKeyHashes[*a.Hash160()]
-	case *dcrutil.AddressScriptHash:
+	case *ndrutil.AddressScriptHash:
 		_, ok = f.scriptHashes[*a.Hash160()]
-	case *dcrutil.AddressSecpPubKey:
+	case *ndrutil.AddressSecpPubKey:
 		serializedPubKey := a.ScriptAddress()
 		switch len(serializedPubKey) {
 		case 33: // compressed
@@ -118,13 +118,13 @@ func (f *RescanFilter) ExistsAddress(a dcrutil.Address) (ok bool) {
 }
 
 // RemoveAddress removes an address from the filter if it exists.
-func (f *RescanFilter) RemoveAddress(a dcrutil.Address) {
+func (f *RescanFilter) RemoveAddress(a ndrutil.Address) {
 	switch a := a.(type) {
-	case *dcrutil.AddressPubKeyHash:
+	case *ndrutil.AddressPubKeyHash:
 		delete(f.pubKeyHashes, *a.Hash160())
-	case *dcrutil.AddressScriptHash:
+	case *ndrutil.AddressScriptHash:
 		delete(f.scriptHashes, *a.Hash160())
-	case *dcrutil.AddressSecpPubKey:
+	case *ndrutil.AddressSecpPubKey:
 		serializedPubKey := a.ScriptAddress()
 		switch len(serializedPubKey) {
 		case 33: // compressed

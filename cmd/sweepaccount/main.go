@@ -14,8 +14,8 @@ import (
 
 	"github.com/endurio/ndrd/chaincfg"
 	"github.com/endurio/ndrd/chaincfg/chainhash"
-	"github.com/endurio/ndrd/dcrjson"
-	"github.com/endurio/ndrd/dcrutil"
+	"github.com/endurio/ndrd/ndrjson"
+	"github.com/endurio/ndrd/ndrutil"
 	dcrrpcclient "github.com/endurio/ndrd/rpcclient"
 	"github.com/endurio/ndrd/txscript"
 	"github.com/endurio/ndrd/wire"
@@ -26,7 +26,7 @@ import (
 )
 
 var (
-	walletDataDirectory = dcrutil.AppDataDir("ndrw", false)
+	walletDataDirectory = ndrutil.AppDataDir("ndrw", false)
 	newlineBytes        = []byte{'\n'}
 )
 
@@ -182,15 +182,15 @@ func (noInputValue) Error() string { return "no input value" }
 // output is consumed.  The InputSource does not return any previous output
 // scripts as they are not needed for creating the unsinged transaction and are
 // looked up again by the wallet during the call to signrawtransaction.
-func makeInputSource(outputs []dcrjson.ListUnspentResult) txauthor.InputSource {
+func makeInputSource(outputs []ndrjson.ListUnspentResult) txauthor.InputSource {
 	var (
-		totalInputValue   dcrutil.Amount
+		totalInputValue   ndrutil.Amount
 		inputs            = make([]*wire.TxIn, 0, len(outputs))
 		redeemScriptSizes = make([]int, 0, len(outputs))
 		sourceErr         error
 	)
 	for _, output := range outputs {
-		outputAmount, err := dcrutil.NewAmount(output.Amount)
+		outputAmount, err := ndrutil.NewAmount(output.Amount)
 		if err != nil {
 			sourceErr = fmt.Errorf(
 				"invalid amount `%v` in listunspent result",
@@ -223,7 +223,7 @@ func makeInputSource(outputs []dcrjson.ListUnspentResult) txauthor.InputSource {
 		sourceErr = noInputValue{}
 	}
 
-	return func(dcrutil.Amount) (*txauthor.InputDetail, error) {
+	return func(ndrutil.Amount) (*txauthor.InputDetail, error) {
 		inputDetail := txauthor.InputDetail{
 			Amount:            totalInputValue,
 			Inputs:            inputs,
@@ -268,7 +268,7 @@ type destinationScriptSourceToAddress struct {
 
 // Source creates a non-change address.
 func (src *destinationScriptSourceToAddress) Script() ([]byte, uint16, error) {
-	destinationAddress, err := dcrutil.DecodeAddress(src.address)
+	destinationAddress, err := ndrutil.DecodeAddress(src.address)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -324,7 +324,7 @@ func sweep() error {
 	if err != nil {
 		return errContext(err, "failed to fetch unspent outputs")
 	}
-	sourceOutputs := make(map[string][]dcrjson.ListUnspentResult)
+	sourceOutputs := make(map[string][]ndrjson.ListUnspentResult)
 	for _, unspentOutput := range unspentOutputs {
 		if !unspentOutput.Spendable {
 			continue
@@ -356,14 +356,14 @@ func sweep() error {
 		}
 	}
 
-	var totalSwept dcrutil.Amount
+	var totalSwept ndrutil.Amount
 	var numErrors int
 	var reportError = func(format string, args ...interface{}) {
 		fmt.Fprintf(os.Stderr, format, args...)
 		os.Stderr.Write(newlineBytes)
 		numErrors++
 	}
-	feeRate, err := dcrutil.NewAmount(opts.FeeRate)
+	feeRate, err := ndrutil.NewAmount(opts.FeeRate)
 	if err != nil {
 		return errContext(err, "invalid fee rate")
 	}
@@ -430,7 +430,7 @@ func sweep() error {
 			txHash = hash.String()
 		}
 
-		outputAmount := dcrutil.Amount(atx.Tx.TxOut[0].Value)
+		outputAmount := ndrutil.Amount(atx.Tx.TxOut[0].Value)
 		fmt.Printf("Swept %v to destination with transaction %v\n",
 			outputAmount, txHash)
 		totalSwept += outputAmount
@@ -460,11 +460,11 @@ func promptSecret(what string) (string, error) {
 	return string(input), nil
 }
 
-func saneOutputValue(amount dcrutil.Amount) bool {
-	return amount >= 0 && amount <= dcrutil.MaxAmount
+func saneOutputValue(amount ndrutil.Amount) bool {
+	return amount >= 0 && amount <= ndrutil.MaxAmount
 }
 
-func parseOutPoint(input *dcrjson.ListUnspentResult) (wire.OutPoint, error) {
+func parseOutPoint(input *ndrjson.ListUnspentResult) (wire.OutPoint, error) {
 	txHash, err := chainhash.NewHashFromStr(input.TxID)
 	if err != nil {
 		return wire.OutPoint{}, err

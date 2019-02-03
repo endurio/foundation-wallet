@@ -8,7 +8,7 @@ import (
 	"context"
 
 	"github.com/endurio/ndrd/chaincfg/chainhash"
-	"github.com/endurio/ndrd/dcrutil"
+	"github.com/endurio/ndrd/ndrutil"
 	"github.com/endurio/ndrd/gcs"
 	"github.com/endurio/ndrd/wire"
 	"github.com/endurio/ndrw/errors"
@@ -31,7 +31,7 @@ type Peer interface {
 // functionality for rescanning and filtering.
 type NetworkBackend interface {
 	Peer
-	LoadTxFilter(ctx context.Context, reload bool, addrs []dcrutil.Address, outpoints []wire.OutPoint) error
+	LoadTxFilter(ctx context.Context, reload bool, addrs []ndrutil.Address, outpoints []wire.OutPoint) error
 	Rescan(ctx context.Context, blocks []chainhash.Hash, r RescanSaver) error
 }
 

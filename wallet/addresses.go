@@ -8,7 +8,7 @@ import (
 	"context"
 
 	"github.com/endurio/ndrd/chaincfg"
-	"github.com/endurio/ndrd/dcrutil"
+	"github.com/endurio/ndrd/ndrutil"
 	"github.com/endurio/ndrd/hdkeychain"
 	"github.com/endurio/ndrd/txscript"
 	"github.com/endurio/ndrw/errors"
@@ -163,7 +163,7 @@ func (w *Wallet) deferPersistReturnedChild(updates *[]func(walletdb.ReadWriteTx)
 
 // nextAddress returns the next address of an account branch.
 func (w *Wallet) nextAddress(op errors.Op, persist persistReturnedChildFunc, account, branch uint32,
-	callOpts ...NextAddressCallOption) (dcrutil.Address, error) {
+	callOpts ...NextAddressCallOption) (ndrutil.Address, error) {
 
 	var opts nextAddressCallOptions // TODO: zero values for now, add to wallet config later.
 	for _, c := range callOpts {
@@ -374,7 +374,7 @@ func (w *Wallet) watchFutureAddresses(dbtx walletdb.ReadTx) error {
 			errs <- nil
 			continue
 		}
-		addrs := make([]dcrutil.Address, 0, totalAddrs)
+		addrs := make([]ndrutil.Address, 0, totalAddrs)
 		err := appendChildAddrsRange(&addrs, xpubBranchExt, startExt, endExt,
 			w.chainParams)
 		if err != nil {
@@ -412,18 +412,18 @@ func (w *Wallet) watchFutureAddresses(dbtx walletdb.ReadTx) error {
 }
 
 // NewExternalAddress returns an external address.
-func (w *Wallet) NewExternalAddress(account uint32, callOpts ...NextAddressCallOption) (dcrutil.Address, error) {
+func (w *Wallet) NewExternalAddress(account uint32, callOpts ...NextAddressCallOption) (ndrutil.Address, error) {
 	const op errors.Op = "wallet.NewExternalAddress"
 	return w.nextAddress(op, w.persistReturnedChild(nil), account, udb.ExternalBranch, callOpts...)
 }
 
 // NewInternalAddress returns an internal address.
-func (w *Wallet) NewInternalAddress(account uint32, callOpts ...NextAddressCallOption) (dcrutil.Address, error) {
+func (w *Wallet) NewInternalAddress(account uint32, callOpts ...NextAddressCallOption) (ndrutil.Address, error) {
 	const op errors.Op = "wallet.NewExternalAddress"
 	return w.nextAddress(op, w.persistReturnedChild(nil), account, udb.InternalBranch, callOpts...)
 }
 
-func (w *Wallet) newChangeAddress(op errors.Op, persist persistReturnedChildFunc, account uint32) (dcrutil.Address, error) {
+func (w *Wallet) newChangeAddress(op errors.Op, persist persistReturnedChildFunc, account uint32) (ndrutil.Address, error) {
 	// Addresses can not be generated for the imported account, so as a
 	// workaround, change is sent to the first account.
 	//
@@ -438,7 +438,7 @@ func (w *Wallet) newChangeAddress(op errors.Op, persist persistReturnedChildFunc
 // NewInternalAddress but handles the imported account (which can't create
 // addresses) by using account 0 instead, and always uses the wrapping gap limit
 // policy.
-func (w *Wallet) NewChangeAddress(account uint32) (dcrutil.Address, error) {
+func (w *Wallet) NewChangeAddress(account uint32) (ndrutil.Address, error) {
 	const op errors.Op = "wallet.NewChangeAddress"
 	return w.newChangeAddress(op, w.persistReturnedChild(nil), account)
 }
@@ -528,7 +528,7 @@ func (w *Wallet) ExtendWatchedAddresses(account, branch, child uint32) error {
 
 // AccountBranchAddressRange returns all addresses in the range [start, end)
 // belonging to the BIP0044 account and address branch.
-func (w *Wallet) AccountBranchAddressRange(account, branch, start, end uint32) ([]dcrutil.Address, error) {
+func (w *Wallet) AccountBranchAddressRange(account, branch, start, end uint32) ([]ndrutil.Address, error) {
 	const op errors.Op = "wallet.AccountBranchAddressRange"
 
 	if end < start {
@@ -581,8 +581,8 @@ func (src *p2PKHChangeSource) ScriptSize() int {
 	return txsizes.P2PKHPkScriptSize
 }
 
-func deriveChildAddresses(key *hdkeychain.ExtendedKey, startIndex, count uint32, params *chaincfg.Params) ([]dcrutil.Address, error) {
-	addresses := make([]dcrutil.Address, 0, count)
+func deriveChildAddresses(key *hdkeychain.ExtendedKey, startIndex, count uint32, params *chaincfg.Params) ([]ndrutil.Address, error) {
+	addresses := make([]ndrutil.Address, 0, count)
 	for i := uint32(0); i < count; i++ {
 		child, err := key.Child(startIndex + i)
 		if err == hdkeychain.ErrInvalidChild {
@@ -600,7 +600,7 @@ func deriveChildAddresses(key *hdkeychain.ExtendedKey, startIndex, count uint32,
 	return addresses, nil
 }
 
-func deriveChildAddress(key *hdkeychain.ExtendedKey, child uint32, params *chaincfg.Params) (dcrutil.Address, error) {
+func deriveChildAddress(key *hdkeychain.ExtendedKey, child uint32, params *chaincfg.Params) (ndrutil.Address, error) {
 	childKey, err := key.Child(child)
 	if err != nil {
 		return nil, err
@@ -620,7 +620,7 @@ func deriveBranches(acctXpub *hdkeychain.ExtendedKey) (extKey, intKey *hdkeychai
 // appendChildAddrsRange appends non-hardened child addresses from the range
 // [a,b) to the addrs slice.  If a child is unusable, it is skipped, so the
 // total number of addresses appended may not be exactly b-a.
-func appendChildAddrsRange(addrs *[]dcrutil.Address, key *hdkeychain.ExtendedKey,
+func appendChildAddrsRange(addrs *[]ndrutil.Address, key *hdkeychain.ExtendedKey,
 	a, b uint32, params *chaincfg.Params) error {
 
 	for ; a < b && a < hdkeychain.HardenedKeyStart; a++ {

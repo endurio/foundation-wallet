@@ -6,7 +6,7 @@
 package txrules
 
 import (
-	"github.com/endurio/ndrd/dcrutil"
+	"github.com/endurio/ndrd/ndrutil"
 	"github.com/endurio/ndrd/txscript"
 	"github.com/endurio/ndrd/wire"
 	"github.com/endurio/ndrw/errors"
@@ -14,12 +14,12 @@ import (
 )
 
 // DefaultRelayFeePerKb is the default minimum relay fee policy for a mempool.
-const DefaultRelayFeePerKb dcrutil.Amount = 1e4
+const DefaultRelayFeePerKb ndrutil.Amount = 1e4
 
 // IsDustAmount determines whether a transaction output value and script length would
 // cause the output to be considered dust.  Transactions with dust outputs are
 // not standard and are rejected by mempools with default policies.
-func IsDustAmount(amount dcrutil.Amount, scriptSize int, relayFeePerKb dcrutil.Amount) bool {
+func IsDustAmount(amount ndrutil.Amount, scriptSize int, relayFeePerKb ndrutil.Amount) bool {
 	// Calculate the total (estimated) cost to the network.  This is
 	// calculated using the serialize size of the output plus the serial
 	// size of a transaction input which redeems it.  The output is assumed
@@ -37,7 +37,7 @@ func IsDustAmount(amount dcrutil.Amount, scriptSize int, relayFeePerKb dcrutil.A
 // IsDustOutput determines whether a transaction output is considered dust.
 // Transactions with dust outputs are not standard and are rejected by mempools
 // with default policies.
-func IsDustOutput(output *wire.TxOut, relayFeePerKb dcrutil.Amount) bool {
+func IsDustOutput(output *wire.TxOut, relayFeePerKb ndrutil.Amount) bool {
 	// Unspendable outputs which solely carry data are not checked for dust.
 	if txscript.GetScriptClass(output.Version, output.PkScript) == txscript.NullDataTy {
 		return false
@@ -48,18 +48,18 @@ func IsDustOutput(output *wire.TxOut, relayFeePerKb dcrutil.Amount) bool {
 		return true
 	}
 
-	return IsDustAmount(dcrutil.Amount(output.Value), len(output.PkScript),
+	return IsDustAmount(ndrutil.Amount(output.Value), len(output.PkScript),
 		relayFeePerKb)
 }
 
 // CheckOutput performs simple consensus and policy tests on a transaction
 // output.  Returns with errors.Invalid if output violates consensus rules, and
 // errors.Policy if the output violates a non-consensus policy.
-func CheckOutput(output *wire.TxOut, relayFeePerKb dcrutil.Amount) error {
+func CheckOutput(output *wire.TxOut, relayFeePerKb ndrutil.Amount) error {
 	if output.Value < 0 {
 		return errors.E(errors.Invalid, "transaction output amount is negative")
 	}
-	if output.Value > dcrutil.MaxAmount {
+	if output.Value > ndrutil.MaxAmount {
 		return errors.E(errors.Invalid, "transaction output amount exceeds maximum value")
 	}
 	if IsDustOutput(output, relayFeePerKb) {
@@ -70,15 +70,15 @@ func CheckOutput(output *wire.TxOut, relayFeePerKb dcrutil.Amount) error {
 
 // FeeForSerializeSize calculates the required fee for a transaction of some
 // arbitrary size given a mempool's relay fee policy.
-func FeeForSerializeSize(relayFeePerKb dcrutil.Amount, txSerializeSize int) dcrutil.Amount {
-	fee := relayFeePerKb * dcrutil.Amount(txSerializeSize) / 1000
+func FeeForSerializeSize(relayFeePerKb ndrutil.Amount, txSerializeSize int) ndrutil.Amount {
+	fee := relayFeePerKb * ndrutil.Amount(txSerializeSize) / 1000
 
 	if fee == 0 && relayFeePerKb > 0 {
 		fee = relayFeePerKb
 	}
 
-	if fee < 0 || fee > dcrutil.MaxAmount {
-		fee = dcrutil.MaxAmount
+	if fee < 0 || fee > ndrutil.MaxAmount {
+		fee = ndrutil.MaxAmount
 	}
 
 	return fee
@@ -87,7 +87,7 @@ func FeeForSerializeSize(relayFeePerKb dcrutil.Amount, txSerializeSize int) dcru
 // PaysHighFees checks whether the signed transaction pays insanely high fees.
 // Transactons are defined to have a high fee if they have pay a fee rate that
 // is 1000 time higher than the default fee.
-func PaysHighFees(totalInput dcrutil.Amount, tx *wire.MsgTx) bool {
+func PaysHighFees(totalInput ndrutil.Amount, tx *wire.MsgTx) bool {
 	fee := totalInput - h.SumOutputValues(tx.TxOut)
 	if fee <= 0 {
 		// Impossible to determine

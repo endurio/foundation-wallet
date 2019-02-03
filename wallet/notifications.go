@@ -12,7 +12,7 @@ import (
 
 	"github.com/endurio/ndrd/blockchain"
 	"github.com/endurio/ndrd/chaincfg/chainhash"
-	"github.com/endurio/ndrd/dcrutil"
+	"github.com/endurio/ndrd/ndrutil"
 	"github.com/endurio/ndrd/hdkeychain"
 	"github.com/endurio/ndrd/txscript"
 	"github.com/endurio/ndrd/wire"
@@ -83,7 +83,7 @@ func lookupInputAccount(dbtx walletdb.ReadTx, w *Wallet, details *udb.TxDetails,
 }
 
 func lookupOutputChain(dbtx walletdb.ReadTx, w *Wallet, details *udb.TxDetails,
-	cred udb.CreditRecord) (account uint32, internal bool, address dcrutil.Address,
+	cred udb.CreditRecord) (account uint32, internal bool, address ndrutil.Address,
 	amount int64, outputScript []byte) {
 
 	addrmgrNs := dbtx.ReadBucket(waddrmgrNamespaceKey)
@@ -117,13 +117,13 @@ func makeTxSummary(dbtx walletdb.ReadTx, w *Wallet, details *udb.TxDetails) Tran
 		}
 		serializedTx = buf.Bytes()
 	}
-	var fee dcrutil.Amount
+	var fee ndrutil.Amount
 	if len(details.Debits) == len(details.MsgTx.TxIn) {
 		for _, deb := range details.Debits {
 			fee += deb.Amount
 		}
 		for _, txOut := range details.MsgTx.TxOut {
-			fee -= dcrutil.Amount(txOut.Value)
+			fee -= ndrutil.Amount(txOut.Value)
 		}
 	}
 	var inputs []TransactionSummaryInput
@@ -149,7 +149,7 @@ func makeTxSummary(dbtx walletdb.ReadTx, w *Wallet, details *udb.TxDetails) Tran
 			Index:        uint32(i),
 			Account:      acct,
 			Internal:     internal,
-			Amount:       dcrutil.Amount(amount),
+			Amount:       ndrutil.Amount(amount),
 			Address:      address,
 			OutputScript: outputScript,
 		}
@@ -175,7 +175,7 @@ func makeTxSummary(dbtx walletdb.ReadTx, w *Wallet, details *udb.TxDetails) Tran
 	}
 }
 
-func totalBalances(dbtx walletdb.ReadTx, w *Wallet, m map[uint32]dcrutil.Amount) error {
+func totalBalances(dbtx walletdb.ReadTx, w *Wallet, m map[uint32]ndrutil.Amount) error {
 	addrmgrNs := dbtx.ReadBucket(waddrmgrNamespaceKey)
 	unspent, err := w.TxStore.UnspentOutputs(dbtx.ReadBucket(wtxmgrNamespaceKey))
 	if err != nil {
@@ -199,7 +199,7 @@ func totalBalances(dbtx walletdb.ReadTx, w *Wallet, m map[uint32]dcrutil.Amount)
 	return nil
 }
 
-func flattenBalanceMap(m map[uint32]dcrutil.Amount) []AccountBalance {
+func flattenBalanceMap(m map[uint32]ndrutil.Amount) []AccountBalance {
 	s := make([]AccountBalance, 0, len(m))
 	for k, v := range m {
 		s = append(s, AccountBalance{Account: k, TotalBalance: v})
@@ -207,7 +207,7 @@ func flattenBalanceMap(m map[uint32]dcrutil.Amount) []AccountBalance {
 	return s
 }
 
-func relevantAccounts(w *Wallet, m map[uint32]dcrutil.Amount, txs []TransactionSummary) {
+func relevantAccounts(w *Wallet, m map[uint32]ndrutil.Amount, txs []TransactionSummary) {
 	for _, tx := range txs {
 		for _, d := range tx.MyInputs {
 			m[d.PreviousAccount] = 0
@@ -238,7 +238,7 @@ func (s *NotificationServer) notifyUnminedTransaction(dbtx walletdb.ReadTx, deta
 		log.Errorf("Cannot fetch unmined transaction hashes: %v", err)
 		return
 	}
-	bals := make(map[uint32]dcrutil.Amount)
+	bals := make(map[uint32]ndrutil.Amount)
 	relevantAccounts(s.wallet, bals, unminedTxs)
 	err = totalBalances(dbtx, s.wallet, bals)
 	if err != nil {
@@ -308,7 +308,7 @@ func (s *NotificationServer) sendAttachedBlockNotification() {
 
 	var (
 		w             = s.wallet
-		bals          = make(map[uint32]dcrutil.Amount)
+		bals          = make(map[uint32]ndrutil.Amount)
 		unminedHashes []*chainhash.Hash
 	)
 	err := walletdb.View(w.db, func(dbtx walletdb.ReadTx) error {
@@ -381,7 +381,7 @@ type TransactionSummary struct {
 	Transaction []byte
 	MyInputs    []TransactionSummaryInput
 	MyOutputs   []TransactionSummaryOutput
-	Fee         dcrutil.Amount
+	Fee         ndrutil.Amount
 	Timestamp   int64
 	Type        TransactionType
 }
@@ -415,7 +415,7 @@ func TxTransactionType(tx *wire.MsgTx) TransactionType {
 type TransactionSummaryInput struct {
 	Index           uint32
 	PreviousAccount uint32
-	PreviousAmount  dcrutil.Amount
+	PreviousAmount  ndrutil.Amount
 }
 
 // TransactionSummaryOutput describes wallet properties of a transaction output
@@ -425,8 +425,8 @@ type TransactionSummaryOutput struct {
 	Index        uint32
 	Account      uint32
 	Internal     bool
-	Amount       dcrutil.Amount
-	Address      dcrutil.Address
+	Amount       ndrutil.Amount
+	Address      ndrutil.Address
 	OutputScript []byte
 }
 
@@ -436,7 +436,7 @@ type TransactionSummaryOutput struct {
 // so they are not included.
 type AccountBalance struct {
 	Account      uint32
-	TotalBalance dcrutil.Amount
+	TotalBalance ndrutil.Amount
 }
 
 // TransactionNotificationsClient receives TransactionNotifications from the

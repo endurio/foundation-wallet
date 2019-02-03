@@ -13,7 +13,7 @@ import (
 
 	"github.com/endurio/ndrd/chaincfg"
 	"github.com/endurio/ndrd/chaincfg/chainhash"
-	"github.com/endurio/ndrd/dcrutil"
+	"github.com/endurio/ndrd/ndrutil"
 	"github.com/endurio/ndrd/wire"
 	"github.com/endurio/ndrw/errors"
 	"github.com/endurio/ndrw/wallet/walletdb"
@@ -150,15 +150,15 @@ var (
 // outputs spent by mempool transactions, which must be considered when
 // returning the actual balance for a given number of block confirmations.  The
 // value is the amount serialized as a uint64.
-func fetchMinedBalance(ns walletdb.ReadBucket) (dcrutil.Amount, error) {
+func fetchMinedBalance(ns walletdb.ReadBucket) (ndrutil.Amount, error) {
 	v := ns.Get(rootMinedBalance)
 	if len(v) != 8 {
 		return 0, errors.E(errors.IO, errors.Errorf("mined balance len %d", len(v)))
 	}
-	return dcrutil.Amount(byteOrder.Uint64(v)), nil
+	return ndrutil.Amount(byteOrder.Uint64(v)), nil
 }
 
-func putMinedBalance(ns walletdb.ReadWriteBucket, amt dcrutil.Amount) error {
+func putMinedBalance(ns walletdb.ReadWriteBucket, amt ndrutil.Amount) error {
 	v := make([]byte, 8)
 	byteOrder.PutUint64(v, uint64(amt))
 	err := ns.Put(rootMinedBalance, v)
@@ -771,29 +771,29 @@ func extractRawCreditSpenderDebitKey(v []byte) []byte {
 }
 
 // fetchRawCreditAmount returns the amount of the credit.
-func fetchRawCreditAmount(v []byte) (dcrutil.Amount, error) {
+func fetchRawCreditAmount(v []byte) (ndrutil.Amount, error) {
 	if len(v) < 9 {
 		return 0, errors.E(errors.IO, errors.Errorf("credit len %d", len(v)))
 	}
-	return dcrutil.Amount(byteOrder.Uint64(v)), nil
+	return ndrutil.Amount(byteOrder.Uint64(v)), nil
 }
 
 // fetchRawCreditAmountSpent returns the amount of the credit and whether the
 // credit is spent.
-func fetchRawCreditAmountSpent(v []byte) (dcrutil.Amount, bool, error) {
+func fetchRawCreditAmountSpent(v []byte) (ndrutil.Amount, bool, error) {
 	if len(v) < 9 {
 		return 0, false, errors.E(errors.IO, errors.Errorf("credit len %d", len(v)))
 	}
-	return dcrutil.Amount(byteOrder.Uint64(v)), v[8]&(1<<0) != 0, nil
+	return ndrutil.Amount(byteOrder.Uint64(v)), v[8]&(1<<0) != 0, nil
 }
 
 // fetchRawCreditAmountChange returns the amount of the credit and whether the
 // credit is marked as change.
-func fetchRawCreditAmountChange(v []byte) (dcrutil.Amount, bool, error) {
+func fetchRawCreditAmountChange(v []byte) (ndrutil.Amount, bool, error) {
 	if len(v) < 9 {
 		return 0, false, errors.E(errors.IO, errors.Errorf("credit len %d", len(v)))
 	}
-	return dcrutil.Amount(byteOrder.Uint64(v)), v[8]&(1<<1) != 0, nil
+	return ndrutil.Amount(byteOrder.Uint64(v)), v[8]&(1<<1) != 0, nil
 }
 
 // fetchRawCreditUnspentValue returns the unspent value for a raw credit key.
@@ -860,7 +860,7 @@ func fetchRawCreditAccount(v []byte) (uint32, error) {
 // spendRawCredit marks the credit with a given key as mined at some particular
 // block as spent by the input at some transaction incidence.  The debited
 // amount is returned.
-func spendCredit(ns walletdb.ReadWriteBucket, k []byte, spender *indexedIncidence) (dcrutil.Amount, error) {
+func spendCredit(ns walletdb.ReadWriteBucket, k []byte, spender *indexedIncidence) (ndrutil.Amount, error) {
 	v := ns.NestedReadWriteBucket(bucketCredits).Get(k)
 	newv := make([]byte, creditValueSize)
 	copy(newv, v)
@@ -871,13 +871,13 @@ func spendCredit(ns walletdb.ReadWriteBucket, k []byte, spender *indexedIncidenc
 	copy(v[45:77], spender.block.Hash[:])
 	byteOrder.PutUint32(v[77:81], spender.index)
 
-	return dcrutil.Amount(byteOrder.Uint64(v[0:8])), putRawCredit(ns, k, v)
+	return ndrutil.Amount(byteOrder.Uint64(v[0:8])), putRawCredit(ns, k, v)
 }
 
 // unspendRawCredit rewrites the credit for the given key as unspent.  The
 // output amount of the credit is returned.  It returns without error if no
 // credit exists for the key.
-func unspendRawCredit(ns walletdb.ReadWriteBucket, k []byte) (dcrutil.Amount, error) {
+func unspendRawCredit(ns walletdb.ReadWriteBucket, k []byte) (ndrutil.Amount, error) {
 	b := ns.NestedReadWriteBucket(bucketCredits)
 	v := b.Get(k)
 	if v == nil {
@@ -891,7 +891,7 @@ func unspendRawCredit(ns walletdb.ReadWriteBucket, k []byte) (dcrutil.Amount, er
 	if err != nil {
 		return 0, errors.E(errors.IO, err)
 	}
-	return dcrutil.Amount(byteOrder.Uint64(v[0:8])), nil
+	return ndrutil.Amount(byteOrder.Uint64(v[0:8])), nil
 }
 
 func existsCredit(ns walletdb.ReadBucket, txHash *chainhash.Hash, index uint32, block *Block) (k, v []byte) {
@@ -955,7 +955,7 @@ func (it *creditIterator) readElem() error {
 		return errors.E(errors.IO, errors.Errorf("credit len %d", len(it.cv)))
 	}
 	it.elem.Index = byteOrder.Uint32(it.ck[68:72])
-	it.elem.Amount = dcrutil.Amount(byteOrder.Uint64(it.cv))
+	it.elem.Amount = ndrutil.Amount(byteOrder.Uint64(it.cv))
 	it.elem.Spent = it.cv[8]&(1<<0) != 0
 	it.elem.Change = it.cv[8]&(1<<1) != 0
 	it.elem.IsCoinbase = fetchRawCreditIsCoinbase(it.cv)
@@ -1105,14 +1105,14 @@ func keyDebit(txHash *chainhash.Hash, index uint32, block *Block) []byte {
 	return k
 }
 
-func valueDebit(amount dcrutil.Amount, credKey []byte) []byte {
+func valueDebit(amount ndrutil.Amount, credKey []byte) []byte {
 	v := make([]byte, 80)
 	byteOrder.PutUint64(v, uint64(amount))
 	copy(v[8:80], credKey)
 	return v
 }
 
-func putDebit(ns walletdb.ReadWriteBucket, txHash *chainhash.Hash, index uint32, amount dcrutil.Amount, block *Block, credKey []byte) error {
+func putDebit(ns walletdb.ReadWriteBucket, txHash *chainhash.Hash, index uint32, amount ndrutil.Amount, block *Block, credKey []byte) error {
 	k := keyDebit(txHash, index, block)
 	v := valueDebit(amount, credKey)
 
@@ -1135,8 +1135,8 @@ func extractRawDebitHash(k []byte) []byte {
 	return k[:32]
 }
 
-func extractRawDebitAmount(v []byte) dcrutil.Amount {
-	return dcrutil.Amount(byteOrder.Uint64(v[:8]))
+func extractRawDebitAmount(v []byte) ndrutil.Amount {
+	return ndrutil.Amount(byteOrder.Uint64(v[:8]))
 }
 
 func extractRawDebitCreditKey(v []byte) []byte {
@@ -1206,7 +1206,7 @@ func (it *debitIterator) readElem() error {
 		return errors.E(errors.IO, errors.Errorf("debit len %d", len(it.cv)))
 	}
 	it.elem.Index = byteOrder.Uint32(it.ck[68:72])
-	it.elem.Amount = dcrutil.Amount(byteOrder.Uint64(it.cv))
+	it.elem.Amount = ndrutil.Amount(byteOrder.Uint64(it.cv))
 	return nil
 }
 
@@ -1326,7 +1326,7 @@ const (
 	unconfValueSize = 22
 )
 
-func valueUnminedCredit(amount dcrutil.Amount, change bool,
+func valueUnminedCredit(amount ndrutil.Amount, change bool,
 	IsCoinbase bool, hasExpiry bool, scrType scriptType, scrLoc uint32, scrLen uint32,
 	account uint32, dbVersion uint32) []byte {
 	v := make([]byte, unconfValueSize)
@@ -1371,18 +1371,18 @@ func fetchRawUnminedCreditIndex(k []byte) (uint32, error) {
 	return byteOrder.Uint32(k[32:36]), nil
 }
 
-func fetchRawUnminedCreditAmount(v []byte) (dcrutil.Amount, error) {
+func fetchRawUnminedCreditAmount(v []byte) (ndrutil.Amount, error) {
 	if len(v) < unconfValueSizeLegacy {
 		return 0, errors.E(errors.IO, errors.Errorf("unmined credit len %d", len(v)))
 	}
-	return dcrutil.Amount(byteOrder.Uint64(v)), nil
+	return ndrutil.Amount(byteOrder.Uint64(v)), nil
 }
 
-func fetchRawUnminedCreditAmountChange(v []byte) (dcrutil.Amount, bool, error) {
+func fetchRawUnminedCreditAmountChange(v []byte) (ndrutil.Amount, bool, error) {
 	if len(v) < unconfValueSizeLegacy {
 		return 0, false, errors.E(errors.IO, errors.Errorf("unmined credit len %d", len(v)))
 	}
-	amt := dcrutil.Amount(byteOrder.Uint64(v))
+	amt := ndrutil.Amount(byteOrder.Uint64(v))
 	change := v[8]&(1<<1) != 0
 	return amt, change, nil
 }
@@ -1582,7 +1582,7 @@ func readRawUnminedInputSpenderHash(v []byte, hash *chainhash.Hash) {
 // Tx scripts are stored as the raw serialized script. The key in the database
 // for the TxScript itself is the hash160 of the script.
 func keyTxScript(script []byte) []byte {
-	return dcrutil.Hash160(script)
+	return ndrutil.Hash160(script)
 }
 
 func putTxScript(ns walletdb.ReadWriteBucket, script []byte) error {
@@ -1633,7 +1633,7 @@ func keyMultisigOut(hash chainhash.Hash, index uint32) []byte {
 
 func valueMultisigOut(sh [ripemd160.Size]byte, m uint8, n uint8,
 	spent bool, blockHash chainhash.Hash,
-	blockHeight uint32, amount dcrutil.Amount, spentBy chainhash.Hash,
+	blockHeight uint32, amount ndrutil.Amount, spentBy chainhash.Hash,
 	sbi uint32, txHash chainhash.Hash) []byte {
 	v := make([]byte, 135)
 
@@ -1683,7 +1683,7 @@ func fetchMultisigOut(k, v []byte) (*MultisigOut, error) {
 
 	copy(mso.BlockHash[0:32], v[23:55])
 	mso.BlockHeight = byteOrder.Uint32(v[55:59])
-	mso.Amount = dcrutil.Amount(byteOrder.Uint64(v[59:67]))
+	mso.Amount = ndrutil.Amount(byteOrder.Uint64(v[59:67]))
 
 	copy(mso.SpentBy[0:32], v[67:99])
 	mso.SpentByIndex = byteOrder.Uint32(v[99:103])
@@ -1726,8 +1726,8 @@ func fetchMultisigOutMined(v []byte) (chainhash.Hash, uint32) {
 	return blockHash, blockHeight
 }
 
-func fetchMultisigOutAmount(v []byte) dcrutil.Amount {
-	return dcrutil.Amount(byteOrder.Uint64(v[59:67]))
+func fetchMultisigOutAmount(v []byte) ndrutil.Amount {
+	return ndrutil.Amount(byteOrder.Uint64(v[59:67]))
 }
 
 func setMultisigOutSpent(v []byte, spendHash chainhash.Hash, spendIndex uint32) {

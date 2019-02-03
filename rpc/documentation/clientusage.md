@@ -57,10 +57,10 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 
-	"github.com/endurio/ndrd/dcrutil"
+	"github.com/endurio/ndrd/ndrutil"
 )
 
-var certificateFile = filepath.Join(dcrutil.AppDataDir("ndrw", false), "rpc.cert")
+var certificateFile = filepath.Join(ndrutil.AppDataDir("ndrw", false), "rpc.cert")
 
 func main() {
 	creds, err := credentials.NewClientTLSFromFile(certificateFile, "localhost")
@@ -86,7 +86,7 @@ func main() {
 		return
 	}
 
-	fmt.Println("Spendable balance: ", dcrutil.Amount(balanceResponse.Spendable))
+	fmt.Println("Spendable balance: ", ndrutil.Amount(balanceResponse.Spendable))
 }
 ```
 

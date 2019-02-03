@@ -19,8 +19,8 @@ import (
 	"github.com/endurio/ndrd/chaincfg"
 	"github.com/endurio/ndrd/chaincfg/chainec"
 	"github.com/endurio/ndrd/chaincfg/chainhash"
-	"github.com/endurio/ndrd/dcrec/secp256k1"
-	"github.com/endurio/ndrd/dcrutil"
+	"github.com/endurio/ndrd/ndrec/secp256k1"
+	"github.com/endurio/ndrd/ndrutil"
 	"github.com/endurio/ndrd/hdkeychain"
 	"github.com/endurio/ndrd/txscript"
 	"github.com/endurio/ndrd/wire"
@@ -83,7 +83,7 @@ func setup() error {
 		}
 
 		privKey, _ := secp256k1.PrivKeyFromBytes(privKey)
-		wif, err := dcrutil.NewWIF(privKey, chainParams, chainec.ECTypeSecp256k1)
+		wif, err := ndrutil.NewWIF(privKey, chainParams, chainec.ECTypeSecp256k1)
 		if err != nil {
 			return err
 		}
@@ -132,7 +132,7 @@ func setup() error {
 			if err != nil {
 				return errors.Errorf("failed to create pkscript: %s", err)
 			}
-			msgTx.AddTxOut(wire.NewTxOut(int64(dcrutil.Amount(1*count)), pkScript))
+			msgTx.AddTxOut(wire.NewTxOut(int64(ndrutil.Amount(1*count)), pkScript))
 			rec, err := udb.NewTxRecordFromMsgTx(msgTx, epoch)
 			if err != nil {
 				return err
@@ -149,7 +149,7 @@ func setup() error {
 
 		// Add 3 unmined credits with expiries set
 		for count := 1; count < 4; count++ {
-			faucetAddr, err := dcrutil.DecodeAddress("TsWjioPrP8E1TuTMmTrVMM2BA4iPrjQXBpR")
+			faucetAddr, err := ndrutil.DecodeAddress("TsWjioPrP8E1TuTMmTrVMM2BA4iPrjQXBpR")
 			if err != nil {
 				return errors.Errorf("failed to decode address: %s", err)
 			}
@@ -159,7 +159,7 @@ func setup() error {
 			if err != nil {
 				return errors.Errorf("failed to create pkscript: %s", err)
 			}
-			msgTx.AddTxOut(wire.NewTxOut(int64(dcrutil.Amount(1*count)), pkScript))
+			msgTx.AddTxOut(wire.NewTxOut(int64(ndrutil.Amount(1*count)), pkScript))
 			rec, err := udb.NewTxRecordFromMsgTx(msgTx, epoch)
 			if err != nil {
 				return err
@@ -177,7 +177,7 @@ func setup() error {
 			if err != nil {
 				return errors.Errorf("failed to create pkscript: %s", err)
 			}
-			msgTx.AddTxOut(wire.NewTxOut(int64(dcrutil.Amount(1*count)), pkScript))
+			msgTx.AddTxOut(wire.NewTxOut(int64(ndrutil.Amount(1*count)), pkScript))
 			msgTx.Expiry = wire.NoExpiryValue
 			rec, err := udb.NewTxRecordFromMsgTx(msgTx, epoch)
 			if err != nil {

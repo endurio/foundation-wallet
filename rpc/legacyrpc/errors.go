@@ -8,47 +8,47 @@ package legacyrpc
 import (
 	"fmt"
 
-	"github.com/endurio/ndrd/dcrjson"
+	"github.com/endurio/ndrd/ndrjson"
 	"github.com/endurio/ndrw/errors"
 )
 
-func convertError(err error) *dcrjson.RPCError {
-	if err, ok := err.(*dcrjson.RPCError); ok {
+func convertError(err error) *ndrjson.RPCError {
+	if err, ok := err.(*ndrjson.RPCError); ok {
 		return err
 	}
 
-	code := dcrjson.ErrRPCWallet
+	code := ndrjson.ErrRPCWallet
 	if err, ok := err.(*errors.Error); ok {
 		switch err.Kind {
 		case errors.Bug:
-			code = dcrjson.ErrRPCInternal.Code
+			code = ndrjson.ErrRPCInternal.Code
 		case errors.Encoding:
-			code = dcrjson.ErrRPCInvalidParameter
+			code = ndrjson.ErrRPCInvalidParameter
 		case errors.Locked:
-			code = dcrjson.ErrRPCWalletUnlockNeeded
+			code = ndrjson.ErrRPCWalletUnlockNeeded
 		case errors.Passphrase:
-			code = dcrjson.ErrRPCWalletPassphraseIncorrect
+			code = ndrjson.ErrRPCWalletPassphraseIncorrect
 		case errors.NoPeers:
-			code = dcrjson.ErrRPCClientNotConnected
+			code = ndrjson.ErrRPCClientNotConnected
 		case errors.InsufficientBalance:
-			code = dcrjson.ErrRPCWalletInsufficientFunds
+			code = ndrjson.ErrRPCWalletInsufficientFunds
 		}
 	}
-	return &dcrjson.RPCError{
+	return &ndrjson.RPCError{
 		Code:    code,
 		Message: err.Error(),
 	}
 }
 
-func rpcError(code dcrjson.RPCErrorCode, err error) *dcrjson.RPCError {
-	return &dcrjson.RPCError{
+func rpcError(code ndrjson.RPCErrorCode, err error) *ndrjson.RPCError {
+	return &ndrjson.RPCError{
 		Code:    code,
 		Message: err.Error(),
 	}
 }
 
-func rpcErrorf(code dcrjson.RPCErrorCode, format string, args ...interface{}) *dcrjson.RPCError {
-	return &dcrjson.RPCError{
+func rpcErrorf(code ndrjson.RPCErrorCode, format string, args ...interface{}) *ndrjson.RPCError {
+	return &ndrjson.RPCError{
 		Code:    code,
 		Message: fmt.Sprintf(format, args...),
 	}
@@ -56,48 +56,48 @@ func rpcErrorf(code dcrjson.RPCErrorCode, format string, args ...interface{}) *d
 
 // Errors variables that are defined once here to avoid duplication.
 var (
-	errUnloadedWallet = &dcrjson.RPCError{
-		Code:    dcrjson.ErrRPCWallet,
+	errUnloadedWallet = &ndrjson.RPCError{
+		Code:    ndrjson.ErrRPCWallet,
 		Message: "request requires a wallet but wallet has not loaded yet",
 	}
 
-	errRPCClientNotConnected = &dcrjson.RPCError{
-		Code:    dcrjson.ErrRPCClientNotConnected,
+	errRPCClientNotConnected = &ndrjson.RPCError{
+		Code:    ndrjson.ErrRPCClientNotConnected,
 		Message: "disconnected from consensus RPC",
 	}
 
-	errNoNetwork = &dcrjson.RPCError{
-		Code:    dcrjson.ErrRPCClientNotConnected,
+	errNoNetwork = &ndrjson.RPCError{
+		Code:    ndrjson.ErrRPCClientNotConnected,
 		Message: "disconnected from network",
 	}
 
-	errAccountNotFound = &dcrjson.RPCError{
-		Code:    dcrjson.ErrRPCWalletInvalidAccountName,
+	errAccountNotFound = &ndrjson.RPCError{
+		Code:    ndrjson.ErrRPCWalletInvalidAccountName,
 		Message: "account not found",
 	}
 
-	errAddressNotInWallet = &dcrjson.RPCError{
-		Code:    dcrjson.ErrRPCWallet,
+	errAddressNotInWallet = &ndrjson.RPCError{
+		Code:    ndrjson.ErrRPCWallet,
 		Message: "address not found in wallet",
 	}
 
-	errNotImportedAccount = &dcrjson.RPCError{
-		Code:    dcrjson.ErrRPCWallet,
+	errNotImportedAccount = &ndrjson.RPCError{
+		Code:    ndrjson.ErrRPCWallet,
 		Message: "imported addresses must belong to the imported account",
 	}
 
-	errNeedPositiveAmount = &dcrjson.RPCError{
-		Code:    dcrjson.ErrRPCInvalidParameter,
+	errNeedPositiveAmount = &ndrjson.RPCError{
+		Code:    ndrjson.ErrRPCInvalidParameter,
 		Message: "amount must be positive",
 	}
 
-	errWalletUnlockNeeded = &dcrjson.RPCError{
-		Code:    dcrjson.ErrRPCWalletUnlockNeeded,
+	errWalletUnlockNeeded = &ndrjson.RPCError{
+		Code:    ndrjson.ErrRPCWalletUnlockNeeded,
 		Message: "enter the wallet passphrase with walletpassphrase first",
 	}
 
-	errReservedAccountName = &dcrjson.RPCError{
-		Code:    dcrjson.ErrRPCInvalidParameter,
+	errReservedAccountName = &ndrjson.RPCError{
+		Code:    ndrjson.ErrRPCInvalidParameter,
 		Message: "account name is reserved by RPC server",
 	}
 )

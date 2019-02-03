@@ -12,7 +12,7 @@ import (
 	"sync"
 
 	"github.com/endurio/ndrd/chaincfg/chainhash"
-	"github.com/endurio/ndrd/dcrutil"
+	"github.com/endurio/ndrd/ndrutil"
 	"github.com/endurio/ndrd/gcs/blockcf"
 	hd "github.com/endurio/ndrd/hdkeychain"
 	rpc "github.com/endurio/ndrd/rpcclient"
@@ -525,7 +525,7 @@ type existsAddrIndexFinder struct {
 	client *rpc.Client
 }
 
-func (f *existsAddrIndexFinder) addressesUsed(addrs []dcrutil.Address) (bitset.Bytes, error) {
+func (f *existsAddrIndexFinder) addressesUsed(addrs []ndrutil.Address) (bitset.Bytes, error) {
 	const op errors.Op = "ndrd.jsonrpc.existsaddresses"
 
 	hexBitSet, err := f.client.ExistsAddresses(addrs)

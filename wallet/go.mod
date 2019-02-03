@@ -5,10 +5,10 @@ require (
 	github.com/endurio/ndrd/blockchain v1.1.1
 	github.com/endurio/ndrd/chaincfg v1.2.0
 	github.com/endurio/ndrd/chaincfg/chainhash v1.0.1
-	github.com/endurio/ndrd/dcrec v0.0.0-20181212181811-1a370d38d671
-	github.com/endurio/ndrd/dcrec/secp256k1 v1.0.1
-	github.com/endurio/ndrd/dcrjson v1.1.0
-	github.com/endurio/ndrd/dcrutil v1.2.0
+	github.com/endurio/ndrd/ndrec v0.0.0-20181212181811-1a370d38d671
+	github.com/endurio/ndrd/ndrec/secp256k1 v1.0.1
+	github.com/endurio/ndrd/ndrjson v1.1.0
+	github.com/endurio/ndrd/ndrutil v1.2.0
 	github.com/endurio/ndrd/gcs v1.0.2
 	github.com/endurio/ndrd/hdkeychain v1.1.1
 	github.com/endurio/ndrd/mempool v1.1.1
