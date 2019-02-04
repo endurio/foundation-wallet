@@ -1,8 +1,8 @@
 module github.com/endurio/ndrw
 
 require (
-	github.com/dchest/siphash v1.2.1 // indirect
 	github.com/decred/slog v1.0.0
+	github.com/endurio/ndrd v1.3.0
 	github.com/endurio/ndrd/addrmgr v1.0.2
 	github.com/endurio/ndrd/blockchain v1.1.1
 	github.com/endurio/ndrd/certgen v1.0.2
@@ -29,7 +29,7 @@ require (
 	github.com/gorilla/websocket v1.2.0
 	github.com/jessevdk/go-flags v1.4.0
 	github.com/jrick/logrotate v1.0.0
-	golang.org/x/crypto v0.0.0-20181203042331-505ab145d0a9
+	golang.org/x/crypto v0.0.0-20190131182504-b8fe1690c613
 	golang.org/x/sys v0.0.0-20190102155601-82a175fd1598 // indirect
 	google.golang.org/grpc v1.17.0
 )
@@ -43,6 +43,7 @@ replace (
 	github.com/endurio/ndrd/chaincfg/chainhash => ../ndrd/chaincfg/chainhash
 	github.com/endurio/ndrd/connmgr => ../ndrd/connmgr
 	github.com/endurio/ndrd/database => ../ndrd/database
+	github.com/endurio/ndrd/fees => ../ndrd/fees
 	github.com/endurio/ndrd/gcs => ../ndrd/gcs
 	github.com/endurio/ndrd/hdkeychain => ../ndrd/hdkeychain
 	github.com/endurio/ndrd/mempool => ../ndrd/mempool
@@ -52,8 +53,10 @@ replace (
 	github.com/endurio/ndrd/ndrec/secp256k1 => ../ndrd/ndrec/secp256k1
 	github.com/endurio/ndrd/ndrjson => ../ndrd/ndrjson
 	github.com/endurio/ndrd/ndrutil => ../ndrd/ndrutil
+	github.com/endurio/ndrd/peer => ../ndrd/peer
 	github.com/endurio/ndrd/rpcclient => ../ndrd/rpcclient
 	github.com/endurio/ndrd/txscript => ../ndrd/txscript
+	github.com/endurio/ndrd/types => ../ndrd/types
 	github.com/endurio/ndrd/wire => ../ndrd/wire
 	github.com/endurio/ndrw => ./
 	github.com/endurio/ndrw/chain => ./chain

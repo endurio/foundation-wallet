@@ -315,7 +315,7 @@ func TestStoreQueries(t *testing.T) {
 	newState.blocks[0][0].Credits = []CreditRecord{
 		{
 			Index:  0,
-			Amount: ndrutil.Amount(recA.MsgTx.TxOut[0].Value),
+			Amount: types.Amount(recA.MsgTx.TxOut[0].Value),
 			Spent:  false,
 			Change: true,
 		},
@@ -339,7 +339,7 @@ func TestStoreQueries(t *testing.T) {
 		Block:    BlockMeta{Block: Block{Height: -1}},
 		Debits: []DebitRecord{
 			{
-				Amount: ndrutil.Amount(recA.MsgTx.TxOut[0].Value),
+				Amount: types.Amount(recA.MsgTx.TxOut[0].Value),
 				Index:  0, // recB.MsgTx.TxIn index
 			},
 		},
@@ -356,7 +356,7 @@ func TestStoreQueries(t *testing.T) {
 	newState.blocks[0][1].Credits = []CreditRecord{
 		{
 			Index:  0,
-			Amount: ndrutil.Amount(recB.MsgTx.TxOut[0].Value),
+			Amount: types.Amount(recB.MsgTx.TxOut[0].Value),
 			Spent:  false,
 			Change: false,
 		},

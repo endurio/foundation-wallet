@@ -14,8 +14,9 @@ import (
 
 	"github.com/endurio/ndrd/chaincfg"
 	"github.com/endurio/ndrd/chaincfg/chainec"
-	"github.com/endurio/ndrd/ndrutil"
 	"github.com/endurio/ndrd/hdkeychain"
+	"github.com/endurio/ndrd/ndrutil"
+	"github.com/endurio/ndrd/types"
 	"github.com/endurio/ndrw/errors"
 	"github.com/endurio/ndrw/internal/zero"
 	"github.com/endurio/ndrw/wallet/internal/snacl"
@@ -1162,7 +1163,7 @@ func (m *Manager) ImportPrivateKey(ns walletdb.ReadWriteBucket, wif *ndrutil.WIF
 
 	// Prevent duplicates.
 	serializedPubKey := wif.SerializePubKey()
-	pubKeyHash := ndrutil.Hash160(serializedPubKey)
+	pubKeyHash := types.Hash160(serializedPubKey)
 	if existsAddress(ns, pubKeyHash) {
 		return nil, errors.E(errors.Exist, "address for private key already exists")
 	}
@@ -1219,7 +1220,7 @@ func (m *Manager) ImportScript(ns walletdb.ReadWriteBucket, script []byte) (Mana
 	defer m.mtx.Unlock()
 
 	// Prevent duplicates.
-	scriptHash := ndrutil.Hash160(script)
+	scriptHash := types.Hash160(script)
 	if existsAddress(ns, scriptHash) {
 		return nil, errors.E(errors.Exist, "script already exists")
 	}

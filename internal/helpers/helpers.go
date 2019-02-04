@@ -9,14 +9,14 @@
 package helpers
 
 import (
-	"github.com/endurio/ndrd/ndrutil"
+	"github.com/endurio/ndrd/types"
 	"github.com/endurio/ndrd/wire"
 )
 
 // SumOutputValues sums up the list of TxOuts and returns an Amount.
-func SumOutputValues(outputs []*wire.TxOut) (totalOutput ndrutil.Amount) {
+func SumOutputValues(outputs []*wire.TxOut) (totalOutput types.Amount) {
 	for _, txOut := range outputs {
-		totalOutput += ndrutil.Amount(txOut.Value)
+		totalOutput += types.Amount(txOut.Value)
 	}
 	return totalOutput
 }

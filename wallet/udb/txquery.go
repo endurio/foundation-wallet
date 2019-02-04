@@ -8,7 +8,7 @@ package udb
 
 import (
 	"github.com/endurio/ndrd/chaincfg/chainhash"
-	"github.com/endurio/ndrd/ndrutil"
+	"github.com/endurio/ndrd/types"
 	"github.com/endurio/ndrd/wire"
 	"github.com/endurio/ndrw/errors"
 	"github.com/endurio/ndrw/wallet/walletdb"
@@ -19,7 +19,7 @@ import (
 // with the Index field.
 type CreditRecord struct {
 	Index      uint32
-	Amount     ndrutil.Amount
+	Amount     types.Amount
 	Spent      bool
 	Change     bool
 	IsCoinbase bool
@@ -30,7 +30,7 @@ type CreditRecord struct {
 // transaction.  Further details may be looked up by indexing a wire.MsgTx.TxIn
 // with the Index field.
 type DebitRecord struct {
-	Amount ndrutil.Amount
+	Amount types.Amount
 	Index  uint32
 }
 

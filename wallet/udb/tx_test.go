@@ -137,7 +137,7 @@ func TestInsertsCreditsDebitsRollbacks(t *testing.T) {
 	tests := []struct {
 		name     string
 		f        func(*Store) (*Store, error)
-		bal, unc ndrutil.Amount
+		bal, unc types.Amount
 		unspents map[wire.OutPoint]struct{}
 		unmined  map[chainhash.Hash]struct{}
 	}{
@@ -167,7 +167,7 @@ func TestInsertsCreditsDebitsRollbacks(t *testing.T) {
 				return s, err
 			},
 			bal: 0,
-			unc: ndrutil.Amount(TstRecvTx.MsgTx().TxOut[1].Value),
+			unc: types.Amount(TstRecvTx.MsgTx().TxOut[1].Value),
 			unspents: map[wire.OutPoint]struct{}{
 				{
 					Hash:  *TstRecvTx.Sha(),
@@ -195,7 +195,7 @@ func TestInsertsCreditsDebitsRollbacks(t *testing.T) {
 				return s, err
 			},
 			bal: 0,
-			unc: ndrutil.Amount(TstRecvTx.MsgTx().TxOut[1].Value),
+			unc: types.Amount(TstRecvTx.MsgTx().TxOut[1].Value),
 			unspents: map[wire.OutPoint]struct{}{
 				{
 					Hash:  *TstRecvTx.Sha(),
@@ -223,7 +223,7 @@ func TestInsertsCreditsDebitsRollbacks(t *testing.T) {
 					defaultAccount)
 				return s, err
 			},
-			bal: ndrutil.Amount(TstRecvTx.MsgTx().TxOut[1].Value),
+			bal: types.Amount(TstRecvTx.MsgTx().TxOut[1].Value),
 			unc: 0,
 			unspents: map[wire.OutPoint]struct{}{
 				{
@@ -250,7 +250,7 @@ func TestInsertsCreditsDebitsRollbacks(t *testing.T) {
 					defaultAccount)
 				return s, err
 			},
-			bal: ndrutil.Amount(TstRecvTx.MsgTx().TxOut[1].Value),
+			bal: types.Amount(TstRecvTx.MsgTx().TxOut[1].Value),
 			unc: 0,
 			unspents: map[wire.OutPoint]struct{}{
 				{
@@ -268,7 +268,7 @@ func TestInsertsCreditsDebitsRollbacks(t *testing.T) {
 				return s, err
 			},
 			bal: 0,
-			unc: ndrutil.Amount(TstRecvTx.MsgTx().TxOut[1].Value),
+			unc: types.Amount(TstRecvTx.MsgTx().TxOut[1].Value),
 			unspents: map[wire.OutPoint]struct{}{
 				{
 					Hash:  *TstRecvTx.Sha(),
@@ -296,7 +296,7 @@ func TestInsertsCreditsDebitsRollbacks(t *testing.T) {
 					defaultAccount)
 				return s, err
 			},
-			bal: ndrutil.Amount(TstDoubleSpendTx.MsgTx().TxOut[1].Value),
+			bal: types.Amount(TstDoubleSpendTx.MsgTx().TxOut[1].Value),
 			unc: 0,
 			unspents: map[wire.OutPoint]struct{}{
 				{
@@ -357,7 +357,7 @@ func TestInsertsCreditsDebitsRollbacks(t *testing.T) {
 				return s, err
 			},
 			bal: 0,
-			unc: ndrutil.Amount(TstSpendingTx.MsgTx().TxOut[0].Value),
+			unc: types.Amount(TstSpendingTx.MsgTx().TxOut[0].Value),
 			unspents: map[wire.OutPoint]struct{}{
 				{
 					Hash:  *TstSpendingTx.Sha(),
@@ -384,7 +384,7 @@ func TestInsertsCreditsDebitsRollbacks(t *testing.T) {
 				return s, err
 			},
 			bal: 0,
-			unc: ndrutil.Amount(TstSpendingTx.MsgTx().TxOut[0].Value + TstSpendingTx.MsgTx().TxOut[1].Value),
+			unc: types.Amount(TstSpendingTx.MsgTx().TxOut[0].Value + TstSpendingTx.MsgTx().TxOut[1].Value),
 			unspents: map[wire.OutPoint]struct{}{
 				{
 					Hash:  *TstSpendingTx.Sha(),
@@ -411,7 +411,7 @@ func TestInsertsCreditsDebitsRollbacks(t *testing.T) {
 				err = s.InsertTx(rec, TstSignedTxBlockDetails)
 				return s, err
 			},
-			bal: ndrutil.Amount(TstSpendingTx.MsgTx().TxOut[0].Value + TstSpendingTx.MsgTx().TxOut[1].Value),
+			bal: types.Amount(TstSpendingTx.MsgTx().TxOut[0].Value + TstSpendingTx.MsgTx().TxOut[1].Value),
 			unc: 0,
 			unspents: map[wire.OutPoint]struct{}{
 				{
@@ -433,7 +433,7 @@ func TestInsertsCreditsDebitsRollbacks(t *testing.T) {
 				err := s.Rollback(TstSignedTxBlockDetails.Height + 1)
 				return s, err
 			},
-			bal: ndrutil.Amount(TstSpendingTx.MsgTx().TxOut[0].Value + TstSpendingTx.MsgTx().TxOut[1].Value),
+			bal: types.Amount(TstSpendingTx.MsgTx().TxOut[0].Value + TstSpendingTx.MsgTx().TxOut[1].Value),
 			unc: 0,
 			unspents: map[wire.OutPoint]struct{}{
 				{
@@ -456,7 +456,7 @@ func TestInsertsCreditsDebitsRollbacks(t *testing.T) {
 				return s, err
 			},
 			bal: 0,
-			unc: ndrutil.Amount(TstSpendingTx.MsgTx().TxOut[0].Value + TstSpendingTx.MsgTx().TxOut[1].Value),
+			unc: types.Amount(TstSpendingTx.MsgTx().TxOut[0].Value + TstSpendingTx.MsgTx().TxOut[1].Value),
 			unspents: map[wire.OutPoint]struct{}{
 				{
 					Hash:  *TstSpendingTx.Sha(),
@@ -480,7 +480,7 @@ func TestInsertsCreditsDebitsRollbacks(t *testing.T) {
 				return s, err
 			},
 			bal: 0,
-			unc: ndrutil.Amount(TstSpendingTx.MsgTx().TxOut[0].Value + TstSpendingTx.MsgTx().TxOut[1].Value),
+			unc: types.Amount(TstSpendingTx.MsgTx().TxOut[0].Value + TstSpendingTx.MsgTx().TxOut[1].Value),
 			unspents: map[wire.OutPoint]struct{}{
 				*wire.NewOutPoint(TstSpendingTx.Sha(), 0, ndrutil.TxTreeRegular): {},
 				*wire.NewOutPoint(TstSpendingTx.Sha(), 1, ndrutil.TxTreeRegular): {},
@@ -505,7 +505,7 @@ func TestInsertsCreditsDebitsRollbacks(t *testing.T) {
 					defaultAccount)
 				return s, err
 			},
-			bal: ndrutil.Amount(TstRecvTx.MsgTx().TxOut[1].Value),
+			bal: types.Amount(TstRecvTx.MsgTx().TxOut[1].Value),
 			unc: 0,
 			unspents: map[wire.OutPoint]struct{}{
 				*wire.NewOutPoint(TstRecvTx.Sha(), 1, ndrutil.TxTreeRegular): {},
@@ -622,7 +622,7 @@ func TestFindingSpentCredits(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	expectedBal := ndrutil.Amount(TstSpendingTx.MsgTx().TxOut[0].Value)
+	expectedBal := types.Amount(TstSpendingTx.MsgTx().TxOut[0].Value)
 	if bal != expectedBal {
 		t.Fatalf("bad balance: %v != %v", bal, expectedBal)
 	}
@@ -711,7 +711,7 @@ func TestCoinbases(t *testing.T) {
 	type balTest struct {
 		height  int32
 		minConf int32
-		bal     ndrutil.Amount
+		bal     types.Amount
 	}
 	balTests := []balTest{
 		// Next block it is still immature
@@ -1180,7 +1180,7 @@ func TestMoveMultipleToSameBlock(t *testing.T) {
 	balTests := []struct {
 		height  int32
 		minConf int32
-		bal     ndrutil.Amount
+		bal     types.Amount
 	}{
 		// Maturity height
 		{

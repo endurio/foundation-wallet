@@ -30,7 +30,7 @@ func (src AuthorTestChangeSource) ScriptSize() int {
 	return txsizes.P2PKHPkScriptSize
 }
 
-func p2pkhOutputs(amounts ...ndrutil.Amount) []*wire.TxOut {
+func p2pkhOutputs(amounts ...types.Amount) []*wire.TxOut {
 	v := make([]*wire.TxOut, 0, len(amounts))
 	for _, a := range amounts {
 		outScript := make([]byte, txsizes.P2PKHOutputSize)
@@ -41,15 +41,15 @@ func p2pkhOutputs(amounts ...ndrutil.Amount) []*wire.TxOut {
 
 func makeInputSource(unspents []*wire.TxOut) InputSource {
 	// Return outputs in order.
-	currentTotal := ndrutil.Amount(0)
+	currentTotal := types.Amount(0)
 	currentInputs := make([]*wire.TxIn, 0, len(unspents))
 	redeemScriptSizes := make([]int, 0, len(unspents))
-	f := func(target ndrutil.Amount) (*InputDetail, error) {
+	f := func(target types.Amount) (*InputDetail, error) {
 		for currentTotal < target && len(unspents) != 0 {
 			u := unspents[0]
 			unspents = unspents[1:]
 			nextInput := wire.NewTxIn(&wire.OutPoint{}, u.Value, nil)
-			currentTotal += ndrutil.Amount(u.Value)
+			currentTotal += types.Amount(u.Value)
 			currentInputs = append(currentInputs, nextInput)
 			redeemScriptSizes = append(redeemScriptSizes, txsizes.RedeemP2PKHSigScriptSize)
 		}
@@ -69,8 +69,8 @@ func TestNewUnsignedTransaction(t *testing.T) {
 	tests := []struct {
 		UnspentOutputs   []*wire.TxOut
 		Outputs          []*wire.TxOut
-		RelayFee         ndrutil.Amount
-		ChangeAmount     ndrutil.Amount
+		RelayFee         types.Amount
+		ChangeAmount     types.Amount
 		InputSourceError bool
 		InputCount       int
 	}{
@@ -221,7 +221,7 @@ func TestNewUnsignedTransaction(t *testing.T) {
 				continue
 			}
 		} else {
-			changeAmount := ndrutil.Amount(tx.Tx.TxOut[tx.ChangeIndex].Value)
+			changeAmount := types.Amount(tx.Tx.TxOut[tx.ChangeIndex].Value)
 			if test.ChangeAmount == 0 {
 				t.Errorf("Test %d: Included change output with value %v but expected no change",
 					i, changeAmount)

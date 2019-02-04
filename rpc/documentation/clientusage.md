@@ -86,7 +86,7 @@ func main() {
 		return
 	}
 
-	fmt.Println("Spendable balance: ", ndrutil.Amount(balanceResponse.Spendable))
+	fmt.Println("Spendable balance: ", types.Amount(balanceResponse.Spendable))
 }
 ```
 

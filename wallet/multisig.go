@@ -215,7 +215,7 @@ func (w *Wallet) PrepareRedeemMultiSigOutTxOutput(msgTx *wire.MsgTx, p2shOutput 
 
 	toReceive := p2shOutput.OutputAmount - feeEst
 	// set the output value and add to the tx
-	txOut.Value = int64(toReceive)
+	txOut.Value = toReceive
 	msgTx.AddTxOut(txOut)
 	return nil
 }

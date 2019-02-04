@@ -133,7 +133,7 @@ func setup() error {
 			if err != nil {
 				return errors.Errorf("failed to create pkscript: %s", err)
 			}
-			msgTx.AddTxOut(wire.NewTxOut(int64(ndrutil.Amount(1*count)), pkScript))
+			msgTx.AddTxOut(wire.NewTxOut(int64(types.Amount(1*count)), pkScript))
 			rec, err := udb.NewTxRecordFromMsgTx(msgTx, epoch)
 			if err != nil {
 				return err
@@ -160,7 +160,7 @@ func setup() error {
 			if err != nil {
 				return errors.Errorf("failed to create pkscript: %s", err)
 			}
-			msgTx.AddTxOut(wire.NewTxOut(int64(ndrutil.Amount(1*count)), pkScript))
+			msgTx.AddTxOut(wire.NewTxOut(int64(types.Amount(1*count)), pkScript))
 			rec, err := udb.NewTxRecordFromMsgTx(msgTx, epoch)
 			if err != nil {
 				return err
@@ -178,7 +178,7 @@ func setup() error {
 			if err != nil {
 				return errors.Errorf("failed to create pkscript: %s", err)
 			}
-			msgTx.AddTxOut(wire.NewTxOut(int64(ndrutil.Amount(1*count)), pkScript))
+			msgTx.AddTxOut(wire.NewTxOut(int64(types.Amount(1*count)), pkScript))
 			msgTx.Expiry = wire.NoExpiryValue
 			rec, err := udb.NewTxRecordFromMsgTx(msgTx, epoch)
 			if err != nil {

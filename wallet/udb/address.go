@@ -13,6 +13,7 @@ import (
 	"github.com/endurio/ndrd/hdkeychain"
 	"github.com/endurio/ndrd/ndrec"
 	"github.com/endurio/ndrd/ndrutil"
+	"github.com/endurio/ndrd/types"
 )
 
 // ManagedAddress is an interface that provides acces to information regarding
@@ -179,9 +180,9 @@ func newManagedAddressWithoutPrivKey(m *Manager, account uint32, pubKey chainec.
 	// Create a pay-to-pubkey-hash address from the public key.
 	var pubKeyHash []byte
 	if compressed {
-		pubKeyHash = ndrutil.Hash160(pubKey.SerializeCompressed())
+		pubKeyHash = types.Hash160(pubKey.SerializeCompressed())
 	} else {
-		pubKeyHash = ndrutil.Hash160(pubKey.SerializeUncompressed())
+		pubKeyHash = types.Hash160(pubKey.SerializeUncompressed())
 	}
 	address, err := ndrutil.NewAddressPubKeyHash(pubKeyHash, m.chainParams,
 		ndrec.STEcdsaSecp256k1)

@@ -185,13 +185,13 @@ func (noInputValue) Error() string { return "no input value" }
 // looked up again by the wallet during the call to signrawtransaction.
 func makeInputSource(outputs []ndrjson.ListUnspentResult) txauthor.InputSource {
 	var (
-		totalInputValue   ndrutil.Amount
+		totalInputValue   types.Amount
 		inputs            = make([]*wire.TxIn, 0, len(outputs))
 		redeemScriptSizes = make([]int, 0, len(outputs))
 		sourceErr         error
 	)
 	for _, output := range outputs {
-		outputAmount, err := ndrutil.NewAmount(output.Amount)
+		outputAmount, err := types.NewAmount(output.Amount)
 		if err != nil {
 			sourceErr = fmt.Errorf(
 				"invalid amount `%v` in listunspent result",
@@ -224,7 +224,7 @@ func makeInputSource(outputs []ndrjson.ListUnspentResult) txauthor.InputSource {
 		sourceErr = noInputValue{}
 	}
 
-	return func(ndrutil.Amount) (*txauthor.InputDetail, error) {
+	return func(types.Amount) (*txauthor.InputDetail, error) {
 		inputDetail := txauthor.InputDetail{
 			Amount:            totalInputValue,
 			Inputs:            inputs,
@@ -357,14 +357,14 @@ func sweep() error {
 		}
 	}
 
-	var totalSwept ndrutil.Amount
+	var totalSwept types.Amount
 	var numErrors int
 	var reportError = func(format string, args ...interface{}) {
 		fmt.Fprintf(os.Stderr, format, args...)
 		os.Stderr.Write(newlineBytes)
 		numErrors++
 	}
-	feeRate, err := ndrutil.NewAmount(opts.FeeRate)
+	feeRate, err := types.NewAmount(opts.FeeRate)
 	if err != nil {
 		return errContext(err, "invalid fee rate")
 	}
@@ -431,7 +431,7 @@ func sweep() error {
 			txHash = hash.String()
 		}
 
-		outputAmount := ndrutil.Amount(atx.Tx.TxOut[0].Value)
+		outputAmount := types.Amount(atx.Tx.TxOut[0].Value)
 		fmt.Printf("Swept %v to destination with transaction %v\n",
 			outputAmount, txHash)
 		totalSwept += outputAmount
@@ -461,8 +461,8 @@ func promptSecret(what string) (string, error) {
 	return string(input), nil
 }
 
-func saneOutputValue(amount ndrutil.Amount) bool {
-	return amount >= 0 && amount <= ndrutil.MaxAmount
+func saneOutputValue(amount types.Amount) bool {
+	return amount >= 0 && amount <= types.MaxAmount
 }
 
 func parseOutPoint(input *ndrjson.ListUnspentResult) (wire.OutPoint, error) {

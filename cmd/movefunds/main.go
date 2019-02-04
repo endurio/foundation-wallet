@@ -90,7 +90,7 @@ func convertJSONUnspentToOutPoints(
 
 		eop := new(extendedOutPoint)
 		eop.op = op
-		amtCast, _ := ndrutil.NewAmount(utxo.Amount)
+		amtCast, _ := types.NewAmount(utxo.Amount)
 		eop.amt = int64(amtCast)
 		eop.pkScript = pks
 

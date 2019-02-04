@@ -19,7 +19,7 @@ import (
 var basicWalletConfig = Config{
 	PubPassphrase: []byte(InsecurePubPassphrase),
 	GapLimit:      20,
-	RelayFee:      ndrutil.Amount(1e5).ToCoin(),
+	RelayFee:      types.Amount(1e5).ToCoin(),
 	Params:        &chaincfg.SimNetParams,
 }
 

@@ -39,6 +39,7 @@ import (
 	"github.com/endurio/ndrd/ndrutil"
 	"github.com/endurio/ndrd/rpcclient"
 	"github.com/endurio/ndrd/txscript"
+	"github.com/endurio/ndrd/types"
 	"github.com/endurio/ndrd/wire"
 	"github.com/endurio/ndrw/chain"
 	"github.com/endurio/ndrw/errors"
@@ -659,7 +660,7 @@ func (s *walletServer) SweepAccount(ctx context.Context, req *pb.SweepAccountReq
 
 	if req.FeePerKb > 0 {
 		var err error
-		feePerKb, err = ndrutil.NewAmount(req.FeePerKb)
+		feePerKb, err = types.NewAmount(req.FeePerKb)
 		if err != nil {
 			return nil, status.Errorf(codes.InvalidArgument, "%v", err)
 		}
@@ -740,7 +741,7 @@ func (s *walletServer) UnspentOutputs(req *pb.UnspentOutputsRequest, svr pb.Wall
 		Account:               req.Account,
 		RequiredConfirmations: req.RequiredConfirmations,
 	}
-	inputDetail, err := s.wallet.SelectInputs(ndrutil.Amount(req.TargetAmount), policy)
+	inputDetail, err := s.wallet.SelectInputs(types.Amount(req.TargetAmount), policy)
 	// Do not return errors to caller when there was insufficient spendable
 	// outputs available for the target amount.
 	if err != nil && !errors.Is(errors.InsufficientBalance, err) {
@@ -785,7 +786,7 @@ func (s *walletServer) FundTransaction(ctx context.Context, req *pb.FundTransact
 		Account:               req.Account,
 		RequiredConfirmations: req.RequiredConfirmations,
 	}
-	inputDetail, err := s.wallet.SelectInputs(ndrutil.Amount(req.TargetAmount), policy)
+	inputDetail, err := s.wallet.SelectInputs(types.Amount(req.TargetAmount), policy)
 	// Do not return errors to caller when there was insufficient spendable
 	// outputs available for the target amount.
 	if err != nil && !errors.Is(errors.InsufficientBalance, err) {
@@ -809,7 +810,7 @@ func (s *walletServer) FundTransaction(ctx context.Context, req *pb.FundTransact
 	}
 
 	var changeScript []byte
-	if req.IncludeChangeScript && inputDetail.Amount > ndrutil.Amount(req.TargetAmount) {
+	if req.IncludeChangeScript && inputDetail.Amount > types.Amount(req.TargetAmount) {
 		changeAddr, err := s.wallet.NewChangeAddress(req.Account)
 		if err != nil {
 			return nil, translateError(err)
@@ -898,7 +899,7 @@ func (s *walletServer) ConstructTransaction(ctx context.Context, req *pb.Constru
 			return nil, err
 		}
 		output := &wire.TxOut{
-			Value:    o.Amount,
+			Value:    types.Amount(o.Amount),
 			Version:  version,
 			PkScript: script,
 		}
@@ -917,7 +918,7 @@ func (s *walletServer) ConstructTransaction(ctx context.Context, req *pb.Constru
 
 	feePerKb := txrules.DefaultRelayFeePerKb
 	if req.FeePerKb != 0 {
-		feePerKb = ndrutil.Amount(req.FeePerKb)
+		feePerKb = types.Amount(req.FeePerKb)
 	}
 
 	var changeSource txauthor.ChangeSource
@@ -2433,7 +2434,7 @@ func marshalDecodedTxInputs(mtx *wire.MsgTx) []*pb.DecodedTransaction_Input {
 			PreviousTransactionHash:  txIn.PreviousOutPoint.Hash[:],
 			PreviousTransactionIndex: txIn.PreviousOutPoint.Index,
 			Sequence:                 txIn.Sequence,
-			AmountIn:                 txIn.ValueIn,
+			AmountIn:                 int64(txIn.ValueIn),
 			BlockHeight:              txIn.BlockHeight,
 			BlockIndex:               txIn.BlockIndex,
 			SignatureScript:          txIn.SignatureScript,
@@ -2460,7 +2461,7 @@ func marshalDecodedTxOutputs(mtx *wire.MsgTx, chainParams *chaincfg.Params) []*p
 		var encodedAddrs []string
 		var scriptClass txscript.ScriptClass
 		var reqSigs int
-		var commitAmt *ndrutil.Amount
+		var commitAmt *types.Amount
 
 		// Ignore the error here since an error means the script
 		// couldn't parse and there is no additional information
@@ -2474,7 +2475,7 @@ func marshalDecodedTxOutputs(mtx *wire.MsgTx, chainParams *chaincfg.Params) []*p
 
 		outputs[i] = &pb.DecodedTransaction_Output{
 			Index:              uint32(i),
-			Value:              v.Value,
+			Value:              int64(v.Value),
 			Version:            int32(v.Version),
 			Addresses:          encodedAddrs,
 			Script:             v.PkScript,

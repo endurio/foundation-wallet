@@ -261,7 +261,7 @@ func compress() error {
 }
 
 func createUnsignedTicketPurchase(prevOut *wire.OutPoint,
-	inputAmount, ticketPrice ndrutil.Amount) (*wire.MsgTx, error) {
+	inputAmount, ticketPrice types.Amount) (*wire.MsgTx, error) {
 
 	tx := wire.NewMsgTx()
 	txIn := wire.NewTxIn(prevOut, nil)
@@ -282,7 +282,7 @@ func createUnsignedTicketPurchase(prevOut *wire.OutPoint,
 	}
 
 	pkScript, err = txscript.GenerateSStxAddrPush(addr,
-		ndrutil.Amount(amountsCommitted[0]), ticketFeeLimits)
+		types.Amount(amountsCommitted[0]), ticketFeeLimits)
 	if err != nil {
 		return nil, err
 	}
@@ -376,7 +376,7 @@ func createUnsignedVote(ticketHash *chainhash.Hash, ticketPurchase *wire.MsgTx,
 // revokes a missed or expired ticket.  Revocations must carry a relay fee and
 // this function can error if the revocation contains no suitable output to
 // decrease the estimated relay fee from.
-func createUnsignedRevocation(ticketHash *chainhash.Hash, ticketPurchase *wire.MsgTx, feePerKB ndrutil.Amount) (*wire.MsgTx, error) {
+func createUnsignedRevocation(ticketHash *chainhash.Hash, ticketPurchase *wire.MsgTx, feePerKB types.Amount) (*wire.MsgTx, error) {
 	// Parse the ticket purchase transaction to determine the required output
 	// destinations for vote rewards or revocations.
 	ticketPayKinds, ticketHash160s, ticketValues, _, _, _ :=
@@ -421,8 +421,8 @@ func createUnsignedRevocation(ticketHash *chainhash.Hash, ticketPurchase *wire.M
 	// code does not currently handle reducing the output values of multiple
 	// commitment outputs to accomodate for the fee.
 	for _, output := range revocation.TxOut {
-		if ndrutil.Amount(output.Value) > feeEstimate {
-			amount := ndrutil.Amount(output.Value) - feeEstimate
+		if types.Amount(output.Value) > feeEstimate {
+			amount := types.Amount(output.Value) - feeEstimate
 			if !txrules.IsDustAmount(amount, len(output.PkScript), feePerKB) {
 				output.Value = int64(amount)
 				return revocation, nil

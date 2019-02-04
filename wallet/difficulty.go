@@ -16,6 +16,7 @@ import (
 	"github.com/endurio/ndrd/blockchain"
 	"github.com/endurio/ndrd/chaincfg"
 	"github.com/endurio/ndrd/chaincfg/chainhash"
+	"github.com/endurio/ndrd/types"
 	"github.com/endurio/ndrd/wire"
 	"github.com/endurio/ndrw/errors"
 	"github.com/endurio/ndrw/wallet/walletdb"
@@ -239,7 +240,7 @@ func (w *Wallet) nextRequiredPoWDifficulty(dbtx walletdb.ReadTx, header *wire.Bl
 // number of votes included in every prior block (not including all votes
 // reduces the subsidy) and whether or not any of the prior blocks have been
 // invalidated by stakeholders thereby removing the PoW subsidy for them.
-func estimateSupply(params *chaincfg.Params, height int64) int64 {
+func estimateSupply(params *chaincfg.Params, height int64) types.Amount {
 	if height <= 0 {
 		return 0
 	}
@@ -252,12 +253,12 @@ func estimateSupply(params *chaincfg.Params, height int64) int64 {
 	reductions := height / params.SubsidyReductionInterval
 	subsidy := params.BaseSubsidy
 	for i := int64(0); i < reductions; i++ {
-		supply += params.SubsidyReductionInterval * subsidy
+		supply += types.Amount(params.SubsidyReductionInterval) * subsidy
 
 		subsidy *= params.MulSubsidy
 		subsidy /= params.DivSubsidy
 	}
-	supply += (1 + height%params.SubsidyReductionInterval) * subsidy
+	supply += types.Amount(1+height%params.SubsidyReductionInterval) * subsidy
 
 	// Blocks 0 and 1 have special subsidy amounts that have already been
 	// added above, so remove what their subsidies would have normally been

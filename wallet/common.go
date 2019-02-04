@@ -10,6 +10,7 @@ import (
 
 	"github.com/endurio/ndrd/chaincfg/chainhash"
 	"github.com/endurio/ndrd/ndrutil"
+	"github.com/endurio/ndrd/types"
 	"github.com/endurio/ndrd/wire"
 )
 
@@ -79,7 +80,7 @@ type P2SHMultiSigOutput struct {
 	// fetching other Transactionoutput data together with the rest of the
 	// multisig info.
 	OutPoint        wire.OutPoint
-	OutputAmount    ndrutil.Amount
+	OutputAmount    types.Amount
 	ContainingBlock BlockIdentity
 
 	P2SHAddress  *ndrutil.AddressScriptHash

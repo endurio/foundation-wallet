@@ -18,13 +18,14 @@ import (
 	"github.com/endurio/ndrd/chaincfg"
 	"github.com/endurio/ndrd/chaincfg/chainec"
 	"github.com/endurio/ndrd/chaincfg/chainhash"
-	"github.com/endurio/ndrd/ndrjson"
 	"github.com/endurio/ndrd/gcs"
 	"github.com/endurio/ndrd/hdkeychain"
 	"github.com/endurio/ndrd/ndrec"
 	"github.com/endurio/ndrd/ndrec/secp256k1"
+	"github.com/endurio/ndrd/ndrjson"
 	"github.com/endurio/ndrd/ndrutil"
 	"github.com/endurio/ndrd/txscript"
+	"github.com/endurio/ndrd/types"
 	"github.com/endurio/ndrd/wire"
 	"github.com/endurio/ndrw/errors"
 	"github.com/endurio/ndrw/wallet/txauthor"
@@ -78,7 +79,7 @@ type Wallet struct {
 
 	lockedOutpoints map[wire.OutPoint]struct{}
 
-	relayFee      ndrutil.Amount
+	relayFee      types.Amount
 	relayFeeMu    sync.Mutex
 	DisallowFree  bool
 	AllowHighFees bool
@@ -180,7 +181,7 @@ func (w *Wallet) Start() {
 
 // RelayFee returns the current minimum relay fee (per kB of serialized
 // transaction) used when constructing transactions.
-func (w *Wallet) RelayFee() ndrutil.Amount {
+func (w *Wallet) RelayFee() types.Amount {
 	w.relayFeeMu.Lock()
 	relayFee := w.relayFee
 	w.relayFeeMu.Unlock()
@@ -189,7 +190,7 @@ func (w *Wallet) RelayFee() ndrutil.Amount {
 
 // SetRelayFee sets a new minimum relay fee (per kB of serialized
 // transaction) used when constructing transactions.
-func (w *Wallet) SetRelayFee(relayFee ndrutil.Amount) {
+func (w *Wallet) SetRelayFee(relayFee types.Amount) {
 	w.relayFeeMu.Lock()
 	w.relayFee = relayFee
 	w.relayFeeMu.Unlock()
@@ -773,7 +774,7 @@ type (
 	}
 	createMultisigTxRequest struct {
 		account   uint32
-		amount    ndrutil.Amount
+		amount    types.Amount
 		pubkeys   []*ndrutil.AddressSecpPubKey
 		nrequired int8
 		minconf   int32
@@ -869,7 +870,7 @@ func (w *Wallet) Consolidate(inputs int, account uint32,
 
 // CreateMultisigTx receives a request from the RPC and ships it to txCreator to
 // generate a new multisigtx.
-func (w *Wallet) CreateMultisigTx(account uint32, amount ndrutil.Amount, pubkeys []*ndrutil.AddressSecpPubKey, nrequired int8, minconf int32) (*CreatedTx, ndrutil.Address, []byte, error) {
+func (w *Wallet) CreateMultisigTx(account uint32, amount types.Amount, pubkeys []*ndrutil.AddressSecpPubKey, nrequired int8, minconf int32) (*CreatedTx, ndrutil.Address, []byte, error) {
 	req := createMultisigTxRequest{
 		account:   account,
 		amount:    amount,
@@ -1594,13 +1595,13 @@ func listTransactions(tx walletdb.ReadTx, details *udb.TxDetails, addrMgr *udb.M
 	// Fee can only be determined if every input is a debit.
 	var feeF64 float64
 	if len(details.Debits) == len(details.MsgTx.TxIn) {
-		var debitTotal ndrutil.Amount
+		var debitTotal types.Amount
 		for _, deb := range details.Debits {
 			debitTotal += deb.Amount
 		}
-		var outputTotal ndrutil.Amount
+		var outputTotal types.Amount
 		for _, output := range details.MsgTx.TxOut {
-			outputTotal += ndrutil.Amount(output.Value)
+			outputTotal += types.Amount(output.Value)
 		}
 		// Note: The actual fee is debitTotal - outputTotal.  However,
 		// this RPC reports negative numbers for fees, so the inverse
@@ -1638,7 +1639,7 @@ outputs:
 			}
 		}
 
-		amountF64 := ndrutil.Amount(output.Value).ToCoin()
+		amountF64 := types.Amount(output.Value).ToCoin()
 		result := ndrjson.ListTransactionsResult{
 			// Fields left zeroed:
 			//   InvolvesWatchOnly
@@ -2120,7 +2121,7 @@ func (w *Wallet) GetTransactions(f func(*Block) (bool, error), startBlock, endBl
 // AccountResult is a single account result for the AccountsResult type.
 type AccountResult struct {
 	udb.AccountProperties
-	TotalBalance ndrutil.Amount
+	TotalBalance types.Amount
 }
 
 // AccountsResult is the resutl of the wallet's Accounts method.  See that
@@ -2167,7 +2168,7 @@ func (w *Wallet) Accounts() (*AccountsResult, error) {
 		if err != nil {
 			return err
 		}
-		m := make(map[uint32]*ndrutil.Amount)
+		m := make(map[uint32]*types.Amount)
 		for i := range accounts {
 			a := &accounts[i]
 			m[a.AccountNumber] = &a.TotalBalance
@@ -2621,7 +2622,7 @@ func coinbaseMatured(params *chaincfg.Params, txHeight, curHeight int32) bool {
 type AccountTotalReceivedResult struct {
 	AccountNumber    uint32
 	AccountName      string
-	TotalReceived    ndrutil.Amount
+	TotalReceived    types.Amount
 	LastConfirmation int32
 }
 
@@ -2697,9 +2698,9 @@ func (w *Wallet) TotalReceivedForAccounts(minConf int32) ([]AccountTotalReceived
 // TotalReceivedForAddr iterates through a wallet's transaction history,
 // returning the total amount of endurio received for a single wallet
 // address.
-func (w *Wallet) TotalReceivedForAddr(addr ndrutil.Address, minConf int32) (ndrutil.Amount, error) {
+func (w *Wallet) TotalReceivedForAddr(addr ndrutil.Address, minConf int32) (types.Amount, error) {
 	const op errors.Op = "wallet.TotalReceivedForAddr"
-	var amount ndrutil.Amount
+	var amount types.Amount
 	err := walletdb.View(w.db, func(tx walletdb.ReadTx) error {
 		txmgrNs := tx.ReadBucket(wtxmgrNamespaceKey)
 
@@ -3007,7 +3008,7 @@ func (w *Wallet) isRelevantTx(dbtx walletdb.ReadTx, tx *wire.MsgTx) bool {
 		// wallet output.
 		rs, err := txscript.MultisigRedeemScriptFromScriptSig(in.SignatureScript)
 		if err == nil && rs != nil && w.Manager.ExistsHash160(addrmgrNs,
-			ndrutil.Hash160(rs)) {
+			types.Hash160(rs)) {
 			return true
 		}
 		if w.TxStore.ExistsUTXO(dbtx, &in.PreviousOutPoint) {
@@ -3325,7 +3326,7 @@ func Open(cfg *Config) (*Wallet, error) {
 	w.NtfnServer = newNotificationServer(w)
 
 	// Amounts
-	w.relayFee, err = ndrutil.NewAmount(cfg.RelayFee)
+	w.relayFee, err = types.NewAmount(cfg.RelayFee)
 	if err != nil {
 		return nil, errors.E(op, err)
 	}

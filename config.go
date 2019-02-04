@@ -18,7 +18,7 @@ import (
 	"strings"
 
 	"github.com/decred/slog"
-	"github.com/endurio/ndrd/ndrutil"
+	"github.com/endurio/ndrd/types"
 	"github.com/endurio/ndrw/errors"
 	"github.com/endurio/ndrw/internal/cfgutil"
 	"github.com/endurio/ndrw/netparams"
@@ -50,8 +50,8 @@ const (
 )
 
 var (
-	ndrdDefaultCAFile  = filepath.Join(ndrutil.AppDataDir("ndrd", false), "rpc.cert")
-	defaultAppDataDir  = ndrutil.AppDataDir("ndrw", false)
+	ndrdDefaultCAFile  = filepath.Join(types.AppDataDir("ndrd", false), "rpc.cert")
+	defaultAppDataDir  = types.AppDataDir("ndrw", false)
 	defaultConfigFile  = filepath.Join(defaultAppDataDir, defaultConfigFilename)
 	defaultRPCKeyFile  = filepath.Join(defaultAppDataDir, "rpc.key")
 	defaultRPCCertFile = filepath.Join(defaultAppDataDir, "rpc.cert")

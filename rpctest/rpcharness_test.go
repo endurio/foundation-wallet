@@ -503,7 +503,7 @@ func testGetBalance(r *Harness, t *testing.T) {
 	}
 
 	// Send from default to test account
-	sendAmount := ndrutil.Amount(700000000)
+	sendAmount := types.Amount(700000000)
 	if _, err = wcl.SendFromMinConf("default", addr, sendAmount, 1); err != nil {
 		t.Fatalf("SendFromMinConf failed: %v", err)
 	}
@@ -656,7 +656,7 @@ func testListAccounts(r *Harness, t *testing.T) {
 	acctBalancePreSend := accountsBalancesMinconf0PreSend[accountName]
 
 	// Send from default to test account
-	sendAmount := ndrutil.Amount(700000000)
+	sendAmount := types.Amount(700000000)
 	if _, err = wcl.SendFromMinConf("default", addr, sendAmount, 1); err != nil {
 		t.Fatal("SendFromMinConf failed.", err)
 	}
@@ -820,7 +820,7 @@ func testListUnspent(r *Harness, t *testing.T) {
 	}
 
 	// SendFromMinConf to addr
-	amountToSend := ndrutil.Amount(700000000)
+	amountToSend := types.Amount(700000000)
 	txid, err := wcl.SendFromMinConf("default", addr, amountToSend, 0)
 	if err != nil {
 		t.Fatalf("sendfromminconf failed: %v", err)
@@ -842,7 +842,7 @@ func testListUnspent(r *Harness, t *testing.T) {
 	for _, txIn := range rawTx.MsgTx().TxIn {
 		prevOut := &txIn.PreviousOutPoint
 		// Outpoint.String() appends :index to the hash
-		txInIDs[prevOut.String()] = ndrutil.Amount(txIn.ValueIn).ToCoin()
+		txInIDs[prevOut.String()] = types.Amount(txIn.ValueIn).ToCoin()
 	}
 
 	// First check to make sure we see these in the UTXO list prior to send,
@@ -963,7 +963,7 @@ func testSendFrom(r *Harness, t *testing.T) {
 		t.Fatal(err)
 	}
 
-	amountToSend := ndrutil.Amount(1000000)
+	amountToSend := types.Amount(1000000)
 	// Check spendable balance of default account
 	defaultBalanceBeforeSend, err := r.WalletRPC.GetBalanceMinConf("default", 0)
 	if err != nil {
@@ -1043,7 +1043,7 @@ func testSendFrom(r *Harness, t *testing.T) {
 		totalSent += txOut.Value
 	}
 
-	fee := ndrutil.Amount(totalSpent - totalSent)
+	fee := types.Amount(totalSpent - totalSent)
 
 	// Calculate the expected balance for the default account after the tx was sent
 	expectedBalance := defaultBalanceBeforeSend.Balances[0].Spendable - (amountToSend + fee).ToCoin()
@@ -1095,7 +1095,7 @@ func testSendMany(r *Harness, t *testing.T) {
 
 	// Create 2 accounts to receive funds
 	accountNames := []string{"sendManyTestA", "sendManyTestB"}
-	amountsToSend := []ndrutil.Amount{700000000, 1400000000}
+	amountsToSend := []types.Amount{700000000, 1400000000}
 	addresses := []ndrutil.Address{}
 
 	var err error
@@ -1108,8 +1108,8 @@ func testSendMany(r *Harness, t *testing.T) {
 
 	// Grab new addresses from the wallet, under each account.
 	// Set corresponding amount to send to each address.
-	addressAmounts := make(map[ndrutil.Address]ndrutil.Amount)
-	totalAmountToSend := ndrutil.Amount(0)
+	addressAmounts := make(map[ndrutil.Address]types.Amount)
+	totalAmountToSend := types.Amount(0)
 
 	for i, acct := range accountNames {
 		addr, err := wcl.GetNewAddress(acct)
@@ -1287,7 +1287,7 @@ func testListTransactions(r *Harness, t *testing.T) {
 		t.Fatal("Too few vouts.")
 	}
 	txOut := rawTx.MsgTx().TxOut[txList1[0].Vout]
-	voutAmt := ndrutil.Amount(txOut.Value).ToCoin()
+	voutAmt := types.Amount(txOut.Value).ToCoin()
 	// Verify amounts agree
 	if txList1[0].Amount != voutAmt {
 		t.Fatalf("Listed amount %v does not match expected vout amount %v",
@@ -1324,7 +1324,7 @@ func testListTransactions(r *Harness, t *testing.T) {
 		t.Fatal("Failed to get new address.")
 	}
 
-	sendAmount := ndrutil.Amount(240000000)
+	sendAmount := types.Amount(240000000)
 	txHash, err := wcl.SendFromMinConf("default", addr, sendAmount, 6)
 	if err != nil {
 		t.Fatal("Failed to send:", err)
@@ -1437,7 +1437,7 @@ func testListTransactions(r *Harness, t *testing.T) {
 
 	// Create 2 accounts to receive funds
 	accountNames := []string{"listTxA", "listTxB"}
-	amountsToSend := []ndrutil.Amount{700000000, 1400000000}
+	amountsToSend := []types.Amount{700000000, 1400000000}
 
 	for _, acct := range accountNames {
 		err := wcl.CreateNewAccount(acct)
@@ -1448,7 +1448,7 @@ func testListTransactions(r *Harness, t *testing.T) {
 
 	// Grab new addresses from the wallet, under each account.
 	// Set corresponding amount to send to each address.
-	addressAmounts := make(map[ndrutil.Address]ndrutil.Amount)
+	addressAmounts := make(map[ndrutil.Address]types.Amount)
 
 	for i, acct := range accountNames {
 		addr, err := wcl.GetNewAddress(acct)
@@ -1490,13 +1490,13 @@ func testGetSetRelayFee(r *Harness, t *testing.T) {
 		t.Fatal("WalletInfo failed:", err)
 	}
 	// Save the original fee
-	origTxFee, err := ndrutil.NewAmount(walletInfo.TxFee)
+	origTxFee, err := types.NewAmount(walletInfo.TxFee)
 	if err != nil {
 		t.Fatalf("Invalid Amount %f. %v", walletInfo.TxFee, err)
 	}
 	// Increase fee by 50%
 	newTxFeeCoin := walletInfo.TxFee * 1.5
-	newTxFee, err := ndrutil.NewAmount(newTxFeeCoin)
+	newTxFee, err := types.NewAmount(newTxFeeCoin)
 	if err != nil {
 		t.Fatalf("Invalid Amount %f. %v", newTxFeeCoin, err)
 	}
@@ -1511,7 +1511,7 @@ func testGetSetRelayFee(r *Harness, t *testing.T) {
 	if err != nil {
 		t.Fatal("WalletInfo failed:", err)
 	}
-	newTxFeeActual, err := ndrutil.NewAmount(walletInfo.TxFee)
+	newTxFeeActual, err := types.NewAmount(walletInfo.TxFee)
 	if err != nil {
 		t.Fatalf("Invalid Amount %f. %v", walletInfo.TxFee, err)
 	}
@@ -1533,7 +1533,7 @@ func testGetSetRelayFee(r *Harness, t *testing.T) {
 	}
 
 	// SendFromMinConf to addr
-	amountToSend := ndrutil.Amount(700000000)
+	amountToSend := types.Amount(700000000)
 	txid, err := wcl.SendFromMinConf("default", addr, amountToSend, 0)
 	if err != nil {
 		t.Fatalf("sendfromminconf failed: %v", err)
@@ -1558,7 +1558,7 @@ func testGetSetRelayFee(r *Harness, t *testing.T) {
 	}
 
 	// Negative fee should throw an error
-	err = wcl.SetTxFee(ndrutil.Amount(-1))
+	err = wcl.SetTxFee(types.Amount(-1))
 	if err == nil {
 		t.Fatal("SetTxFee accepted negative fee")
 	}
@@ -1586,14 +1586,14 @@ func testGetSetTicketFee(r *Harness, t *testing.T) {
 		t.Fatal("WalletInfo failed:", err)
 	}
 	nominalTicketFee := walletInfo.TicketFee
-	origTicketFee, err := ndrutil.NewAmount(nominalTicketFee)
+	origTicketFee, err := types.NewAmount(nominalTicketFee)
 	if err != nil {
 		t.Fatal("Invalid Amount:", nominalTicketFee)
 	}
 
 	// Increase the ticket fee to ensure the SSTx in ths test gets mined
 	newTicketFeeCoin := nominalTicketFee * 1.5
-	newTicketFee, err := ndrutil.NewAmount(newTicketFeeCoin)
+	newTicketFee, err := types.NewAmount(newTicketFeeCoin)
 	if err != nil {
 		t.Fatal("Invalid Amount:", newTicketFeeCoin)
 	}
@@ -1609,7 +1609,7 @@ func testGetSetTicketFee(r *Harness, t *testing.T) {
 		t.Fatal("WalletInfo failed:", err)
 	}
 	nominalTicketFee = walletInfo.TicketFee
-	newTicketFeeActual, err := ndrutil.NewAmount(nominalTicketFee)
+	newTicketFeeActual, err := types.NewAmount(nominalTicketFee)
 	if err != nil {
 		t.Fatalf("Invalid Amount %f. %v", nominalTicketFee, err)
 	}
@@ -1620,7 +1620,7 @@ func testGetSetTicketFee(r *Harness, t *testing.T) {
 
 	// Purchase ticket
 	minConf, numTickets := 0, 1
-	priceLimit, err := ndrutil.NewAmount(2 * mustGetStakeDiffNext(r, t))
+	priceLimit, err := types.NewAmount(2 * mustGetStakeDiffNext(r, t))
 	if err != nil {
 		t.Fatal("Invalid Amount. ", err)
 	}
@@ -1657,7 +1657,7 @@ func testGetSetTicketFee(r *Harness, t *testing.T) {
 	}
 
 	// Negative fee should throw and error
-	err = wcl.SetTicketFee(ndrutil.Amount(-1))
+	err = wcl.SetTicketFee(types.Amount(-1))
 	if err == nil {
 		t.Fatal("SetTicketFee accepted negative fee")
 	}
@@ -1695,7 +1695,7 @@ func testGetTickets(r *Harness, t *testing.T) {
 
 	// Purchase a full blocks worth of tickets
 	minConf, numTicketsPurchased := 1, int(chaincfg.SimNetParams.MaxFreshStakePerBlock)
-	priceLimit, err := ndrutil.NewAmount(2 * mustGetStakeDiffNext(r, t))
+	priceLimit, err := types.NewAmount(2 * mustGetStakeDiffNext(r, t))
 	if err != nil {
 		t.Fatal("Invalid Amount. ", err)
 	}
@@ -1769,7 +1769,7 @@ func testPurchaseTickets(r *Harness, t *testing.T) {
 	// Set various variables for the test
 	minConf := 0
 	expiry := 0
-	priceLimit, err := ndrutil.NewAmount(2 * mustGetStakeDiffNext(r, t))
+	priceLimit, err := types.NewAmount(2 * mustGetStakeDiffNext(r, t))
 	if err != nil {
 		t.Fatal("Invalid Amount.", err)
 	}
@@ -1847,11 +1847,11 @@ func testPurchaseTickets(r *Harness, t *testing.T) {
 	if err != nil {
 		t.Fatal("WalletInfo failed.", err)
 	}
-	origTicketFee, err := ndrutil.NewAmount(walletInfo.TicketFee)
+	origTicketFee, err := types.NewAmount(walletInfo.TicketFee)
 	if err != nil {
 		t.Fatalf("Invalid Amount %f. %v", walletInfo.TicketFee, err)
 	}
-	newTicketFee, err := ndrutil.NewAmount(walletInfo.TicketFee * 1.5)
+	newTicketFee, err := types.NewAmount(walletInfo.TicketFee * 1.5)
 	if err != nil {
 		t.Fatalf("Invalid Amount %f. %v", walletInfo.TicketFee, err)
 	}
@@ -1891,7 +1891,7 @@ func testPurchaseTickets(r *Harness, t *testing.T) {
 	}
 
 	// Test too low price
-	lowPrice := ndrutil.Amount(1)
+	lowPrice := types.Amount(1)
 	hashes, err = wcl.PurchaseTicket("default", lowPrice,
 		&minConf, nil, nil, nil, nil, nil, &noSplitTransactions, nil)
 	if err == nil {
@@ -1909,7 +1909,7 @@ func testPurchaseTickets(r *Harness, t *testing.T) {
 	desiredHeight := uint32(150)
 	numTicket = int(chaincfg.SimNetParams.MaxFreshStakePerBlock)
 	for curBlockHeight < desiredHeight {
-		priceLimit, err = ndrutil.NewAmount(2 * mustGetStakeDiffNext(r, t))
+		priceLimit, err = types.NewAmount(2 * mustGetStakeDiffNext(r, t))
 		if err != nil {
 			t.Fatal("Invalid Amount.", err)
 		}
@@ -1989,7 +1989,7 @@ func testGetStakeInfo(r *Harness, t *testing.T) {
 
 	// Buy tickets to check that they shows up in ownmempooltix/allmempooltix
 	minConf := 1
-	priceLimit, err := ndrutil.NewAmount(2 * mustGetStakeDiffNext(r, t))
+	priceLimit, err := types.NewAmount(2 * mustGetStakeDiffNext(r, t))
 	if err != nil {
 		t.Fatal("Invalid Amount.", err)
 	}
@@ -2064,7 +2064,7 @@ func testGetStakeInfo(r *Harness, t *testing.T) {
 	// Buy some more tickets (4 blocks worth) so chain doesn't stall when voting
 	// burns through the batch purchased above
 	for i := 0; i < 4; i++ {
-		priceLimit, err := ndrutil.NewAmount(2 * mustGetStakeDiffNext(r, t))
+		priceLimit, err := types.NewAmount(2 * mustGetStakeDiffNext(r, t))
 		if err != nil {
 			t.Fatal("Invalid Amount.", err)
 		}
@@ -2270,7 +2270,7 @@ func includesStakeTx(txHash *chainhash.Hash, block *ndrutil.Block) bool {
 
 // getWireMsgTxFee computes the effective absolute fee from a Tx as the amount
 // spent minus sent.
-func getWireMsgTxFee(tx *ndrutil.Tx) ndrutil.Amount {
+func getWireMsgTxFee(tx *ndrutil.Tx) types.Amount {
 	var totalSpent int64
 	for _, txIn := range tx.MsgTx().TxIn {
 		totalSpent += txIn.ValueIn
@@ -2281,7 +2281,7 @@ func getWireMsgTxFee(tx *ndrutil.Tx) ndrutil.Amount {
 		totalSent += txOut.Value
 	}
 
-	return ndrutil.Amount(totalSpent - totalSent)
+	return types.Amount(totalSpent - totalSent)
 }
 
 // getOutPointString uses OutPoint.String() to combine the tx hash with vout

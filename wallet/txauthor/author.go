@@ -10,8 +10,8 @@ package txauthor
 import (
 	"github.com/endurio/ndrd/chaincfg"
 	"github.com/endurio/ndrd/ndrec"
-	"github.com/endurio/ndrd/ndrutil"
 	"github.com/endurio/ndrd/txscript"
+	"github.com/endurio/ndrd/types"
 	"github.com/endurio/ndrd/wire"
 	"github.com/endurio/ndrw/errors"
 	h "github.com/endurio/ndrw/internal/helpers"
@@ -34,7 +34,7 @@ const (
 // amount, the generated inputs, the redeem scripts and the full redeem
 // script sizes.
 type InputDetail struct {
-	Amount            ndrutil.Amount
+	Amount            types.Amount
 	Inputs            []*wire.TxIn
 	Scripts           [][]byte
 	RedeemScriptSizes []int
@@ -44,14 +44,14 @@ type InputDetail struct {
 // construct a transaction outputting some target amount.  If the target amount
 // can not be satisified, this can be signaled by returning a total amount less
 // than the target or by returning a more detailed error.
-type InputSource func(target ndrutil.Amount) (detail *InputDetail, err error)
+type InputSource func(target types.Amount) (detail *InputDetail, err error)
 
 // AuthoredTx holds the state of a newly-created transaction and the change
 // output (if one was added).
 type AuthoredTx struct {
 	Tx                           *wire.MsgTx
 	PrevScripts                  [][]byte
-	TotalInput                   ndrutil.Amount
+	TotalInput                   types.Amount
 	ChangeIndex                  int // negative if no change
 	EstimatedSignedSerializeSize int
 }
@@ -81,7 +81,7 @@ type ChangeSource interface {
 // output scripts are returned.  If the input source was unable to provide
 // enough input value to pay for every output any any necessary fees, an
 // InputSourceError is returned.
-func NewUnsignedTransaction(outputs []*wire.TxOut, relayFeePerKb ndrutil.Amount,
+func NewUnsignedTransaction(outputs []*wire.TxOut, relayFeePerKb types.Amount,
 	fetchInputs InputSource, fetchChange ChangeSource) (*AuthoredTx, error) {
 
 	const op errors.Op = "txauthor.NewUnsignedTransaction"
@@ -134,7 +134,7 @@ func NewUnsignedTransaction(outputs []*wire.TxOut, relayFeePerKb ndrutil.Amount,
 					"pushable to the stack")
 			}
 			change := &wire.TxOut{
-				Value:    int64(changeAmount),
+				Value:    changeAmount,
 				Version:  changeScriptVersion,
 				PkScript: changeScript,
 			}

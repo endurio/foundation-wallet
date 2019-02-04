@@ -4,13 +4,13 @@ import (
 	"time"
 
 	"github.com/endurio/ndrd/blockchain"
-	"github.com/endurio/ndrd/ndrutil"
 	"github.com/endurio/ndrd/txscript"
+	"github.com/endurio/ndrd/types"
 	"github.com/endurio/ndrd/wire"
 	"github.com/endurio/ndrw/errors"
-	"github.com/endurio/ndrw/wallet/walletdb"
 	"github.com/endurio/ndrw/wallet/txauthor"
 	"github.com/endurio/ndrw/wallet/udb"
+	"github.com/endurio/ndrw/wallet/walletdb"
 )
 
 // OutputSelectionPolicy describes the rules for selecting an output from the
@@ -78,7 +78,7 @@ func (w *Wallet) UnspentOutputs(policy OutputSelectionPolicy) ([]*TransactionOut
 			result := &TransactionOutput{
 				OutPoint: output.OutPoint,
 				Output: wire.TxOut{
-					Value: int64(output.Amount),
+					Value: output.Amount,
 					// TODO: version is bogus but there is
 					// only version 0 at time of writing.
 					Version:  txscript.DefaultScriptVersion,
@@ -101,7 +101,7 @@ func (w *Wallet) UnspentOutputs(policy OutputSelectionPolicy) ([]*TransactionOut
 
 // SelectInputs selects transaction inputs to redeem unspent outputs stored in
 // the wallet.  It returns an input detail summary.
-func (w *Wallet) SelectInputs(targetAmount ndrutil.Amount, policy OutputSelectionPolicy) (inputDetail *txauthor.InputDetail, err error) {
+func (w *Wallet) SelectInputs(targetAmount types.Amount, policy OutputSelectionPolicy) (inputDetail *txauthor.InputDetail, err error) {
 	const op errors.Op = "wallet.SelectInputs"
 	err = walletdb.View(w.db, func(tx walletdb.ReadTx) error {
 		addrmgrNs := tx.ReadBucket(waddrmgrNamespaceKey)
@@ -134,7 +134,7 @@ func (w *Wallet) SelectInputs(targetAmount ndrutil.Amount, policy OutputSelectio
 // using an outpoint.
 type OutputInfo struct {
 	Received     time.Time
-	Amount       ndrutil.Amount
+	Amount       types.Amount
 	FromCoinbase bool
 }
 
@@ -155,7 +155,7 @@ func (w *Wallet) OutputInfo(out *wire.OutPoint) (OutputInfo, error) {
 		}
 
 		info.Received = txDetails.Received
-		info.Amount = ndrutil.Amount(txDetails.TxRecord.MsgTx.TxOut[out.Index].Value)
+		info.Amount = types.Amount(txDetails.TxRecord.MsgTx.TxOut[out.Index].Value)
 		info.FromCoinbase = blockchain.IsCoinBaseTx(&txDetails.TxRecord.MsgTx)
 		return nil
 	})

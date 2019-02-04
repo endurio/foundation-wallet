@@ -19,12 +19,13 @@ import (
 	"github.com/endurio/ndrd/blockchain"
 	"github.com/endurio/ndrd/chaincfg"
 	"github.com/endurio/ndrd/chaincfg/chainhash"
-	"github.com/endurio/ndrd/ndrjson"
 	"github.com/endurio/ndrd/hdkeychain"
 	"github.com/endurio/ndrd/ndrec"
+	"github.com/endurio/ndrd/ndrjson"
 	"github.com/endurio/ndrd/ndrutil"
 	"github.com/endurio/ndrd/rpcclient"
 	"github.com/endurio/ndrd/txscript"
+	"github.com/endurio/ndrd/types"
 	"github.com/endurio/ndrd/wire"
 	"github.com/endurio/ndrw/chain"
 	"github.com/endurio/ndrw/errors"
@@ -551,10 +552,10 @@ func getBalance(s *Server, icmd interface{}) (interface{}, error) {
 		}
 
 		var (
-			totImmatureCoinbase ndrutil.Amount
-			totSpendable        ndrutil.Amount
-			totUnconfirmed      ndrutil.Amount
-			cumTot              ndrutil.Amount
+			totImmatureCoinbase types.Amount
+			totSpendable        types.Amount
+			totUnconfirmed      types.Amount
+			cumTot              types.Amount
 		)
 
 		balancesLen := uint32(len(balances))
@@ -693,7 +694,7 @@ func getInfo(s *Server, icmd interface{}) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	var spendableBalance ndrutil.Amount
+	var spendableBalance types.Amount
 	for _, balance := range balances {
 		spendableBalance += balance.Spendable
 	}
@@ -1298,9 +1299,9 @@ func getTransaction(s *Server, icmd interface{}) (interface{}, error) {
 	}
 
 	var (
-		debitTotal  ndrutil.Amount
-		creditTotal ndrutil.Amount
-		fee         ndrutil.Amount
+		debitTotal  types.Amount
+		creditTotal types.Amount
+		fee         types.Amount
 		negFeeF64   float64
 	)
 	for _, deb := range txd.Debits {
@@ -1311,9 +1312,9 @@ func getTransaction(s *Server, icmd interface{}) (interface{}, error) {
 	}
 	// Fee can only be determined if every input is a debit.
 	if len(txd.Debits) == len(txd.MsgTx.TxIn) {
-		var outputTotal ndrutil.Amount
+		var outputTotal types.Amount
 		for _, output := range txd.MsgTx.TxOut {
-			outputTotal += ndrutil.Amount(output.Value)
+			outputTotal += types.Amount(output.Value)
 		}
 		fee = debitTotal - outputTotal
 		negFeeF64 = (-fee).ToCoin()
@@ -1531,7 +1532,7 @@ func listReceivedByAddress(s *Server, icmd interface{}) (interface{}, error) {
 	// Intermediate data for each address.
 	type AddrData struct {
 		// Total amount received.
-		amount ndrutil.Amount
+		amount types.Amount
 		// Number of confirmations of the last transaction.
 		confirmations int32
 		// Hashes of transactions which include an output paying to the address
@@ -1819,7 +1820,7 @@ func lockUnspent(s *Server, icmd interface{}) (interface{}, error) {
 // strings to amounts.  This is used to create the outputs to include in newly
 // created transactions from a JSON object describing the output destinations
 // and amounts.
-func makeOutputs(pairs map[string]ndrutil.Amount, chainParams *chaincfg.Params) ([]*wire.TxOut, error) {
+func makeOutputs(pairs map[string]types.Amount, chainParams *chaincfg.Params) ([]*wire.TxOut, error) {
 	outputs := make([]*wire.TxOut, 0, len(pairs))
 	for addrStr, amt := range pairs {
 		if amt < 0 {
@@ -1835,7 +1836,7 @@ func makeOutputs(pairs map[string]ndrutil.Amount, chainParams *chaincfg.Params) 
 			return nil, err
 		}
 
-		outputs = append(outputs, wire.NewTxOut(int64(amt), pkScript))
+		outputs = append(outputs, wire.NewTxOut(amt, pkScript))
 	}
 	return outputs, nil
 }
@@ -1843,7 +1844,7 @@ func makeOutputs(pairs map[string]ndrutil.Amount, chainParams *chaincfg.Params) 
 // sendPairs creates and sends payment transactions.
 // It returns the transaction hash in string format upon success
 // All errors are returned in ndrjson.RPCError format
-func sendPairs(w *wallet.Wallet, amounts map[string]ndrutil.Amount, account uint32, minconf int32) (string, error) {
+func sendPairs(w *wallet.Wallet, amounts map[string]types.Amount, account uint32, minconf int32) (string, error) {
 	outputs, err := makeOutputs(amounts, w.ChainParams())
 	if err != nil {
 		return "", err
@@ -1913,7 +1914,7 @@ func redeemMultiSigOut(s *Server, icmd interface{}) (interface{}, error) {
 		return nil, errors.E("P2SH redeem script is not multisig")
 	}
 	var msgTx wire.MsgTx
-	txIn := wire.NewTxIn(&op, int64(p2shOutput.OutputAmount), nil)
+	txIn := wire.NewTxIn(&op, p2shOutput.OutputAmount, nil)
 	msgTx.AddTxIn(txIn)
 
 	pkScript, err := txscript.PayToAddrScript(addr)
@@ -2075,11 +2076,11 @@ func sendFrom(s *Server, icmd interface{}) (interface{}, error) {
 		return nil, rpcErrorf(ndrjson.ErrRPCInvalidParameter, "negative minconf")
 	}
 	// Create map of address and amount pairs.
-	amt, err := ndrutil.NewAmount(cmd.Amount)
+	amt, err := types.NewAmount(cmd.Amount)
 	if err != nil {
 		return nil, rpcError(ndrjson.ErrRPCInvalidParameter, err)
 	}
-	pairs := map[string]ndrutil.Amount{
+	pairs := map[string]types.Amount{
 		cmd.ToAddress: amt,
 	}
 
@@ -2115,10 +2116,10 @@ func sendMany(s *Server, icmd interface{}) (interface{}, error) {
 		return nil, rpcErrorf(ndrjson.ErrRPCInvalidParameter, "negative minconf")
 	}
 
-	// Recreate address/amount pairs, using ndrutil.Amount.
-	pairs := make(map[string]ndrutil.Amount, len(cmd.Amounts))
+	// Recreate address/amount pairs, using types.Amount.
+	pairs := make(map[string]types.Amount, len(cmd.Amounts))
 	for k, v := range cmd.Amounts {
-		amt, err := ndrutil.NewAmount(v)
+		amt, err := types.NewAmount(v)
 		if err != nil {
 			return nil, rpcError(ndrjson.ErrRPCInvalidParameter, err)
 		}
@@ -2146,7 +2147,7 @@ func sendToAddress(s *Server, icmd interface{}) (interface{}, error) {
 		return nil, rpcErrorf(ndrjson.ErrRPCUnimplemented, "transaction comments are unsupported")
 	}
 
-	amt, err := ndrutil.NewAmount(cmd.Amount)
+	amt, err := types.NewAmount(cmd.Amount)
 	if err != nil {
 		return nil, err
 	}
@@ -2157,7 +2158,7 @@ func sendToAddress(s *Server, icmd interface{}) (interface{}, error) {
 	}
 
 	// Mock up map of address and amount pairs.
-	pairs := map[string]ndrutil.Amount{
+	pairs := map[string]types.Amount{
 		cmd.Address: amt,
 	}
 
@@ -2184,7 +2185,7 @@ func sendToMultiSig(s *Server, icmd interface{}) (interface{}, error) {
 	}
 
 	account := uint32(udb.DefaultAccountNum)
-	amount, err := ndrutil.NewAmount(cmd.Amount)
+	amount, err := types.NewAmount(cmd.Amount)
 	if err != nil {
 		return nil, rpcError(ndrjson.ErrRPCInvalidParameter, err)
 	}
@@ -2257,7 +2258,7 @@ func setTxFee(s *Server, icmd interface{}) (interface{}, error) {
 		return nil, rpcErrorf(ndrjson.ErrRPCInvalidParameter, "negative amount")
 	}
 
-	relayFee, err := ndrutil.NewAmount(cmd.Amount)
+	relayFee, err := types.NewAmount(cmd.Amount)
 	if err != nil {
 		return nil, rpcError(ndrjson.ErrRPCInvalidParameter, err)
 	}
@@ -2633,7 +2634,7 @@ func sweepAccount(s *Server, icmd interface{}) (interface{}, error) {
 	feePerKb := w.RelayFee()
 	if cmd.FeePerKb != nil {
 		var err error
-		feePerKb, err = ndrutil.NewAmount(*cmd.FeePerKb)
+		feePerKb, err = types.NewAmount(*cmd.FeePerKb)
 		if err != nil {
 			return nil, rpcError(ndrjson.ErrRPCInvalidParameter, err)
 		}
